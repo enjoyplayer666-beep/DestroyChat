@@ -74,6 +74,12 @@ lp group mediajr permission set destroylobby.prefix.format true
 lp group mediajr permission set destroylobby.chat.colors true
 lp group mediajr permission set destroylobby.chat.color true
 
+--- всем игрокам: /menu и /warps (телепорты из меню идут через /warp Essentials) ---
+lp group default permission set essentials.warp true
+lp group default permission set essentials.warp.list true
+lp group staffperms permission set essentials.warp true
+lp group staffperms permission set essentials.warp.list true
+
 --- персоналу: /color, префиксы, /fly, /gm (через общую группу staffperms) ---
 lp creategroup staffperms
 lp group staffperms permission set destroylobby.customprefix true
