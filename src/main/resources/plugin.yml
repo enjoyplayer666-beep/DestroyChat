@@ -1,0 +1,31 @@
+name: DestroyChat
+version: '${project.version}'
+main: ru.dscraft.destroychat.DestroyChatPlugin
+api-version: '1.21'
+author: DestroyCraft
+description: Чат DestroyCraft, работает в паре с DestroyLobby
+softdepend: [LuckPerms, DestroyLobby]
+
+commands:
+  destroychat:
+    description: Перезагрузка конфига чата
+    usage: /destroychat reload
+    permission: destroychat.admin
+  color:
+    description: Цвет сообщений в чате
+    usage: /color <цвет> | /color reset
+  chatprefix:
+    description: Отдельный префикс для чата (то же, что /prefix chat)
+    usage: /chatprefix <текст> | /chatprefix reset
+
+permissions:
+  destroychat.admin:
+    default: op
+  destroylobby.prefix.chat:
+    default: false
+  destroylobby.chat.colors:
+    default: false
+  destroylobby.chat.color:
+    default: false
+  destroylobby.chat.spy:
+    default: false
