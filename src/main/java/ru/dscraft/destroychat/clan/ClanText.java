@@ -22,6 +22,11 @@ public final class ClanText {
 
     public static final String PREFIX = "<#8C7BFF>[Кланы]</#8C7BFF> ";
     private static final String BOX = "<#6F63C9>";
+    /** Рамка топа кланов, как на сервере-образце. */
+    private static final String TOP_BORDER = "<#7B6FE0>";
+    private static final String TOP_LINE = "<#7B6FE0>│</#7B6FE0> ";
+    private static final String DASHES = "- - - - - - - - - - - ";
+    private static final String DASHES_MID = "- - - - - - - ";
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm")
             .withZone(ZoneId.systemDefault());
 
@@ -99,15 +104,15 @@ public final class ClanText {
         int pages = Math.max(1, (top.size() + size - 1) / size);
         page = Math.max(1, Math.min(page, pages));
 
-        player.sendMessage(ColorUtil.parse("<#8C7BFF>              [<white>Топ кланов</white>]</#8C7BFF>"));
+        player.sendMessage(ColorUtil.parse(TOP_BORDER + "╭" + DASHES + "</#7B6FE0><white>[Топ кланов]</white>"
+                + TOP_BORDER + DASHES + "╮</#7B6FE0>"));
         if (top.isEmpty()) {
-            player.sendMessage(ColorUtil.parse("<gray>Пока нет ни одного клана. Создай первый: <white>/c create \\<название></white></gray>"));
-            return;
+            player.sendMessage(ColorUtil.parse(TOP_LINE + "<gray>Пока нет ни одного клана. Создай первый: <white>/c create \\<название></white></gray>"));
         }
         for (int i = (page - 1) * size; i < Math.min(top.size(), page * size); i++) {
             Clan clan = top.get(i);
-            Component line = ColorUtil.parse("<red><place>.</red> <clan> <dark_gray>-</dark_gray> <white><owner></white> "
-                            + "<gray>[</gray><red><rating> КР</red><gray>]</gray>",
+            Component line = ColorUtil.parse(TOP_LINE + "<red><place>.</red> <clan> <gray>-</gray> <#C8C8C8><owner></#C8C8C8> "
+                            + "<gray>[</gray><red><rating></red> <white>КР</white><gray>]</gray>",
                     Placeholder.unparsed("place", String.valueOf(i + 1)),
                     Placeholder.component("clan", name(clan)),
                     Placeholder.unparsed("owner", clan.ownerName()),
@@ -121,10 +126,12 @@ public final class ClanText {
         }
         if (page < pages) {
             String cmd = "/c top " + (page + 1);
-            player.sendMessage(ColorUtil.parse("<white>Следующая страница: <aqua><cmd></aqua></white>",
+            player.sendMessage(ColorUtil.parse(TOP_LINE + "<#C8C8C8>Следующая страница: <white><cmd></white></#C8C8C8>",
                             Placeholder.unparsed("cmd", cmd))
-                    .clickEvent(ClickEvent.runCommand(cmd)));
+                    .clickEvent(ClickEvent.runCommand(cmd))
+                    .hoverEvent(HoverEvent.showText(ColorUtil.parse("<gray>Нажми, чтобы открыть</gray>"))));
         }
+        player.sendMessage(ColorUtil.parse(TOP_BORDER + "╰" + DASHES + DASHES_MID + DASHES + "╯</#7B6FE0>"));
     }
 
     /** Перенос текста по словам. */

@@ -21,8 +21,8 @@ nobody-heard-message: "<gray>Рядом никого нет. Поставь <whi
 
 format:
   # <icon> - значок канала, <clan> - тег клана (пусто, если игрок не в клане),
-  # <prefix> - префикс, <name> - ник
-  layout: "<icon> <clan><prefix><name> <dark_gray>→</dark_gray> "
+  # <prefix> - префикс, <name> - ник, <stars> - звёзды персонала (staff-stars)
+  layout: "<icon> <clan><prefix><name><stars> <dark_gray>→</dark_gray> "
   # значки из ресурс-пака (белый цвет = родные цвета картинки)
   local-icon: "<white>Ⓛ</white>"
   global-icon: "<white>Ⓖ</white>"
@@ -35,6 +35,14 @@ format:
   global-message-color: "<#DBA078>"
   # клик по нику в чате -> /msg ник
   name-click-msg: true
+
+# звёзды после ника в чате для персонала: группа LuckPerms -> звёзды.
+# Проверяется сверху вниз, берётся первая группа, которая есть у игрока (с учётом наследования).
+staff-stars:
+  curator: "<red>★★★★</red>"
+  admin: "<red>★★★</red>"
+  moderator: "<yellow>★★</yellow>"
+  helper: "<green>★</green>"
 
 chat-prefix:
   # /prefix chat - максимум видимых символов (без учёта цветов)
@@ -57,6 +65,9 @@ clans:
   kill-message: "<green>Вашему клану добавлено <yellow><amount></yellow> кланового рейтинга!</green>"
   # сообщение убитому, если его клан потерял КР ("" - не писать)
   death-message: "<red>Ваш клан потерял <yellow><amount></yellow> кланового рейтинга.</red>"
+  # надпись на экране после нажатия "Создать клан" в меню (можно &/§-коды, §x-hex, MiniMessage)
+  create-title: "§x§8§9§F§F§B§C§l§oН§x§8§8§F§E§B§6§l§oа§x§8§7§F§C§B§0§l§oп§x§8§5§F§B§A§9§l§oи§x§8§4§F§9§A§3§l§oш§x§8§3§F§8§9§D§l§oи§x§8§2§F§7§9§7§l§oт§x§8§1§F§5§9§1§l§oе §x§7§E§F§3§8§4§l§oн§x§7§D§F§1§7§E§l§oа§x§7§C§F§0§7§8§l§oз§x§7§B§E§E§7§2§l§oв§x§7§A§E§D§6§C§l§oа§x§7§9§E§C§6§6§l§oн§x§7§7§E§A§5§F§l§oи§x§7§6§E§9§5§9§l§oе §x§7§4§E§6§4§D§l§oк§x§7§3§E§5§4§7§l§oл§x§7§2§E§3§4§1§l§oа§x§7§0§E§2§3§A§l§oн§x§6§F§E§1§3§4§l§oа §x§6§D§D§E§2§8§l§oв §x§6§B§D§B§1§C§l§oч§x§6§9§D§A§1§5§l§oа§x§6§8§D§8§0§F§l§oт§x§6§7§D§7§0§9§l§o!"
+  create-subtitle: "<gray>Для отмены напишите <white>отмена</white></gray>"
   name-min-length: 3
   name-max-length: 16
   max-members: 50

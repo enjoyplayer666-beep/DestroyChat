@@ -2,6 +2,7 @@ package ru.dscraft.destroychat.clan;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -16,6 +17,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 import ru.dscraft.destroychat.util.ColorUtil;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ClanListener implements Listener {
 
-    private enum InputType { DESCRIPTION, INVITE, RANK }
+    private enum InputType { CREATE, DESCRIPTION, INVITE, RANK }
 
     private record PendingInput(InputType type, String clanId, UUID target, long expiresAt) {
     }
@@ -88,6 +90,7 @@ public class ClanListener implements Listener {
             case ClanMenus.SLOT_MY_CLAN -> {
                 Clan mine = manager.getClan(player);
                 if (mine != null) ClanMenus.openClan(player, manager, mine, 0);
+                else askCreate(player);
             }
             default -> {
             }
@@ -207,6 +210,17 @@ public class ClanListener implements Listener {
 
     // ---------------- ввод в чат ----------------
 
+    /** "Создать клан": надпись на экране и ожидание названия в чате. */
+    private void askCreate(Player player) {
+        player.closeInventory();
+        pending.put(player.getUniqueId(), new PendingInput(InputType.CREATE, null, null,
+                System.currentTimeMillis() + INPUT_TIMEOUT_MS));
+        player.showTitle(Title.title(
+                ColorUtil.rich(actions.config().clanCreateTitle()),
+                ColorUtil.rich(actions.config().clanCreateSubtitle()),
+                Title.Times.times(Duration.ofMillis(300), Duration.ofMillis(INPUT_TIMEOUT_MS), Duration.ofMillis(500))));
+    }
+
     private void askInput(Player player, InputType type, Clan clan, UUID target, String prompt, String... name) {
         player.closeInventory();
         pending.put(player.getUniqueId(), new PendingInput(type, clan.id(), target,
@@ -225,8 +239,16 @@ public class ClanListener implements Listener {
         String text = ColorUtil.plain(event.message()).trim();
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (!player.isOnline()) return;
+            if (input.type() == InputType.CREATE) player.clearTitle();
             if (text.equalsIgnoreCase("отмена") || text.equalsIgnoreCase("cancel")) {
                 actions.msg(player, "<gray>Отменено.</gray>");
+                return;
+            }
+            if (input.type() == InputType.CREATE) {
+                boolean hadClan = manager.getClan(player) != null;
+                actions.create(player, text.split("\\s+")[0]);
+                Clan created = manager.getClan(player);
+                if (!hadClan && created != null) ClanMenus.openClan(player, manager, created, 0);
                 return;
             }
             Clan clan = manager.getById(input.clanId());
@@ -235,6 +257,8 @@ public class ClanListener implements Listener {
                 return;
             }
             switch (input.type()) {
+                case CREATE -> {
+                }
                 case DESCRIPTION -> actions.setDescription(player, text);
                 case INVITE -> actions.invite(player, text.split("\\s+")[0]);
                 case RANK -> actions.setRank(player, input.target(), text);

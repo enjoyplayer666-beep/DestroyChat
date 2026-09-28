@@ -151,8 +151,9 @@ public final class ClanMenus {
         } else {
             inv.setItem(SLOT_MY_CLAN, item(Material.WRITABLE_BOOK, ColorUtil.parse("<green>Создать клан</green>"),
                     lines("<gray>Ты пока не в клане.</gray>",
-                            "<gray>Создать свой:</gray> <white>/c create \\<название></white>",
-                            "<gray>Или вступи в открытый клан из списка.</gray>")));
+                            "<gray>Или вступи в открытый клан из списка.</gray>",
+                            "",
+                            "<yellow>Нажми</yellow><gray>, чтобы создать клан.</gray>")));
         }
         player.openInventory(inv);
     }

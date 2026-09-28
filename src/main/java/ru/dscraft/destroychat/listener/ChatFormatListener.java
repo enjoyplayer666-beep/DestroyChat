@@ -121,7 +121,15 @@ public class ChatFormatListener implements Listener {
                 Placeholder.component("icon", icon),
                 Placeholder.component("clan", resolveClanTag(sender)),
                 Placeholder.component("prefix", prefix),
-                Placeholder.component("name", name));
+                Placeholder.component("name", name),
+                Placeholder.component("stars", resolveStars(sender)));
+    }
+
+    /** Звёзды персонала после ника (staff-stars в config.yml), с пробелом перед ними. */
+    private Component resolveStars(Player sender) {
+        String stars = config.staffStars(group -> sender.hasPermission("group." + group));
+        if (stars == null || stars.isBlank()) return Component.empty();
+        return Component.space().append(ColorUtil.parse(stars));
     }
 
     /** [Клан] с карточкой клана при наведении, пусто - если игрок не в клане. */

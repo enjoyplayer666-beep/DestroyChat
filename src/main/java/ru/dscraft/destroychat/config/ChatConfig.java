@@ -4,6 +4,8 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import ru.dscraft.destroychat.DestroyChatPlugin;
 
+import java.util.function.Predicate;
+
 /** Настройки из config.yml плагина DestroyChat. */
 public class ChatConfig {
 
@@ -42,12 +44,26 @@ public class ChatConfig {
     // ---- формат ----
 
     public String layout() {
-        String layout = cfg.getString("format.layout", "<icon> <clan><prefix><name> <dark_gray>→</dark_gray> ");
+        String layout = cfg.getString("format.layout", "<icon> <clan><prefix><name><stars> <dark_gray>→</dark_gray> ");
         // старые конфиги без <clan>: тег клана встаёт сразу после значка канала
         if (!layout.contains("<clan>")) {
             layout = layout.contains("<icon> ") ? layout.replace("<icon> ", "<icon> <clan>") : "<clan>" + layout;
         }
+        // старые конфиги без <stars>: звёзды сразу после ника
+        if (!layout.contains("<stars>")) {
+            layout = layout.contains("<name>") ? layout.replace("<name>", "<name><stars>") : layout;
+        }
         return layout;
+    }
+
+    /** Звёзды персонала: первая подходящая группа из staff-stars, null - нет. */
+    public String staffStars(Predicate<String> hasGroup) {
+        ConfigurationSection s = cfg.getConfigurationSection("staff-stars");
+        if (s == null) return null;
+        for (String group : s.getKeys(false)) {
+            if (hasGroup.test(group)) return s.getString(group);
+        }
+        return null;
     }
 
     public String localIcon() {
@@ -114,6 +130,14 @@ public class ChatConfig {
 
     public String clanDeathMessage() {
         return cfg.getString("clans.death-message", "");
+    }
+
+    public String clanCreateTitle() {
+        return cfg.getString("clans.create-title", "<green>Напишите название клана в чат!</green>");
+    }
+
+    public String clanCreateSubtitle() {
+        return cfg.getString("clans.create-subtitle", "<gray>Для отмены напишите <white>отмена</white></gray>");
     }
 
     public int clanNameMinLength() {
