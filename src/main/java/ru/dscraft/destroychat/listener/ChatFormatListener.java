@@ -107,10 +107,17 @@ public class ChatFormatListener implements Listener {
 
     private Component buildHead(Player sender, boolean global) {
         Component icon = ColorUtil.parse(global ? config.globalIcon() : config.localIcon());
-        Component prefix = resolvePrefix(sender);
+        ChatConfig.GroupFormat group = config.groupFormat(luckPermsHook.getPrimaryGroup(sender),
+                g -> sender.hasPermission("group." + g));
+        Component prefix = resolvePrefix(sender, group);
 
-        Component name = Component.text(sender.getName(),
-                ColorUtil.parseColor(config.nameColor(), NamedTextColor.GRAY));
+        Component name;
+        if (group != null && group.nameStyle() != null && !group.nameStyle().isBlank()) {
+            // ник персонала: стиль из group-formats (например &f&l - белый жирный)
+            name = Component.empty().append(ColorUtil.rich(group.nameStyle() + sender.getName()));
+        } else {
+            name = Component.text(sender.getName(), ColorUtil.parseColor(config.nameColor(), NamedTextColor.GRAY));
+        }
         if (config.nameClickMsg()) {
             name = name
                     .clickEvent(ClickEvent.suggestCommand("/msg " + sender.getName() + " "))
@@ -139,11 +146,14 @@ public class ChatFormatListener implements Listener {
         return clan == null ? Component.empty() : ClanText.chatTag(clan, clanManager, config);
     }
 
-    /** Личный чат-префикс -> префикс LuckPerms -> "⌜Игрок⌟" из конфига. */
-    private Component resolvePrefix(Player sender) {
+    /** Префикс группы (group-formats) -> личный чат-префикс -> префикс LuckPerms -> "⌜Игрок⌟" из конфига. */
+    private Component resolvePrefix(Player sender, ChatConfig.GroupFormat group) {
         String raw = null;
 
-        if (sender.hasPermission(Perms.PREFIX_CHAT)) {
+        if (group != null && group.chatPrefix() != null && !group.chatPrefix().isBlank()) {
+            raw = group.chatPrefix();
+        }
+        if (raw == null && sender.hasPermission(Perms.PREFIX_CHAT)) {
             String own = luckPermsHook.getMetaValue(sender, Perms.META_CHAT_PREFIX);
             if (own != null && !own.isBlank()) raw = own;
         }

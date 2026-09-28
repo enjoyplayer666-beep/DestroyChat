@@ -1,0 +1,54 @@
+Команды LuckPerms для персонала (вводить в консоль сервера, без / в начале,
+или в игре с / в начале). Префикс группы - иконка в табе, ник белый (&f),
+суффикс - зелёная галочка. Чат DestroyChat берёт оформление персонала из
+config.yml -> group-formats, поэтому иконка в чат не попадёт.
+
+ВАЖНО: вместо <ИКОНКА> вставь символ-иконку из своего ресурс-пака
+(у curator, moderator и media иконки при отправке сообщения потерялись).
+Если группа уже есть, creategroup просто скажет, что она существует - это нормально.
+
+--- admin ---
+lp creategroup admin
+lp group admin meta removeprefix 1000
+lp group admin meta setprefix 1000 "🤪 &f"
+lp group admin meta removesuffix 1000
+lp group admin meta setsuffix 1000 " &a&l✔"
+
+--- curator ---
+lp creategroup curator
+lp group curator meta removeprefix 1000
+lp group curator meta setprefix 1000 "<ИКОНКА> &f"
+lp group curator meta removesuffix 1000
+lp group curator meta setsuffix 1000 " &a&l✔"
+
+--- manager ---
+lp creategroup manager
+lp group manager meta removeprefix 1000
+lp group manager meta setprefix 1000 "ɱ &f"
+lp group manager meta removesuffix 1000
+lp group manager meta setsuffix 1000 " &a&l✔"
+
+--- moderator ---
+lp creategroup moderator
+lp group moderator meta removeprefix 1000
+lp group moderator meta setprefix 1000 "<ИКОНКА> &f"
+lp group moderator meta removesuffix 1000
+lp group moderator meta setsuffix 1000 " &a&l✔"
+
+--- media (ник в табе переливается - это делает DestroyChat, tab.animated-groups) ---
+lp creategroup media
+lp group media meta removeprefix 1000
+lp group media meta setprefix 1000 "<ИКОНКА> &f"
+lp group media meta removesuffix 1000
+lp group media meta setsuffix 1000 " &a&l✔"
+
+--- mediajr ---
+lp creategroup mediajr
+lp group mediajr meta removeprefix 1000
+lp group mediajr meta setprefix 1000 "🤪 &f"
+lp group mediajr meta removesuffix 1000
+lp group mediajr meta setsuffix 1000 " &a&l✔"
+
+--- выдать группу игроку ---
+lp user <ник> parent set admin        (заменит основную группу)
+lp user <ник> parent add admin        (добавит группу к имеющимся)

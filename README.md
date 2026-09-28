@@ -7,7 +7,11 @@
 - Обычное сообщение - локальный чат (Ⓛ, радиус `local-radius`), с `!` в начале - глобальный (Ⓖ).
 - После ника - звёзды персонала (`staff-stars` в config.yml, по группе LuckPerms):
   curator ★★★★ (красные), admin ★★★ (красные), moderator ★★ (жёлтые), helper ★ (зелёная).
-- Ник всегда `&7`. Префикс: личный чат-префикс → префикс привилегии из LuckPerms → `⌜Игрок⌟`.
+- Персонал (curator, admin, manager, moderator, media, mediajr): префикс и стиль ника в чате - из
+  `group-formats` в config.yml. Иконка/суффикс для таба ставятся в LuckPerms - команды в `LUCKPERMS-STAFF.txt`.
+- Таб: префикс LuckPerms + белый ник + суффикс LuckPerms, у media ник переливается (`tab:` в config.yml).
+  Если на сервере стоит плагин TAB, этот модуль выключается сам.
+- Ник всегда `&7` (кроме персонала из `group-formats`). Префикс: личный чат-префикс → префикс привилегии из LuckPerms → `⌜Игрок⌟`.
 - Значки Ⓛ / Ⓖ - из ресурс-пака SP-DS.
 
 ## В паре с DestroyLobby
@@ -21,7 +25,8 @@ DestroyChat только оформляет сообщения и считает
 
 - `/prefix chat <текст>` или `/chatprefix <текст>` (Ultra+) - префикс только для чата, можно с градиентом:
   `/prefix chat <gradient:#FF5555:#FFFF55>Король</gradient>`. Сброс: `/prefix chat reset`.
-- `/color <цвет>` (Elite SP) - цвет сообщений: `&d`, `#FF55FF`, `#FF5555:#FFFF55`, `красный`, `rainbow`.
+- `/color <цвет>` (Elite SP) - цвет сообщений: `&d`, `#FF55FF`, `#FF5555:#FFFF55`, `красный`, `rainbow`,
+  а также `&x&D&D&D&D&D&D&l` (с жирным), `&x&F&F&0&0&0&0 &x&0&0&F&F&0&0` (градиент до 6 цветов), `&a&l`.
   Сброс: `/color reset`.
 - `/destroychat reload` - перезагрузить config.yml.
 

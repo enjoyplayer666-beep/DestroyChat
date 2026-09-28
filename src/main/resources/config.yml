@@ -44,6 +44,42 @@ staff-stars:
   moderator: "<yellow>★★</yellow>"
   helper: "<green>★</green>"
 
+# Оформление персонала в чате. Префикс отсюда заменяет префикс LuckPerms (в LuckPerms у этих
+# групп префикс - иконка для таба), name-style - цвет/стиль ника (&f&l - белый жирный).
+# Группа выбирается по основной группе LuckPerms, иначе - первая по порядку, которая есть у игрока.
+group-formats:
+  curator:
+    chat-prefix: "&8&l[§x§D§E§0§0§0§0§lᴄᴜʀᴀᴛᴏʀ&8&l] [ §x§0§0§F§F§C§B§lsᴘ §x§F§F§2§9§2§9§l✔&8&l] "
+    name-style: "&f&l"
+  admin:
+    chat-prefix: "&8&l[§x§F§F§0§0§0§0§lᴀᴅᴍɪɴ&8&l] [ §x§F§E§7§1§0§5§lᴅ§x§F§F§0§0§0§0§ls &a&l✔&8&l] "
+    name-style: "&f&l"
+  manager:
+    chat-prefix: "&8&l[§x§0§0§E§0§F§F§lᴍᴀɴᴀɢᴇʀ&8&l] [ §x§F§F§2§B§3§C§lᴅs &a&l✔&8&l] "
+    name-style: "&f&l"
+  moderator:
+    chat-prefix: "&8&l[§x§6§D§1§6§1§D§lᴍᴏᴅᴇʀᴀᴛᴏʀ&8&l] [ §x§D§D§D§1§2§E§lᴅs &a&l✔&8&l] "
+    name-style: "&f&l"
+  media:
+    chat-prefix: "&8&l[§x§2§E§D§D§C§8§lᴍᴇᴅɪᴀ&8&l] [ §x§D§D§D§D§D§D§lᴅs &a&l✔&8&l] "
+    name-style: "&f&l"
+  mediajr:
+    chat-prefix: "&8&l[§x§2§E§D§D§C§8§lᴍᴇᴅɪᴀ&8&l] [ §x§D§D§D§D§D§D§lᴅs &a&l✔&8&l] "
+    name-style: "&f&l"
+
+# Таб: префикс LuckPerms + ник + суффикс LuckPerms. Если стоит плагин TAB - этот модуль выключается сам.
+tab:
+  enabled: true
+  # цвет ника в табе
+  name-color: "&f"
+  # как часто обновлять (в тиках, 20 = 1 секунда); влияет на плавность переливания
+  update-ticks: 2
+  # у этих групп ник в табе переливается: цвета по кругу, speed - скорость
+  animated-groups:
+    media:
+      colors: ["#FFFFFF", "#2EDDC8"]
+      speed: 0.04
+
 chat-prefix:
   # /prefix chat - максимум видимых символов (без учёта цветов)
   max-length: 24

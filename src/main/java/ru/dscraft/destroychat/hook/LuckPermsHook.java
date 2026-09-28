@@ -39,6 +39,20 @@ public class LuckPermsHook {
         return prefix == null ? "" : prefix;
     }
 
+    /** Суффикс (например " &a&l✔" у персонала), пустая строка если нет. */
+    public String getSuffix(Player player) {
+        User user = getUser(player);
+        if (user == null) return "";
+        String suffix = user.getCachedData().getMetaData().getSuffix();
+        return suffix == null ? "" : suffix;
+    }
+
+    /** Основная группа игрока в LuckPerms, null если LuckPerms нет. */
+    public String getPrimaryGroup(Player player) {
+        User user = getUser(player);
+        return user == null ? null : user.getPrimaryGroup();
+    }
+
     public String getMetaValue(Player player, String key) {
         User user = getUser(player);
         if (user == null) return null;

@@ -4,6 +4,8 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import ru.dscraft.destroychat.DestroyChatPlugin;
 
+import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 
 /** Настройки из config.yml плагина DestroyChat. */
@@ -57,6 +59,61 @@ public class ChatConfig {
             layout = layout.contains("<name>") ? layout.replace("<name>", "<name><stars>") : layout;
         }
         return layout;
+    }
+
+    /** Оформление группы в чате: префикс вместо префикса LuckPerms и стиль ника. */
+    public record GroupFormat(String chatPrefix, String nameStyle) {
+    }
+
+    /**
+     * Формат из group-formats: сначала по основной группе LuckPerms, иначе первая группа по порядку
+     * в конфиге, которая есть у игрока. null - у игрока нет такой группы.
+     */
+    public GroupFormat groupFormat(String primaryGroup, Predicate<String> hasGroup) {
+        ConfigurationSection s = cfg.getConfigurationSection("group-formats");
+        if (s == null) return null;
+        String found = null;
+        if (primaryGroup != null && s.isConfigurationSection(primaryGroup)) {
+            found = primaryGroup;
+        } else {
+            for (String group : s.getKeys(false)) {
+                if (hasGroup.test(group)) {
+                    found = group;
+                    break;
+                }
+            }
+        }
+        if (found == null) return null;
+        return new GroupFormat(s.getString(found + ".chat-prefix", ""), s.getString(found + ".name-style", ""));
+    }
+
+    // ---- таб ----
+
+    public boolean tabEnabled() {
+        return cfg.getBoolean("tab.enabled", true);
+    }
+
+    public String tabNameColor() {
+        return cfg.getString("tab.name-color", "&f");
+    }
+
+    public int tabUpdateTicks() {
+        return Math.max(1, cfg.getInt("tab.update-ticks", 2));
+    }
+
+    /** Цвета переливания ника в табе для группы, null - группа не переливается. */
+    public List<String> tabAnimation(String group) {
+        List<String> colors = cfg.getStringList("tab.animated-groups." + group + ".colors");
+        return colors.size() < 2 ? null : colors;
+    }
+
+    public double tabAnimationSpeed(String group) {
+        return cfg.getDouble("tab.animated-groups." + group + ".speed", 0.04);
+    }
+
+    public Set<String> tabAnimatedGroups() {
+        ConfigurationSection s = cfg.getConfigurationSection("tab.animated-groups");
+        return s == null ? Set.of() : s.getKeys(false);
     }
 
     /** Звёзды персонала: первая подходящая группа из staff-stars, null - нет. */
