@@ -1,0 +1,29 @@
+name: Build DestroyChat
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Скачать код
+        uses: actions/checkout@v4
+
+      - name: Установить Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Собрать плагин
+        run: mvn -B clean package
+
+      - name: Выложить jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: DestroyChat
+          path: target/*.jar
