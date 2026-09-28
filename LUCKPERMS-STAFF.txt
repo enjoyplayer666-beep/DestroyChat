@@ -74,6 +74,25 @@ lp group mediajr permission set destroylobby.prefix.format true
 lp group mediajr permission set destroylobby.chat.colors true
 lp group mediajr permission set destroylobby.chat.color true
 
+--- персоналу: /color, префиксы, /fly, /gm (через общую группу staffperms) ---
+lp creategroup staffperms
+lp group staffperms permission set destroylobby.customprefix true
+lp group staffperms permission set destroylobby.prefix.chat true
+lp group staffperms permission set destroylobby.prefix.format true
+lp group staffperms permission set destroylobby.chat.colors true
+lp group staffperms permission set destroylobby.chat.color true
+lp group staffperms permission set essentials.fly true
+lp group staffperms permission set essentials.gamemode true
+lp group staffperms permission set essentials.gamemode.survival true
+lp group staffperms permission set essentials.gamemode.creative true
+lp group staffperms permission set essentials.gamemode.adventure true
+lp group staffperms permission set essentials.gamemode.spectator true
+lp group admin parent add staffperms
+lp group manager parent add staffperms
+lp group moderator parent add staffperms
+lp group media parent add staffperms
+lp group mediajr parent add staffperms
+
 --- персоналу: все возможности доната (/prefix set, /fly, /hat, /heal и т.д.) ---
 Группы персонала сами по себе донатные права не получают. Даём им в родители
 elitesp - высшую привилегию, она наследует всё от vip..legend. Префикс персонала
