@@ -54,7 +54,7 @@ chat-prefix:
 clans:
   enabled: true
   # тег клана в чате, сразу после значка Ⓛ / Ⓖ; <clan> - название клана с его цветами
-  chat-tag: "<gray>[</gray><clan><gray>]</gray> "
+  chat-tag: "<dark_gray><bold>[</bold></dark_gray><clan><dark_gray><bold>]</bold></dark_gray> "
   # клановый рейтинг (КР) за убийство игрока
   kill-rating: 15
   # сколько КР теряет клан убитого (0 - не теряет)

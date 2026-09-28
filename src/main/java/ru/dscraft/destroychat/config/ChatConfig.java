@@ -9,6 +9,9 @@ import java.util.function.Predicate;
 /** Настройки из config.yml плагина DestroyChat. */
 public class ChatConfig {
 
+    /** Тег клана по умолчанию: скобки &8&l[ ], название клана без жирного. */
+    private static final String CLAN_TAG = "<dark_gray><bold>[</bold></dark_gray><clan><dark_gray><bold>]</bold></dark_gray> ";
+
     private final DestroyChatPlugin plugin;
     private FileConfiguration cfg;
 
@@ -108,7 +111,9 @@ public class ChatConfig {
 
     /** Тег клана в чате, &lt;clan&gt; - название клана. */
     public String clanChatTag() {
-        return cfg.getString("clans.chat-tag", "<gray>[</gray><clan><gray>]</gray> ");
+        String tag = cfg.getString("clans.chat-tag", CLAN_TAG);
+        // конфиг от прошлой версии со старыми серыми скобками - берём новые &8&l[ ]
+        return tag.equals("<gray>[</gray><clan><gray>]</gray> ") ? CLAN_TAG : tag;
     }
 
     public int clanKillRating() {
