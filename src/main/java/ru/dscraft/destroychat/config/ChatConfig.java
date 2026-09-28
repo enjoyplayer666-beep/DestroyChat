@@ -47,11 +47,13 @@ public class ChatConfig {
     // ---- формат ----
 
     public String layout() {
-        String layout = cfg.getString("format.layout", "<icon> <clan><prefix><name><stars> <dark_gray>→</dark_gray> ");
+        String layout = cfg.getString("format.layout", "<icon> <rank><clan><prefix><name><stars> <dark_gray>→</dark_gray> ");
         // старые конфиги без <clan>: тег клана встаёт сразу после значка канала
         if (!layout.contains("<clan>")) {
             layout = layout.contains("<icon> ") ? layout.replace("<icon> ", "<icon> <clan>") : "<clan>" + layout;
         }
+        // старые конфиги без <rank>: ранг из StatPlugin стоит перед кланом
+        if (!layout.contains("<rank>")) layout = layout.replace("<clan>", "<rank><clan>");
         // старые конфиги без <stars>: звёзды сразу после ника
         if (!layout.contains("<stars>")) {
             layout = layout.contains("<name>") ? layout.replace("<name>", "<name><stars>") : layout;

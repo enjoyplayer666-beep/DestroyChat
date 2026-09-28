@@ -18,6 +18,7 @@ import ru.dscraft.destroychat.clan.ClanManager;
 import ru.dscraft.destroychat.clan.ClanText;
 import ru.dscraft.destroychat.config.ChatConfig;
 import ru.dscraft.destroychat.hook.LuckPermsHook;
+import ru.dscraft.destroychat.hook.StatHook;
 import ru.dscraft.destroychat.util.ChatColors;
 import ru.dscraft.destroychat.util.ColorUtil;
 import ru.dscraft.destroychat.util.Perms;
@@ -126,6 +127,7 @@ public class ChatFormatListener implements Listener {
 
         return ColorUtil.parse(config.layout(),
                 Placeholder.component("icon", icon),
+                Placeholder.component("rank", resolveRank(sender)),
                 Placeholder.component("clan", resolveClanTag(sender)),
                 Placeholder.component("prefix", prefix),
                 Placeholder.component("name", name),
@@ -137,6 +139,12 @@ public class ChatFormatListener implements Listener {
         String stars = config.staffStars(group -> sender.hasPermission("group." + group));
         if (stars == null || stars.isBlank()) return Component.empty();
         return Component.space().append(ColorUtil.parse(stars));
+    }
+
+    /** Ранг из StatPlugin (например "☠ Лич "), пусто - нет плагина или /rank off. */
+    private Component resolveRank(Player sender) {
+        String rank = StatHook.chatRank(sender);
+        return rank == null || rank.isBlank() ? Component.empty() : ColorUtil.rich(rank);
     }
 
     /** [Клан] с карточкой клана при наведении, пусто - если игрок не в клане. */

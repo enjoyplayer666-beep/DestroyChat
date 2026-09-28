@@ -6,6 +6,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 import ru.dscraft.destroychat.clan.ClanActions;
+import ru.dscraft.destroychat.clan.ClanApi;
 import ru.dscraft.destroychat.clan.ClanCommand;
 import ru.dscraft.destroychat.clan.ClanListener;
 import ru.dscraft.destroychat.clan.ClanManager;
@@ -54,6 +55,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
 
         this.clanManager = new ClanManager(this, chatConfig);
         clanManager.load();
+        ClanApi.init(clanManager);
         ClanActions clanActions = new ClanActions(clanManager, chatConfig);
         getServer().getPluginManager().registerEvents(new ClanListener(this, clanActions), this);
         ClanCommand clanCommand = new ClanCommand(clanActions);
