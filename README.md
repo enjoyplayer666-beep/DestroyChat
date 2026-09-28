@@ -25,6 +25,7 @@ DestroyChat только оформляет сообщения и считает
 
 - `/prefix chat <текст>` или `/chatprefix <текст>` (Ultra+) - префикс только для чата, можно с градиентом:
   `/prefix chat <gradient:#FF5555:#FFFF55>Король</gradient>`. Сброс: `/prefix chat reset`.
+  `/prefix reset` (DestroyLobby) сбрасывает и префикс в табе, и чат-префикс.
 - `/color <цвет>` (Elite SP) - цвет сообщений: `&d`, `#FF55FF`, `#FF5555:#FFFF55`, `красный`, `rainbow`,
   а также `&x&D&D&D&D&D&D&l` (с жирным), `&x&F&F&0&0&0&0 &x&0&0&F&F&0&0` (градиент до 6 цветов), `&a&l`.
   Сброс: `/color reset`.

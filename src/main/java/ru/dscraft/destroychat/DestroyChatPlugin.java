@@ -15,6 +15,7 @@ import ru.dscraft.destroychat.command.ColorCommand;
 import ru.dscraft.destroychat.config.ChatConfig;
 import ru.dscraft.destroychat.hook.LuckPermsHook;
 import ru.dscraft.destroychat.listener.ChatFormatListener;
+import ru.dscraft.destroychat.listener.PrefixResetListener;
 import ru.dscraft.destroychat.tab.TabListManager;
 import ru.dscraft.destroychat.util.NameStyler;
 
@@ -68,6 +69,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
         getServer().getScheduler().runTaskTimer(this, clanManager::saveIfDirty, 1200L, 1200L);
 
         NameStyler nameStyler = new NameStyler(chatConfig, luckPermsHook);
+        getServer().getPluginManager().registerEvents(new PrefixResetListener(luckPermsHook), this);
         getServer().getPluginManager().registerEvents(
                 new ChatFormatListener(chatConfig, luckPermsHook, clanManager, nameStyler), this);
 
