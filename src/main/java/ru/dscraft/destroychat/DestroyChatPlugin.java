@@ -5,6 +5,7 @@ import net.luckperms.api.LuckPermsProvider;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
+import ru.dscraft.destroychat.announce.Announcer;
 import ru.dscraft.destroychat.clan.ClanActions;
 import ru.dscraft.destroychat.clan.ClanApi;
 import ru.dscraft.destroychat.clan.ClanCommand;
@@ -30,6 +31,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
 
     private ChatConfig chatConfig;
     private ClanManager clanManager;
+    private Announcer announcer;
 
     @Override
     public void onEnable() {
@@ -92,6 +94,9 @@ public final class DestroyChatPlugin extends JavaPlugin {
             getCommand("chatprefix").setTabCompleter(chatPrefixCommand);
         }
 
+        this.announcer = new Announcer(this);
+        announcer.start();
+
         getLogger().info("DestroyChat включен.");
     }
 
@@ -126,6 +131,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (clanManager != null) clanManager.save();
+        if (announcer != null) announcer.stop();
     }
 
     @Override
@@ -133,6 +139,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
         if (command.getName().equalsIgnoreCase("destroychat")) {
             if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
                 chatConfig.reload();
+                if (announcer != null) announcer.start();
                 sender.sendMessage("§a[DestroyChat] Конфиг перезагружен.");
                 return true;
             }

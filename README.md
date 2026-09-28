@@ -54,6 +54,12 @@ DestroyChat только оформляет сообщения и считает
 - Данные - `plugins/DestroyChat/clans.yml`, настройки - раздел `clans:` в config.yml
   (рейтинг за убийство, статусы по рейтингу, лимиты и т.д.).
 
+## Автосообщения
+
+Раз в 15 минут в чат выходит один блок подсказок (донат, адрес, пароль, /tpa, правила...),
+блоки по очереди. Настройка - раздел `announcements:` в config.yml (MiniMessage, кликабельные
+команды и ссылки), после правки - `/destroychat reload`.
+
 ## Права (имена прежние, как в DONATE-SETUP.txt)
 
 - `destroylobby.prefix.chat` - /prefix chat (Ultra+)

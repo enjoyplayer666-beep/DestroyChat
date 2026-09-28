@@ -119,3 +119,32 @@ clans:
     '1500': "<aqua>Грозные</aqua>"
     '3000': "<gold>Легенды</gold>"
     '6000': "<#FF55AA>Неудержимые</#FF55AA>"
+
+# ---------------------------------------------------------------------
+#  Автосообщения в чат: раз в interval-minutes - один блок, по очереди.
+#  Строки - MiniMessage: <click:run_command:/donate>..</click> - команда по клику,
+#  <click:suggest_command:/tpa >..</click> - вставить в чат, <click:open_url:https://..>..</click> - ссылка.
+#  Цвета сняты со скринов: стрелка 1 - #E0E4FF, стрелка 2 и выделение - #4682E4, текст - #E0E4FF.
+# ---------------------------------------------------------------------
+announcements:
+  enabled: true
+  interval-minutes: 15
+  # true - блоки в случайном порядке, false - по очереди
+  random: false
+  # пустая строка до и после блока
+  blank-lines: true
+  messages:
+    - - "<#E0E4FF>→ Всем кто помог серверу <click:run_command:/donate><hover:show_text:'<gray>Открыть /donate'><#4682E4>донатом</#4682E4></hover></click>, выражаем огромную благодарность!</#E0E4FF>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Функции привилегий - <click:run_command:/donate><hover:show_text:'<gray>Нажми'><#4682E4>/donate</#4682E4></hover></click></#E0E4FF>"
+    - - "<#E0E4FF>→ Адрес сервера: <click:copy_to_clipboard:mc.ds-craft.net><hover:show_text:'<gray>Нажми, чтобы скопировать'><#4682E4>mc.ds-craft.net</#4682E4></hover></click></#E0E4FF>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Группа сервера: <click:open_url:https://vk.com/game_ds><hover:show_text:'<gray>Открыть группу'><#4682E4>vk.com/game_ds</#4682E4></hover></click></#E0E4FF>"
+    - - "<#E0E4FF>→</#E0E4FF> <#4682E4>Друзья, имейте сложный пароль на аккаунте</#4682E4>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Сменить пароль - <click:suggest_command:/changepassword ><hover:show_text:'<gray>Нажми'><#4682E4>/changepassword</#4682E4></hover></click></#E0E4FF>"
+    - - "<#E0E4FF>→ Телепортироваться к игроку - <click:suggest_command:/tpa ><hover:show_text:'<gray>Нажми'><#4682E4>/tpa</#4682E4></hover></click> [ник]</#E0E4FF>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Отключить телепортации к себе - <click:run_command:/tptoggle><hover:show_text:'<gray>Нажми'><#4682E4>/tptoggle</#4682E4></hover></click></#E0E4FF>"
+    - - "<#E0E4FF>→</#E0E4FF> <#4682E4>Продажа аккаунтов строго запрещена</#4682E4>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Не попадайтесь на уловки мошенников!</#E0E4FF>"
+    - - "<#E0E4FF>→</#E0E4FF> <#4682E4>Меню скайпвп</#4682E4>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Пропишите - <click:run_command:/menu><hover:show_text:'<gray>Нажми'><#4682E4>/menu</#4682E4></hover></click></#E0E4FF>"
+    - - "<#E0E4FF>→ Друзья, соблюдайте пожалуйста <click:run_command:/rules><hover:show_text:'<gray>Нажми'><#4682E4>правила</#4682E4></hover></click> сервера</#E0E4FF>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Пропишите - <click:run_command:/rules><hover:show_text:'<gray>Нажми'><#4682E4>/rules</#4682E4></hover></click></#E0E4FF>"
