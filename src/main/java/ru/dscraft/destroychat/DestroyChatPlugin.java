@@ -12,7 +12,6 @@ import ru.dscraft.destroychat.clan.ClanListener;
 import ru.dscraft.destroychat.clan.ClanManager;
 import ru.dscraft.destroychat.command.ChatPrefixCommand;
 import ru.dscraft.destroychat.command.ColorCommand;
-import ru.dscraft.destroychat.command.NickColorCommand;
 import ru.dscraft.destroychat.config.ChatConfig;
 import ru.dscraft.destroychat.hook.LuckPermsHook;
 import ru.dscraft.destroychat.listener.ChatFormatListener;
@@ -78,12 +77,6 @@ public final class DestroyChatPlugin extends JavaPlugin {
             TabListManager tab = new TabListManager(chatConfig, luckPermsHook, nameStyler);
             getServer().getPluginManager().registerEvents(tab, this);
             getServer().getScheduler().runTaskTimer(this, tab, 20L, 20L);
-        }
-
-        NickColorCommand nickColorCommand = new NickColorCommand(luckPermsHook, nameStyler);
-        if (getCommand("nickcolor") != null) {
-            getCommand("nickcolor").setExecutor(nickColorCommand);
-            getCommand("nickcolor").setTabCompleter(nickColorCommand);
         }
 
         ColorCommand colorCommand = new ColorCommand(luckPermsHook);

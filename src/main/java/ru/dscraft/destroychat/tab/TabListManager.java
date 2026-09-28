@@ -17,8 +17,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Имя в табе: префикс LuckPerms + ник (серый у игроков, белый у команды проекта, свой цвет из
- * /nickcolor) + суффикс LuckPerms.
+ * Имя в табе: префикс LuckPerms + ник + суффикс LuckPerms. Цвет ника - хвост префикса
+ * (/prefix set &amp;6ТЕКСТ &amp;2&amp;l), иначе белый у команды проекта и серый у остальных.
  * Если на сервере стоит плагин TAB, этот модуль не включается - таб делает TAB.
  */
 public class TabListManager implements Listener, Runnable {
@@ -40,9 +40,11 @@ public class TabListManager implements Listener, Runnable {
     public void run() {
         if (!config.tabEnabled()) return;
         for (Player player : Bukkit.getOnlinePlayers()) {
+            // хвост префикса из /prefix set - цвет ника; суффикс группы (✔) не трогаем
+            NameStyler.Split split = NameStyler.split(luckPermsHook.getPrefix(player));
             Component full = Component.empty()
-                    .append(ColorUtil.rich(luckPermsHook.getPrefix(player)))
-                    .append(nameStyler.tabName(player))
+                    .append(ColorUtil.rich(split.prefix()))
+                    .append(nameStyler.tabName(player, split.nickStyle()))
                     .append(ColorUtil.rich(luckPermsHook.getSuffix(player)));
             if (full.equals(last.get(player.getUniqueId()))) continue;
             last.put(player.getUniqueId(), full);

@@ -113,9 +113,12 @@ public class ChatFormatListener implements Listener {
     private Component buildHead(Player sender, boolean global) {
         Component icon = ColorUtil.parse(global ? config.globalIcon() : config.localIcon());
         ChatConfig.GroupFormat group = nameStyler.group(sender);
-        Component prefix = resolvePrefix(sender, group);
+        // хвост префикса (коды после текста) - цвет ника: /prefix chat &6КОРОЛЬ &2&l
+        NameStyler.Split split = NameStyler.split(resolvePrefix(sender, group));
+        Component prefix = split.prefix() == null || split.prefix().isBlank()
+                ? Component.empty() : ColorUtil.rich(split.prefix());
 
-        Component name = nameStyler.chatName(sender);
+        Component name = nameStyler.chatName(sender, split.nickStyle(), group);
         if (config.nameClickMsg()) {
             name = name
                     .clickEvent(ClickEvent.suggestCommand("/msg " + sender.getName() + " "))
@@ -152,7 +155,7 @@ public class ChatFormatListener implements Listener {
     }
 
     /** Личный чат-префикс -> префикс группы (group-formats) -> префикс LuckPerms -> "⌜Игрок⌟" из конфига. */
-    private Component resolvePrefix(Player sender, ChatConfig.GroupFormat group) {
+    private String resolvePrefix(Player sender, ChatConfig.GroupFormat group) {
         String raw = null;
 
         // свой /prefix chat главнее всего, в том числе у команды проекта
@@ -170,9 +173,9 @@ public class ChatFormatListener implements Listener {
         if (raw == null) {
             raw = config.defaultPrefix();
         }
-        if (raw == null || raw.isBlank()) return Component.empty();
+        if (raw == null || raw.isBlank()) return null;
         if (!raw.endsWith(" ")) raw = raw + " ";
-        return ColorUtil.rich(raw);
+        return raw;
     }
 
     private Component buildMessage(Player sender, String raw, boolean global) {

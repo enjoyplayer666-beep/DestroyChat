@@ -67,13 +67,12 @@ lp group moderator setweight 600
 lp group media setweight 500
 lp group mediajr setweight 400
 
---- всем 6 группам: чат-префикс, стили, цвета, /color, /nickcolor ---
+--- всем 6 группам: чат-префикс, стили, цвета, /color ---
 (повтори для curator, admin, manager, moderator, media, mediajr - замени имя группы)
 lp group mediajr permission set destroylobby.prefix.chat true
 lp group mediajr permission set destroylobby.prefix.format true
 lp group mediajr permission set destroylobby.chat.colors true
 lp group mediajr permission set destroylobby.chat.color true
-lp group mediajr permission set destroychat.nickcolor true
 
 --- moderator, manager, admin: видеть локальный чат на любом расстоянии ---
 lp group moderator permission set destroylobby.chat.spy true

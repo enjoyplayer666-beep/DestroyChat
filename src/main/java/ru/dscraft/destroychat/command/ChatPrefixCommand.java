@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import ru.dscraft.destroychat.config.ChatConfig;
 import ru.dscraft.destroychat.hook.LuckPermsHook;
 import ru.dscraft.destroychat.util.ColorUtil;
+import ru.dscraft.destroychat.util.NameStyler;
 import ru.dscraft.destroychat.util.Perms;
 
 import java.util.ArrayList;
@@ -73,9 +74,14 @@ public class ChatPrefixCommand implements CommandExecutor, TabCompleter {
             deny(player, "Не удалось сохранить чат-префикс, попробуй ещё раз.");
             return true;
         }
+        // хвост из цветов после текста - цвет ника: /prefix chat &6КОРОЛЬ &2&l
+        NameStyler.Split split = NameStyler.split(raw);
+        Component name = split.nickStyle() != null
+                ? ColorUtil.rich(split.nickStyle() + player.getName())
+                : Component.text(player.getName(), NamedTextColor.GRAY);
         player.sendMessage(Component.text("Готово, в чате ты теперь: ", NamedTextColor.GRAY)
-                .append(ColorUtil.rich(raw))
-                .append(Component.text(player.getName(), NamedTextColor.GRAY)));
+                .append(ColorUtil.rich(split.prefix()))
+                .append(name));
         return true;
     }
 
@@ -99,6 +105,8 @@ public class ChatPrefixCommand implements CommandExecutor, TabCompleter {
         player.sendMessage(ColorUtil.parse("<gray>Использование: <white>/prefix chat \\<текст></white> | <white>/prefix chat reset</white></gray>"));
         player.sendMessage(ColorUtil.parse("<gray>Цвета: <white>&c &a &#FF55FF</white>, градиент: "
                 + "<white>/prefix chat \\<gradient:#FF5555:#FFFF55>Король\\</gradient></white></gray>"));
+        player.sendMessage(ColorUtil.parse("<gray>Цвет ника - в конце, после пробела: "
+                + "<white>/prefix chat &6&l&oКОРОЛЬ &2&l&o</white></gray>"));
     }
 
     private void deny(Player player, String text) {
