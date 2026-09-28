@@ -13,6 +13,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import ru.dscraft.destroychat.clan.Clan;
+import ru.dscraft.destroychat.clan.ClanManager;
+import ru.dscraft.destroychat.clan.ClanText;
 import ru.dscraft.destroychat.config.ChatConfig;
 import ru.dscraft.destroychat.hook.LuckPermsHook;
 import ru.dscraft.destroychat.util.ChatColors;
@@ -22,8 +25,9 @@ import ru.dscraft.destroychat.util.Perms;
 /**
  * Чат сервера.
  * <p>
- * Формат (как на скрине): {@code [Ⓛ/Ⓖ] ⌜Игрок⌟ ник → сообщение}
+ * Формат (как на скрине): {@code [Ⓛ/Ⓖ] [Клан] ⌜Игрок⌟ ник → сообщение}
  * <ul>
+ *   <li>[Клан] - тег клана сразу после значка канала (clans.chat-tag), если игрок в клане;</li>
  *   <li>Ⓛ - локальный чат (радиус {@code chat.local-radius}), обычное сообщение;</li>
  *   <li>Ⓖ - глобальный чат, сообщение начинается с {@code !};</li>
  *   <li>префикс: личный чат-префикс (/prefix chat, Ultra+) -&gt; префикс из LuckPerms
@@ -40,10 +44,12 @@ public class ChatFormatListener implements Listener {
 
     private final ChatConfig config;
     private final LuckPermsHook luckPermsHook;
+    private final ClanManager clanManager;
 
-    public ChatFormatListener(ChatConfig config, LuckPermsHook luckPermsHook) {
+    public ChatFormatListener(ChatConfig config, LuckPermsHook luckPermsHook, ClanManager clanManager) {
         this.config = config;
         this.luckPermsHook = luckPermsHook;
+        this.clanManager = clanManager;
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -113,8 +119,16 @@ public class ChatFormatListener implements Listener {
 
         return ColorUtil.parse(config.layout(),
                 Placeholder.component("icon", icon),
+                Placeholder.component("clan", resolveClanTag(sender)),
                 Placeholder.component("prefix", prefix),
                 Placeholder.component("name", name));
+    }
+
+    /** [Клан] с карточкой клана при наведении, пусто - если игрок не в клане. */
+    private Component resolveClanTag(Player sender) {
+        if (!config.clansEnabled()) return Component.empty();
+        Clan clan = clanManager.getClan(sender.getUniqueId());
+        return clan == null ? Component.empty() : ClanText.chatTag(clan, clanManager, config);
     }
 
     /** Личный чат-префикс -> префикс LuckPerms -> "⌜Игрок⌟" из конфига. */

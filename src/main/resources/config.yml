@@ -20,8 +20,9 @@ spy-permission: "destroylobby.chat.spy"
 nobody-heard-message: "<gray>Рядом никого нет. Поставь <white>!</white> перед сообщением, чтобы написать в глобальный чат.</gray>"
 
 format:
-  # <icon> - значок канала, <prefix> - префикс, <name> - ник
-  layout: "<icon> <prefix><name> <dark_gray>→</dark_gray> "
+  # <icon> - значок канала, <clan> - тег клана (пусто, если игрок не в клане),
+  # <prefix> - префикс, <name> - ник
+  layout: "<icon> <clan><prefix><name> <dark_gray>→</dark_gray> "
   # значки из ресурс-пака (белый цвет = родные цвета картинки)
   local-icon: "<white>Ⓛ</white>"
   global-icon: "<white>Ⓖ</white>"
@@ -38,3 +39,37 @@ format:
 chat-prefix:
   # /prefix chat - максимум видимых символов (без учёта цветов)
   max-length: 24
+
+# ---------------------------------------------------------------------
+#  Кланы: /clan или /c
+# ---------------------------------------------------------------------
+clans:
+  enabled: true
+  # тег клана в чате, сразу после значка Ⓛ / Ⓖ; <clan> - название клана с его цветами
+  chat-tag: "<gray>[</gray><clan><gray>]</gray> "
+  # клановый рейтинг (КР) за убийство игрока
+  kill-rating: 15
+  # сколько КР теряет клан убитого (0 - не теряет)
+  death-rating: 0
+  # повторное убийство того же игрока тем же убийцей раньше этого времени рейтинг не даёт (защита от фарма)
+  kill-cooldown-seconds: 300
+  # <amount> - сколько КР начислено
+  kill-message: "<green>Вашему клану добавлено <yellow><amount></yellow> кланового рейтинга!</green>"
+  # сообщение убитому, если его клан потерял КР ("" - не писать)
+  death-message: "<red>Ваш клан потерял <yellow><amount></yellow> кланового рейтинга.</red>"
+  name-min-length: 3
+  name-max-length: 16
+  max-members: 50
+  # сколько секунд действует приглашение
+  invite-seconds: 60
+  # кланов на странице /c top
+  top-page-size: 10
+  rank-max-length: 16
+  description-max-length: 120
+  # статус клана по рейтингу: порог КР -> название
+  statuses:
+    '0': "<gray>Новички</gray>"
+    '500': "<green>Опытные</green>"
+    '1500': "<aqua>Грозные</aqua>"
+    '3000': "<gold>Легенды</gold>"
+    '6000': "<#FF55AA>Неудержимые</#FF55AA>"

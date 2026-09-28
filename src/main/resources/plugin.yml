@@ -14,11 +14,17 @@ commands:
   color:
     description: Цвет сообщений в чате
     usage: /color <цвет> | /color reset
+  clan:
+    description: Кланы
+    usage: /clan
+    aliases: [c, clans, кланы]
   chatprefix:
     description: Отдельный префикс для чата (то же, что /prefix chat)
     usage: /chatprefix <текст> | /chatprefix reset
 
 permissions:
+  destroychat.clan.admin:
+    default: op
   destroychat.admin:
     default: op
   destroylobby.prefix.chat:

@@ -5,6 +5,10 @@ import net.luckperms.api.LuckPermsProvider;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
+import ru.dscraft.destroychat.clan.ClanActions;
+import ru.dscraft.destroychat.clan.ClanCommand;
+import ru.dscraft.destroychat.clan.ClanListener;
+import ru.dscraft.destroychat.clan.ClanManager;
 import ru.dscraft.destroychat.command.ChatPrefixCommand;
 import ru.dscraft.destroychat.command.ColorCommand;
 import ru.dscraft.destroychat.config.ChatConfig;
@@ -13,7 +17,7 @@ import ru.dscraft.destroychat.listener.ChatFormatListener;
 
 /**
  * DestroyChat - чат DestroyCraft: формат "Ⓛ ⌜Игрок⌟ ник → сообщение", локальный/глобальный
- * каналы, /color и отдельный чат-префикс.
+ * каналы, /color, отдельный чат-префикс и кланы (/clan, /c).
  * <p>
  * В паре с DestroyLobby: тот запрещает чат в лобби и не пускает сообщения между лобби и
  * игровыми мирами, а также перенаправляет свою команду /prefix chat сюда (/chatprefix).
@@ -21,6 +25,7 @@ import ru.dscraft.destroychat.listener.ChatFormatListener;
 public final class DestroyChatPlugin extends JavaPlugin {
 
     private ChatConfig chatConfig;
+    private ClanManager clanManager;
 
     @Override
     public void onEnable() {
@@ -45,7 +50,19 @@ public final class DestroyChatPlugin extends JavaPlugin {
             getLogger().warning("DestroyLobby не найден: чат будет работать и в лобби, миры не разделены.");
         }
 
-        getServer().getPluginManager().registerEvents(new ChatFormatListener(chatConfig, luckPermsHook), this);
+        this.clanManager = new ClanManager(this, chatConfig);
+        clanManager.load();
+        ClanActions clanActions = new ClanActions(clanManager, chatConfig);
+        getServer().getPluginManager().registerEvents(new ClanListener(this, clanActions), this);
+        ClanCommand clanCommand = new ClanCommand(clanActions);
+        if (getCommand("clan") != null) {
+            getCommand("clan").setExecutor(clanCommand);
+            getCommand("clan").setTabCompleter(clanCommand);
+        }
+        // кланы сохраняются раз в минуту, если что-то поменялось
+        getServer().getScheduler().runTaskTimer(this, clanManager::saveIfDirty, 1200L, 1200L);
+
+        getServer().getPluginManager().registerEvents(new ChatFormatListener(chatConfig, luckPermsHook, clanManager), this);
 
         ColorCommand colorCommand = new ColorCommand(luckPermsHook);
         if (getCommand("color") != null) {
@@ -59,6 +76,11 @@ public final class DestroyChatPlugin extends JavaPlugin {
         }
 
         getLogger().info("DestroyChat включен.");
+    }
+
+    @Override
+    public void onDisable() {
+        if (clanManager != null) clanManager.save();
     }
 
     @Override
