@@ -14,7 +14,7 @@ public final class ClanApi {
     private ClanApi() {
     }
 
-    static void init(ClanManager clanManager) {
+    public static void init(ClanManager clanManager) {
         manager = clanManager;
     }
 
