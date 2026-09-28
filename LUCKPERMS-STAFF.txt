@@ -35,7 +35,7 @@ lp group moderator meta setprefix 1000 "<ИКОНКА> &f"
 lp group moderator meta removesuffix 1000
 lp group moderator meta setsuffix 1000 " &a&l✔"
 
---- media (ник в табе переливается - это делает DestroyChat, tab.animated-groups) ---
+--- media ---
 lp creategroup media
 lp group media meta removeprefix 1000
 lp group media meta setprefix 1000 "<ИКОНКА> &f"

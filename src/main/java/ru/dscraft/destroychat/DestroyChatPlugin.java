@@ -32,6 +32,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         getConfig().options().copyDefaults(true);
+        migrateStaffConfig();
         saveConfig();
         this.chatConfig = new ChatConfig(this);
 
@@ -70,7 +71,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
         } else if (luckPermsHook.isEnabled()) {
             TabListManager tab = new TabListManager(chatConfig, luckPermsHook);
             getServer().getPluginManager().registerEvents(tab, this);
-            getServer().getScheduler().runTaskTimer(this, tab, 20L, chatConfig.tabUpdateTicks());
+            getServer().getScheduler().runTaskTimer(this, tab, 20L, 20L);
         }
 
         ColorCommand colorCommand = new ColorCommand(luckPermsHook);
@@ -85,6 +86,33 @@ public final class DestroyChatPlugin extends JavaPlugin {
         }
 
         getLogger().info("DestroyChat включен.");
+    }
+
+    /**
+     * copyDefaults не перезаписывает то, что уже есть в config.yml, поэтому при смене оформления
+     * персонала разделы staff-stars и group-formats заменяются на новые из плагина один раз
+     * (по staff-config-version). Старое переливание ника в табе убирается.
+     */
+    private void migrateStaffConfig() {
+        var cfg = getConfig();
+        var defaults = cfg.getDefaults();
+        if (defaults == null) return;
+        int latest = defaults.getInt("staff-config-version", 1);
+        // get(path, null) смотрит только в сам файл, без значений по умолчанию
+        Object current = cfg.get("staff-config-version", null);
+        if (current instanceof Number n && n.intValue() >= latest) return;
+        for (String section : new String[]{"staff-stars", "group-formats"}) {
+            var def = defaults.getConfigurationSection(section);
+            if (def == null) continue;
+            cfg.set(section, null);
+            for (String key : def.getKeys(true)) {
+                if (!def.isConfigurationSection(key)) cfg.set(section + "." + key, def.get(key));
+            }
+        }
+        cfg.set("tab.animated-groups", null);
+        cfg.set("tab.update-ticks", null);
+        cfg.set("staff-config-version", latest);
+        getLogger().info("Оформление персонала (staff-stars, group-formats) обновлено до версии " + latest + ".");
     }
 
     @Override

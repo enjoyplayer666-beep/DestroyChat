@@ -9,7 +9,7 @@
   curator ★★★★ (красные), admin ★★★ (красные), moderator ★★ (жёлтые), helper ★ (зелёная).
 - Персонал (curator, admin, manager, moderator, media, mediajr): префикс и стиль ника в чате - из
   `group-formats` в config.yml. Иконка/суффикс для таба ставятся в LuckPerms - команды в `LUCKPERMS-STAFF.txt`.
-- Таб: префикс LuckPerms + белый ник + суффикс LuckPerms, у media ник переливается (`tab:` в config.yml).
+- Таб: префикс LuckPerms + белый ник + суффикс LuckPerms (`tab:` в config.yml).
   Если на сервере стоит плагин TAB, этот модуль выключается сам.
 - Ник всегда `&7` (кроме персонала из `group-formats`). Префикс: личный чат-префикс → префикс привилегии из LuckPerms → `⌜Игрок⌟`.
 - Значки Ⓛ / Ⓖ - из ресурс-пака SP-DS.

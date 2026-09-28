@@ -4,8 +4,6 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import ru.dscraft.destroychat.DestroyChatPlugin;
 
-import java.util.List;
-import java.util.Set;
 import java.util.function.Predicate;
 
 /** Настройки из config.yml плагина DestroyChat. */
@@ -95,25 +93,6 @@ public class ChatConfig {
 
     public String tabNameColor() {
         return cfg.getString("tab.name-color", "&f");
-    }
-
-    public int tabUpdateTicks() {
-        return Math.max(1, cfg.getInt("tab.update-ticks", 2));
-    }
-
-    /** Цвета переливания ника в табе для группы, null - группа не переливается. */
-    public List<String> tabAnimation(String group) {
-        List<String> colors = cfg.getStringList("tab.animated-groups." + group + ".colors");
-        return colors.size() < 2 ? null : colors;
-    }
-
-    public double tabAnimationSpeed(String group) {
-        return cfg.getDouble("tab.animated-groups." + group + ".speed", 0.04);
-    }
-
-    public Set<String> tabAnimatedGroups() {
-        ConfigurationSection s = cfg.getConfigurationSection("tab.animated-groups");
-        return s == null ? Set.of() : s.getKeys(false);
     }
 
     /** Звёзды персонала: первая подходящая группа из staff-stars, null - нет. */
