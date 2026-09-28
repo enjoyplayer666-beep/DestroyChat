@@ -93,6 +93,8 @@ lp group staffperms permission set essentials.gamemode.survival true
 lp group staffperms permission set essentials.gamemode.creative true
 lp group staffperms permission set essentials.gamemode.adventure true
 lp group staffperms permission set essentials.gamemode.spectator true
+lp group staffperms permission set essentials.tpo true
+lp group staffperms permission set essentials.tpohere true
 lp group admin parent add staffperms
 lp group manager parent add staffperms
 lp group moderator parent add staffperms
