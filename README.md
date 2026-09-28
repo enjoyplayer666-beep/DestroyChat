@@ -57,7 +57,8 @@ DestroyChat только оформляет сообщения и считает
 ## Автосообщения
 
 Раз в 15 минут в чат выходит один блок подсказок (донат, адрес, пароль, /tpa, правила...),
-блоки по очереди. Настройка - раздел `announcements:` в config.yml (MiniMessage, кликабельные
+блоки по очереди. Показать сразу: `/destroychat announce` (следующий) или
+`/destroychat announce <номер>` (право `destroychat.admin`). Настройка - раздел `announcements:` в config.yml (MiniMessage, кликабельные
 команды и ссылки), после правки - `/destroychat reload`.
 
 ## Права (имена прежние, как в DONATE-SETUP.txt)

@@ -9,7 +9,7 @@ softdepend: [LuckPerms, DestroyLobby]
 commands:
   destroychat:
     description: Перезагрузка конфига чата
-    usage: /destroychat reload
+    usage: /destroychat reload | /destroychat announce [номер]
     permission: destroychat.admin
   color:
     description: Цвет сообщений в чате

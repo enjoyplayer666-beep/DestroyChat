@@ -65,7 +65,31 @@ public class Announcer {
         if (blocks.isEmpty() || Bukkit.getOnlinePlayers().isEmpty()) return;
         List<String> block = blocks.get(index);
         index = (index + 1) % blocks.size();
+        broadcast(block);
+    }
 
+    public int size() {
+        return blocks.size();
+    }
+
+    /**
+     * Показать сейчас: number == null - следующий по очереди, иначе блок с этим номером (с 1).
+     * @return false - блоков нет или номер вне диапазона
+     */
+    public boolean announceNow(Integer number) {
+        if (blocks.isEmpty()) return false;
+        if (number == null) {
+            List<String> block = blocks.get(index);
+            index = (index + 1) % blocks.size();
+            broadcast(block);
+            return true;
+        }
+        if (number < 1 || number > blocks.size()) return false;
+        broadcast(blocks.get(number - 1));
+        return true;
+    }
+
+    private void broadcast(List<String> block) {
         boolean blank = plugin.getConfig().getBoolean("announcements.blank-lines", true);
         List<Component> lines = new ArrayList<>();
         if (blank) lines.add(Component.empty());

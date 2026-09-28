@@ -143,7 +143,25 @@ public final class DestroyChatPlugin extends JavaPlugin {
                 sender.sendMessage("§a[DestroyChat] Конфиг перезагружен.");
                 return true;
             }
-            sender.sendMessage("§7Использование: /destroychat reload");
+            if (args.length >= 1 && args[0].equalsIgnoreCase("announce")) {
+                Integer number = null;
+                if (args.length >= 2) {
+                    try {
+                        number = Integer.parseInt(args[1]);
+                    } catch (NumberFormatException e) {
+                        sender.sendMessage("§cНомер должен быть числом.");
+                        return true;
+                    }
+                }
+                if (announcer == null || !announcer.announceNow(number)) {
+                    int size = announcer == null ? 0 : announcer.size();
+                    sender.sendMessage(size == 0
+                            ? "§cАвтосообщения выключены или пустые (announcements в config.yml)."
+                            : "§cНет сообщения с таким номером. Всего: " + size);
+                }
+                return true;
+            }
+            sender.sendMessage("§7Использование: /destroychat reload | /destroychat announce [номер]");
             return true;
         }
         return false;
