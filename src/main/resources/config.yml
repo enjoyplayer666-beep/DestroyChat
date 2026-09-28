@@ -72,11 +72,12 @@ group-formats:
 # Таб: префикс LuckPerms + ник + суффикс LuckPerms. Если стоит плагин TAB - этот модуль выключается сам.
 tab:
   enabled: true
-  # цвет ника в табе
-  name-color: "&f"
+  # цвет ника в табе: обычные игроки - серый, команда проекта (group-formats) - белый
+  name-color: "&7"
+  staff-name-color: "&f"
 
 # версия раздела персонала: при обновлении плагин сам заменит staff-stars и group-formats на новые
-staff-config-version: 2
+staff-config-version: 3
 
 chat-prefix:
   # /prefix chat - максимум видимых символов (без учёта цветов)

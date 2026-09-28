@@ -21,6 +21,7 @@ import ru.dscraft.destroychat.hook.LuckPermsHook;
 import ru.dscraft.destroychat.hook.StatHook;
 import ru.dscraft.destroychat.util.ChatColors;
 import ru.dscraft.destroychat.util.ColorUtil;
+import ru.dscraft.destroychat.util.NameStyler;
 import ru.dscraft.destroychat.util.Perms;
 
 /**
@@ -46,11 +47,14 @@ public class ChatFormatListener implements Listener {
     private final ChatConfig config;
     private final LuckPermsHook luckPermsHook;
     private final ClanManager clanManager;
+    private final NameStyler nameStyler;
 
-    public ChatFormatListener(ChatConfig config, LuckPermsHook luckPermsHook, ClanManager clanManager) {
+    public ChatFormatListener(ChatConfig config, LuckPermsHook luckPermsHook, ClanManager clanManager,
+                              NameStyler nameStyler) {
         this.config = config;
         this.luckPermsHook = luckPermsHook;
         this.clanManager = clanManager;
+        this.nameStyler = nameStyler;
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -108,17 +112,10 @@ public class ChatFormatListener implements Listener {
 
     private Component buildHead(Player sender, boolean global) {
         Component icon = ColorUtil.parse(global ? config.globalIcon() : config.localIcon());
-        ChatConfig.GroupFormat group = config.groupFormat(luckPermsHook.getPrimaryGroup(sender),
-                g -> sender.hasPermission("group." + g));
+        ChatConfig.GroupFormat group = nameStyler.group(sender);
         Component prefix = resolvePrefix(sender, group);
 
-        Component name;
-        if (group != null && group.nameStyle() != null && !group.nameStyle().isBlank()) {
-            // ник персонала: стиль из group-formats (например &f&l - белый жирный)
-            name = Component.empty().append(ColorUtil.rich(group.nameStyle() + sender.getName()));
-        } else {
-            name = Component.text(sender.getName(), ColorUtil.parseColor(config.nameColor(), NamedTextColor.GRAY));
-        }
+        Component name = nameStyler.chatName(sender);
         if (config.nameClickMsg()) {
             name = name
                     .clickEvent(ClickEvent.suggestCommand("/msg " + sender.getName() + " "))
@@ -154,16 +151,17 @@ public class ChatFormatListener implements Listener {
         return clan == null ? Component.empty() : ClanText.chatTag(clan, clanManager, config);
     }
 
-    /** Префикс группы (group-formats) -> личный чат-префикс -> префикс LuckPerms -> "⌜Игрок⌟" из конфига. */
+    /** Личный чат-префикс -> префикс группы (group-formats) -> префикс LuckPerms -> "⌜Игрок⌟" из конфига. */
     private Component resolvePrefix(Player sender, ChatConfig.GroupFormat group) {
         String raw = null;
 
-        if (group != null && group.chatPrefix() != null && !group.chatPrefix().isBlank()) {
-            raw = group.chatPrefix();
-        }
-        if (raw == null && sender.hasPermission(Perms.PREFIX_CHAT)) {
+        // свой /prefix chat главнее всего, в том числе у команды проекта
+        if (sender.hasPermission(Perms.PREFIX_CHAT)) {
             String own = luckPermsHook.getMetaValue(sender, Perms.META_CHAT_PREFIX);
             if (own != null && !own.isBlank()) raw = own;
+        }
+        if (raw == null && group != null && group.chatPrefix() != null && !group.chatPrefix().isBlank()) {
+            raw = group.chatPrefix();
         }
         if (raw == null) {
             String lp = luckPermsHook.getPrefix(sender);

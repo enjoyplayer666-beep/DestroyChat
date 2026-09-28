@@ -93,8 +93,14 @@ public class ChatConfig {
         return cfg.getBoolean("tab.enabled", true);
     }
 
+    /** Цвет ника в табе у обычных игроков. */
     public String tabNameColor() {
-        return cfg.getString("tab.name-color", "&f");
+        return cfg.getString("tab.name-color", "&7");
+    }
+
+    /** Цвет ника в табе у команды проекта (group-formats). */
+    public String tabStaffNameColor() {
+        return cfg.getString("tab.staff-name-color", "&f");
     }
 
     /** Звёзды персонала: первая подходящая группа из staff-stars, null - нет. */

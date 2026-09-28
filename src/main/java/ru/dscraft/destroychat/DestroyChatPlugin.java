@@ -12,10 +12,12 @@ import ru.dscraft.destroychat.clan.ClanListener;
 import ru.dscraft.destroychat.clan.ClanManager;
 import ru.dscraft.destroychat.command.ChatPrefixCommand;
 import ru.dscraft.destroychat.command.ColorCommand;
+import ru.dscraft.destroychat.command.NickColorCommand;
 import ru.dscraft.destroychat.config.ChatConfig;
 import ru.dscraft.destroychat.hook.LuckPermsHook;
 import ru.dscraft.destroychat.listener.ChatFormatListener;
 import ru.dscraft.destroychat.tab.TabListManager;
+import ru.dscraft.destroychat.util.NameStyler;
 
 /**
  * DestroyChat - чат DestroyCraft: формат "Ⓛ ⌜Игрок⌟ ник → сообщение", локальный/глобальный
@@ -66,14 +68,22 @@ public final class DestroyChatPlugin extends JavaPlugin {
         // кланы сохраняются раз в минуту, если что-то поменялось
         getServer().getScheduler().runTaskTimer(this, clanManager::saveIfDirty, 1200L, 1200L);
 
-        getServer().getPluginManager().registerEvents(new ChatFormatListener(chatConfig, luckPermsHook, clanManager), this);
+        NameStyler nameStyler = new NameStyler(chatConfig, luckPermsHook);
+        getServer().getPluginManager().registerEvents(
+                new ChatFormatListener(chatConfig, luckPermsHook, clanManager, nameStyler), this);
 
         if (getServer().getPluginManager().getPlugin("TAB") != null) {
             getLogger().info("Найден плагин TAB: таб оформляет он, модуль таба DestroyChat выключен.");
         } else if (luckPermsHook.isEnabled()) {
-            TabListManager tab = new TabListManager(chatConfig, luckPermsHook);
+            TabListManager tab = new TabListManager(chatConfig, luckPermsHook, nameStyler);
             getServer().getPluginManager().registerEvents(tab, this);
             getServer().getScheduler().runTaskTimer(this, tab, 20L, 20L);
+        }
+
+        NickColorCommand nickColorCommand = new NickColorCommand(luckPermsHook, nameStyler);
+        if (getCommand("nickcolor") != null) {
+            getCommand("nickcolor").setExecutor(nickColorCommand);
+            getCommand("nickcolor").setTabCompleter(nickColorCommand);
         }
 
         ColorCommand colorCommand = new ColorCommand(luckPermsHook);
@@ -112,6 +122,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
             }
         }
         cfg.set("tab.animated-groups", null);
+        cfg.set("tab.name-color", defaults.getString("tab.name-color"));
         cfg.set("tab.update-ticks", null);
         cfg.set("staff-config-version", latest);
         getLogger().info("Оформление персонала (staff-stars, group-formats) обновлено до версии " + latest + ".");

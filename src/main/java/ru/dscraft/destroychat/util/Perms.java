@@ -17,10 +17,17 @@ public final class Perms {
     /** Постоянный цвет сообщений: /color (Elite SP). */
     public static final String CHAT_COLOR = "destroylobby.chat.color";
 
+    /** Свой цвет и наклон ника: /nickcolor (команда проекта). */
+    public static final String NICK_COLOR = "destroychat.nickcolor";
+
     /** Мета-ключ личного чат-префикса в LuckPerms. */
     public static final String META_CHAT_PREFIX = "destroy-chat-prefix";
     /** Мета-ключ цвета сообщений в LuckPerms. */
     public static final String META_CHAT_COLOR = "destroy-chat-color";
+    /** Мета-ключ цвета ника (/nickcolor). */
+    public static final String META_NAME_COLOR = "destroy-name-color";
+    /** Мета-ключ наклона ника (/nickcolor italic). */
+    public static final String META_NAME_ITALIC = "destroy-name-italic";
 
     private Perms() {
     }

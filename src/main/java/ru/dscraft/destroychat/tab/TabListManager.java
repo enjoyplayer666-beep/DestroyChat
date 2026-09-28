@@ -10,25 +10,29 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import ru.dscraft.destroychat.config.ChatConfig;
 import ru.dscraft.destroychat.hook.LuckPermsHook;
 import ru.dscraft.destroychat.util.ColorUtil;
+import ru.dscraft.destroychat.util.NameStyler;
 
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Имя в табе: префикс LuckPerms + ник (tab.name-color) + суффикс LuckPerms.
+ * Имя в табе: префикс LuckPerms + ник (серый у игроков, белый у команды проекта, свой цвет из
+ * /nickcolor) + суффикс LuckPerms.
  * Если на сервере стоит плагин TAB, этот модуль не включается - таб делает TAB.
  */
 public class TabListManager implements Listener, Runnable {
 
     private final ChatConfig config;
     private final LuckPermsHook luckPermsHook;
+    private final NameStyler nameStyler;
     /** Последнее отправленное имя - чтобы не слать одно и то же каждую секунду. */
     private final Map<UUID, Component> last = new ConcurrentHashMap<>();
 
-    public TabListManager(ChatConfig config, LuckPermsHook luckPermsHook) {
+    public TabListManager(ChatConfig config, LuckPermsHook luckPermsHook, NameStyler nameStyler) {
         this.config = config;
         this.luckPermsHook = luckPermsHook;
+        this.nameStyler = nameStyler;
     }
 
     /** Раз в секунду: вдруг игроку выдали или сняли группу. */
@@ -38,7 +42,7 @@ public class TabListManager implements Listener, Runnable {
         for (Player player : Bukkit.getOnlinePlayers()) {
             Component full = Component.empty()
                     .append(ColorUtil.rich(luckPermsHook.getPrefix(player)))
-                    .append(ColorUtil.rich(config.tabNameColor() + player.getName()))
+                    .append(nameStyler.tabName(player))
                     .append(ColorUtil.rich(luckPermsHook.getSuffix(player)));
             if (full.equals(last.get(player.getUniqueId()))) continue;
             last.put(player.getUniqueId(), full);

@@ -28,6 +28,8 @@ DestroyChat только оформляет сообщения и считает
 - `/color <цвет>` (Elite SP) - цвет сообщений: `&d`, `#FF55FF`, `#FF5555:#FFFF55`, `красный`, `rainbow`,
   а также `&x&D&D&D&D&D&D&l` (с жирным), `&x&F&F&0&0&0&0 &x&0&0&F&F&0&0` (градиент до 6 цветов), `&a&l`.
   Сброс: `/color reset`.
+- `/nickcolor <цвет>` - цвет ника в чате и табе (форматы как у /color), `/nickcolor italic` - наклон,
+  `/nickcolor reset` - сброс. Право `destroychat.nickcolor`.
 - `/destroychat reload` - перезагрузить config.yml.
 
 ## Кланы (`/clan` или `/c`)
@@ -59,6 +61,7 @@ DestroyChat только оформляет сообщения и считает
 - `destroylobby.chat.color` - /color (Elite SP)
 - `destroylobby.chat.spy` - видеть локальный чат на любом расстоянии
 - `destroychat.admin` - /destroychat reload
+- `destroychat.nickcolor` - /nickcolor
 - `destroychat.clan.admin` - удаление кланов и изменение рейтинга
 
 Личный чат-префикс и цвет хранятся в LuckPerms (мета `destroy-chat-prefix` / `destroy-chat-color`),

@@ -52,3 +52,49 @@ lp group mediajr meta setsuffix 1000 " &a&l✔"
 --- выдать группу игроку ---
 lp user <ник> parent set admin        (заменит основную группу)
 lp user <ник> parent add admin        (добавит группу к имеющимся)
+
+=====================================================================
+ ПРАВА КОМАНДЫ ПРОЕКТА (вводить в консоль, по одной строке)
+=====================================================================
+Группы не наследуют друг друга: у каждой свой набор прав, чтобы в чате
+и /stat показывалась именно её привилегия. Вес (weight) - кто "старше".
+
+--- вес групп ---
+lp group curator setweight 900
+lp group admin setweight 800
+lp group manager setweight 700
+lp group moderator setweight 600
+lp group media setweight 500
+lp group mediajr setweight 400
+
+--- всем 6 группам: чат-префикс, стили, цвета, /color, /nickcolor ---
+(повтори для curator, admin, manager, moderator, media, mediajr - замени имя группы)
+lp group mediajr permission set destroylobby.prefix.chat true
+lp group mediajr permission set destroylobby.prefix.format true
+lp group mediajr permission set destroylobby.chat.colors true
+lp group mediajr permission set destroylobby.chat.color true
+lp group mediajr permission set destroychat.nickcolor true
+
+--- moderator, manager, admin: видеть локальный чат на любом расстоянии ---
+lp group moderator permission set destroylobby.chat.spy true
+lp group manager permission set destroylobby.chat.spy true
+lp group admin permission set destroylobby.chat.spy true
+
+--- manager и admin: управление кланами, статистикой, бустерами, /destroychat reload ---
+lp group manager permission set destroychat.clan.admin true
+lp group manager permission set stat.booster.give true
+lp group admin permission set destroychat.admin true
+lp group admin permission set destroychat.clan.admin true
+lp group admin permission set stat.admin true
+lp group admin permission set stat.booster.give true
+lp group admin permission set stat.booster.15 true
+
+--- curator: почти OP - все права, кроме выдачи OP и выключения сервера ---
+lp group curator permission set * true
+lp group curator permission set minecraft.command.op false
+lp group curator permission set minecraft.command.deop false
+lp group curator permission set minecraft.command.stop false
+lp group curator permission set bukkit.command.restart false
+
+Если какие-то права у команды проекта не работают - проверь, что у игрока именно эта группа:
+lp user <ник> info

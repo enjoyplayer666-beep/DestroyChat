@@ -18,6 +18,9 @@ commands:
     description: Кланы
     usage: /clan
     aliases: [c, clans, кланы]
+  nickcolor:
+    description: Цвет и наклон ника в чате и табе
+    usage: /nickcolor <цвет> | /nickcolor italic | /nickcolor reset
   chatprefix:
     description: Отдельный префикс для чата (то же, что /prefix chat)
     usage: /chatprefix <текст> | /chatprefix reset
@@ -26,6 +29,8 @@ permissions:
   destroychat.clan.admin:
     default: op
   destroychat.admin:
+    default: op
+  destroychat.nickcolor:
     default: op
   destroylobby.prefix.chat:
     default: false
