@@ -74,6 +74,17 @@ lp group mediajr permission set destroylobby.prefix.format true
 lp group mediajr permission set destroylobby.chat.colors true
 lp group mediajr permission set destroylobby.chat.color true
 
+--- персоналу: все возможности доната (/prefix set, /fly, /hat, /heal и т.д.) ---
+Группы персонала сами по себе донатные права не получают. Даём им в родители
+elitesp - высшую привилегию, она наследует всё от vip..legend. Префикс персонала
+остаётся своим (приоритет 1000 выше, чем 60 у elitesp), в табе и /stat тоже.
+lp group admin parent add elitesp
+lp group manager parent add elitesp
+lp group moderator parent add elitesp
+lp group media parent add elitesp
+lp group mediajr parent add elitesp
+(curator не нужно - у него уже * true)
+
 --- moderator, manager, admin: видеть локальный чат на любом расстоянии ---
 lp group moderator permission set destroylobby.chat.spy true
 lp group manager permission set destroylobby.chat.spy true
