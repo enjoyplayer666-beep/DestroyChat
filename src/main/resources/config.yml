@@ -20,7 +20,7 @@ spy-permission: "destroylobby.chat.spy"
 nobody-heard-message: "<gray>Рядом никого нет. Поставь <white>!</white> перед сообщением, чтобы написать в глобальный чат.</gray>"
 
 format:
-  # <icon> - значок канала, <rank> - ранг из StatPlugin (/rank off - скрыть),
+  # <icon> - значок канала, <rank> - ранг из DsRanks (/rank off - скрыть),
   # <clan> - тег клана (пусто, если игрок не в клане),
   # <prefix> - префикс, <name> - ник, <stars> - звёзды персонала (staff-stars)
   layout: "<icon> <rank><clan><prefix><name><stars> <dark_gray>→</dark_gray> "

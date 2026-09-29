@@ -141,7 +141,7 @@ public class ChatFormatListener implements Listener {
         return Component.space().append(ColorUtil.parse(stars));
     }
 
-    /** Ранг из StatPlugin (например "☠ Лич "), пусто - нет плагина или /rank off. */
+    /** Ранг из DsRanks (например "☠ Лич "), пусто - нет плагина или /rank off. */
     private Component resolveRank(Player sender) {
         String rank = StatHook.chatRank(sender);
         return rank == null || rank.isBlank() ? Component.empty() : ColorUtil.rich(rank);

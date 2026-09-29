@@ -7,13 +7,14 @@ import org.bukkit.plugin.Plugin;
 import java.lang.reflect.Method;
 
 /**
- * Ранг игрока из StatPlugin (ru.stat.StatApi.chatRank) - через рефлексию,
- * чтобы плагины собирались независимо. Без StatPlugin просто ничего не показывает.
+ * Ранг игрока для чата - через рефлексию, чтобы плагины собирались независимо:
+ * из плагина рангов DsRanks (ru.dscraft.ranks.RanksApi.chatRank), а если его нет -
+ * из старого StatPlugin (ru.stat.StatApi.chatRank). Без обоих просто ничего не показывает.
  */
 public final class StatHook {
 
-    private static volatile Method chatRank;
-    private static volatile boolean failed;
+    private static Method chatRank;
+    private static ClassLoader loadedFrom;
 
     private StatHook() {
     }
@@ -29,18 +30,23 @@ public final class StatHook {
         }
     }
 
-    private static Method resolve() {
-        Method m = chatRank;
-        if (m != null || failed) return m;
-        Plugin stat = Bukkit.getPluginManager().getPlugin("StatPlugin");
-        if (stat == null || !stat.isEnabled()) return null;
+    private static synchronized Method resolve() {
+        Method m = find("DsRanks", "ru.dscraft.ranks.RanksApi");
+        return m != null ? m : find("StatPlugin", "ru.stat.StatApi");
+    }
+
+    /** Метод chatRank(Player) из плагина; после перезагрузки плагина (новый загрузчик классов) ищет заново. */
+    private static Method find(String pluginName, String apiClass) {
+        Plugin plugin = Bukkit.getPluginManager().getPlugin(pluginName);
+        if (plugin == null || !plugin.isEnabled()) return null;
+        ClassLoader cl = plugin.getClass().getClassLoader();
+        if (cl == loadedFrom && chatRank != null) return chatRank;
         try {
-            Class<?> api = Class.forName("ru.stat.StatApi", true, stat.getClass().getClassLoader());
-            m = api.getMethod("chatRank", Player.class);
-            chatRank = m;
-            return m;
+            Class<?> api = Class.forName(apiClass, true, cl);
+            chatRank = api.getMethod("chatRank", Player.class);
+            loadedFrom = cl;
+            return chatRank;
         } catch (Exception e) {
-            failed = true;
             return null;
         }
     }
