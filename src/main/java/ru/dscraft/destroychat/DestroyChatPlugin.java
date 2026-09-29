@@ -8,6 +8,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import ru.dscraft.destroychat.announce.Announcer;
 import ru.dscraft.destroychat.command.ChatPrefixCommand;
 import ru.dscraft.destroychat.command.ColorCommand;
+import ru.dscraft.destroychat.command.ContactCommand;
 import ru.dscraft.destroychat.config.ChatConfig;
 import ru.dscraft.destroychat.hook.LuckPermsHook;
 import ru.dscraft.destroychat.listener.ChatFormatListener;
@@ -25,6 +26,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
 
     private ChatConfig chatConfig;
     private Announcer announcer;
+    private ContactCommand contactCommand;
 
     @Override
     public void onEnable() {
@@ -73,6 +75,10 @@ public final class DestroyChatPlugin extends JavaPlugin {
             getCommand("chatprefix").setTabCompleter(chatPrefixCommand);
         }
 
+        // /contact - контакты команды проекта (contacts.yml), доступна всем
+        contactCommand = new ContactCommand(this);
+        if (getCommand("contact") != null) getCommand("contact").setExecutor(contactCommand);
+
         this.announcer = new Announcer(this);
         announcer.start();
 
@@ -118,6 +124,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
             if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
                 chatConfig.reload();
                 if (announcer != null) announcer.start();
+                if (contactCommand != null) contactCommand.reload();
                 sender.sendMessage("§a[DestroyChat] Конфиг перезагружен.");
                 return true;
             }

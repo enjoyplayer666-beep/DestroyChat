@@ -17,8 +17,15 @@ commands:
   chatprefix:
     description: Отдельный префикс для чата (то же, что /prefix chat)
     usage: /chatprefix <текст> | /chatprefix reset
+  contact:
+    description: Контакты команды проекта
+    usage: /contact
+    aliases: [contacts, kontakt]
+    permission: destroychat.contact
 
 permissions:
+  destroychat.contact:
+    default: true
   destroychat.admin:
     default: op
   destroylobby.prefix.chat:
