@@ -1,0 +1,22 @@
+name: MediaClans
+version: '1.0'
+main: ru.dscraft.mediaclans.MediaClansPlugin
+api-version: '1.21'
+author: DestroyCraft
+description: Кланы DestroyCraft - меню, роли, клановый чат, рейтинг, топ
+softdepend: [LuckPerms]
+# DestroyChat берёт отсюда тег клана для чата, StatPlugin - клан для /stat
+loadbefore: [DestroyChat, StatPlugin]
+commands:
+  clan:
+    description: Кланы
+    usage: /clan
+    aliases: [c, clans, кланы]
+permissions:
+  mediaclans.admin:
+    description: /clan forcedelete, /clan setrating
+    default: op
+  mediaclans.create:
+    default: false
+  mediaclans.booster.2:
+    default: false

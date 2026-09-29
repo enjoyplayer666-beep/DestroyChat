@@ -6,11 +6,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 import ru.dscraft.destroychat.announce.Announcer;
-import ru.dscraft.destroychat.clan.ClanActions;
-import ru.dscraft.destroychat.clan.ClanApi;
-import ru.dscraft.destroychat.clan.ClanCommand;
-import ru.dscraft.destroychat.clan.ClanListener;
-import ru.dscraft.destroychat.clan.ClanManager;
 import ru.dscraft.destroychat.command.ChatPrefixCommand;
 import ru.dscraft.destroychat.command.ColorCommand;
 import ru.dscraft.destroychat.config.ChatConfig;
@@ -21,7 +16,7 @@ import ru.dscraft.destroychat.util.NameStyler;
 
 /**
  * DestroyChat - чат DestroyCraft: формат "Ⓛ ⌜Игрок⌟ ник → сообщение", локальный/глобальный
- * каналы, /color, отдельный чат-префикс и кланы (/clan, /c).
+ * каналы, /color, отдельный чат-префикс. Кланы - в плагине MediaClans.
  * <p>
  * В паре с DestroyLobby: тот запрещает чат в лобби и не пускает сообщения между лобби и
  * игровыми мирами, а также перенаправляет свою команду /prefix chat сюда (/chatprefix).
@@ -29,7 +24,6 @@ import ru.dscraft.destroychat.util.NameStyler;
 public final class DestroyChatPlugin extends JavaPlugin {
 
     private ChatConfig chatConfig;
-    private ClanManager clanManager;
     private Announcer announcer;
 
     @Override
@@ -56,23 +50,15 @@ public final class DestroyChatPlugin extends JavaPlugin {
             getLogger().warning("DestroyLobby не найден: чат будет работать и в лобби, миры не разделены.");
         }
 
-        this.clanManager = new ClanManager(this, chatConfig);
-        clanManager.load();
-        ClanApi.init(clanManager);
-        ClanActions clanActions = new ClanActions(clanManager, chatConfig);
-        getServer().getPluginManager().registerEvents(new ClanListener(this, clanActions), this);
-        ClanCommand clanCommand = new ClanCommand(clanActions);
-        if (getCommand("clan") != null) {
-            getCommand("clan").setExecutor(clanCommand);
-            getCommand("clan").setTabCompleter(clanCommand);
+        // кланы (/clan) - в отдельном плагине MediaClans, тег клана в чат берётся оттуда
+        if (getServer().getPluginManager().getPlugin("MediaClans") == null) {
+            getLogger().warning("MediaClans не найден: тега клана в чате не будет.");
         }
-        // кланы сохраняются раз в минуту, если что-то поменялось
-        getServer().getScheduler().runTaskTimer(this, clanManager::saveIfDirty, 1200L, 1200L);
 
         NameStyler nameStyler = new NameStyler(chatConfig, luckPermsHook);
         getServer().getPluginManager().registerEvents(new PrefixResetListener(luckPermsHook), this);
         getServer().getPluginManager().registerEvents(
-                new ChatFormatListener(chatConfig, luckPermsHook, clanManager, nameStyler), this);
+                new ChatFormatListener(chatConfig, luckPermsHook, nameStyler), this);
 
         // таб (строки игроков, цвет ника, ✔) - в отдельном плагине MediaTab
 
@@ -123,7 +109,6 @@ public final class DestroyChatPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (clanManager != null) clanManager.save();
         if (announcer != null) announcer.stop();
     }
 

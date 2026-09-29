@@ -1,0 +1,57 @@
+# =====================================================================
+#  MediaClans - кланы DestroyCraft: /clan (/c)
+#  Тексты - MiniMessage: <gradient:#A:#B>..</gradient>, <#RRGGBB>, <bold>, <white> ...
+#  При первом запуске настройки и все кланы сами переносятся из DestroyChat.
+# =====================================================================
+
+# тег клана в чате DestroyChat, сразу после ранга; <clan> - название клана с его цветами
+chat-tag: "<dark_gray><bold>[</bold></dark_gray><clan><dark_gray><bold>]</bold></dark_gray> "
+
+# начало всех сообщений кланов
+message-prefix: "<#FF9F43>Кланы</#FF9F43> <dark_gray>•</dark_gray> "
+
+# клановый чат: сообщение, которое начинается с этого знака, видят только участники клана
+clan-chat:
+  symbol: "%"
+  # <role> - префикс роли, <name> - ник, <message> - сообщение
+  format: "<#FF9F43>Клан</#FF9F43> <dark_gray>›</dark_gray> <gray>[</gray><role><gray>]</gray> <#55FFCC><name></#55FFCC> <#D2F5EE><message></#D2F5EE>"
+
+# создание клана: право ("" - могут все, например "mediaclans.create" - только у кого есть право)
+create-permission: ""
+
+# клановый рейтинг (КР) за убийство игрока
+kill-rating: 15
+# игроки с этим правом получают КР x2 (бустер Ultra); "" - выключено
+booster-permission: "mediaclans.booster.2"
+# сколько КР теряет клан убитого (0 - не теряет)
+death-rating: 0
+# повторное убийство того же игрока тем же убийцей раньше этого времени рейтинг не даёт (защита от фарма)
+kill-cooldown-seconds: 300
+# <amount> - сколько КР начислено
+kill-message: "<green>Вашему клану добавлено <yellow><amount></yellow> кланового рейтинга!</green>"
+# сообщение убитому, если его клан потерял КР ("" - не писать)
+death-message: "<red>Ваш клан потерял <yellow><amount></yellow> кланового рейтинга.</red>"
+
+name-min-length: 3
+name-max-length: 16
+max-members: 50
+# сколько секунд действует приглашение
+invite-seconds: 60
+# сколько секунд ждать ответа в чат (название, пароль, описание ...)
+input-seconds: 30
+# кланов на странице /c top
+top-page-size: 10
+description-max-length: 120
+announcement-max-length: 120
+role-prefix-max-length: 16
+max-roles: 15
+max-pins: 28
+history-size: 28
+
+# статус клана по рейтингу: порог КР -> название
+statuses:
+  '0': "<gray>Новички</gray>"
+  '500': "<green>Опытные</green>"
+  '1500': "<aqua>Грозные</aqua>"
+  '3000': "<gold>Легенды</gold>"
+  '6000': "<#FF55AA>Неудержимые</#FF55AA>"

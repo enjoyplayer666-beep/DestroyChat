@@ -22,8 +22,17 @@ jobs:
       - name: Собрать плагин
         run: mvn -B clean package
 
+      - name: Собрать MediaClans (кланы)
+        run: mvn -B -f mediaclans/pom.xml clean package
+
       - name: Выложить jar
         uses: actions/upload-artifact@v4
         with:
           name: DestroyChat
           path: target/*.jar
+
+      - name: Выложить MediaClans
+        uses: actions/upload-artifact@v4
+        with:
+          name: MediaClans
+          path: mediaclans/target/MediaClans.jar
