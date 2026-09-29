@@ -4,6 +4,8 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -33,6 +35,25 @@ public final class ClanApi {
         ClanManager m = manager;
         Clan clan = m == null ? null : m.getClan(player);
         return clan == null ? null : ClanText.chatTag(clan, m);
+    }
+
+    /**
+     * Топ кланов по рейтингу для голограмм MediaTops: каждый элемент - {ID, название с §-цветами, рейтинг (Integer)}.
+     */
+    public static List<Object[]> top(int limit) {
+        ClanManager m = manager;
+        List<Object[]> out = new ArrayList<>();
+        if (m == null) return out;
+        for (Clan clan : m.all()) {
+            out.add(new Object[]{clan.id(), LegacyComponentSerializer.legacySection().serialize(ClanText.name(clan)), clan.rating()});
+        }
+        out.sort((a, b) -> Integer.compare((Integer) b[2], (Integer) a[2]));
+        return out.size() > limit ? new ArrayList<>(out.subList(0, limit)) : out;
+    }
+
+    /** Все кланы: ID -> {название с §-цветами, рейтинг}. */
+    public static List<Object[]> all() {
+        return top(Integer.MAX_VALUE);
     }
 
     /** ID клана игрока (название без цветов) или null. */
