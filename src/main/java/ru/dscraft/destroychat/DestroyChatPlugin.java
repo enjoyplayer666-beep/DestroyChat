@@ -17,7 +17,6 @@ import ru.dscraft.destroychat.config.ChatConfig;
 import ru.dscraft.destroychat.hook.LuckPermsHook;
 import ru.dscraft.destroychat.listener.ChatFormatListener;
 import ru.dscraft.destroychat.listener.PrefixResetListener;
-import ru.dscraft.destroychat.tab.TabListManager;
 import ru.dscraft.destroychat.util.NameStyler;
 
 /**
@@ -75,13 +74,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
                 new ChatFormatListener(chatConfig, luckPermsHook, clanManager, nameStyler), this);
 
-        if (getServer().getPluginManager().getPlugin("TAB") != null) {
-            getLogger().info("Найден плагин TAB: таб оформляет он, модуль таба DestroyChat выключен.");
-        } else if (luckPermsHook.isEnabled()) {
-            TabListManager tab = new TabListManager(chatConfig, luckPermsHook, nameStyler);
-            getServer().getPluginManager().registerEvents(tab, this);
-            getServer().getScheduler().runTaskTimer(this, tab, 20L, 20L);
-        }
+        // таб (строки игроков, цвет ника, ✔) - в отдельном плагине MediaTab
 
         ColorCommand colorCommand = new ColorCommand(luckPermsHook);
         if (getCommand("color") != null) {

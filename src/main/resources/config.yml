@@ -69,7 +69,8 @@ group-formats:
     chat-prefix: "&8&l[§x§2§E§D§D§C§8§lᴍᴇᴅɪᴀ&8&l]&r &8&l[§x§D§D§D§D§D§D§lᴅs&r &a&l✔&8&l]&r "
     name-style: "&f&l"
 
-# Таб: префикс LuckPerms + ник + суффикс LuckPerms. Если стоит плагин TAB - этот модуль выключается сам.
+# Таб теперь в отдельном плагине MediaTab. Эти цвета он забирает к себе при первом запуске,
+# дальше они настраиваются в plugins/MediaTab/config.yml (tab.game.name-color / staff-name-color).
 tab:
   enabled: true
   # цвет ника в табе: обычные игроки - серый, команда проекта (group-formats) - белый

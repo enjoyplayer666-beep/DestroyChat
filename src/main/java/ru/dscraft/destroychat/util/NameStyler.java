@@ -10,7 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Цвет ника - одинаково для чата и таба.
+ * Цвет ника в чате (в табе так же делает плагин MediaTab).
  * <p>
  * Цвет ника задаётся хвостом префикса: коды после последнего видимого символа.
  * {@code /prefix chat &6&l&oКОРОЛЬ &2&l&o} - префикс "КОРОЛЬ", ник - &amp;2&amp;l&amp;o.
@@ -61,13 +61,6 @@ public class NameStyler {
             return styled(group.nameStyle(), player.getName());
         }
         return styled(config.nameColor(), player.getName());
-    }
-
-    /** Ник в табе: стиль из хвоста префикса -> белый у команды проекта -> tab.name-color. */
-    public Component tabName(Player player, String nickStyle) {
-        if (nickStyle != null) return styled(nickStyle, player.getName());
-        if (group(player) != null) return styled(config.tabStaffNameColor(), player.getName());
-        return styled(config.tabNameColor(), player.getName());
     }
 
     private static Component styled(String style, String name) {

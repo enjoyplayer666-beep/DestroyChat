@@ -87,22 +87,6 @@ public class ChatConfig {
         return new GroupFormat(s.getString(found + ".chat-prefix", ""), s.getString(found + ".name-style", ""));
     }
 
-    // ---- таб ----
-
-    public boolean tabEnabled() {
-        return cfg.getBoolean("tab.enabled", true);
-    }
-
-    /** Цвет ника в табе у обычных игроков. */
-    public String tabNameColor() {
-        return cfg.getString("tab.name-color", "&7");
-    }
-
-    /** Цвет ника в табе у команды проекта (group-formats). */
-    public String tabStaffNameColor() {
-        return cfg.getString("tab.staff-name-color", "&f");
-    }
-
     /** Звёзды персонала: первая подходящая группа из staff-stars, null - нет. */
     public String staffStars(Predicate<String> hasGroup) {
         ConfigurationSection s = cfg.getConfigurationSection("staff-stars");
