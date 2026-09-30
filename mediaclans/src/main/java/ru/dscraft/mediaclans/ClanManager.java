@@ -124,10 +124,10 @@ public class ClanManager {
 
     /** Роли нового клана: Лидер (все права) и Участник (клановый чат и история). */
     static void addDefaultRoles(Clan clan) {
-        ClanRole leader = new ClanRole(ClanRole.LEADER_ID, "Лидер", "&cЛидер", Material.CHEST);
+        ClanRole leader = new ClanRole(ClanRole.LEADER_ID, "Лидер", "&#FF2B2BЛидер", Material.CRAFTER);
         leader.set(EnumSet.of(Perm.ALL));
         clan.putRole(leader);
-        ClanRole member = new ClanRole(ClanRole.DEFAULT_ID, "Участник", "&bУчастник", Material.LEATHER_CHESTPLATE);
+        ClanRole member = new ClanRole(ClanRole.DEFAULT_ID, "Участник", "&#2BFFFFУчастник", Material.RABBIT_HIDE);
         member.set(EnumSet.of(Perm.CHAT, Perm.HISTORY));
         clan.putRole(member);
         clan.defaultRoleId(ClanRole.DEFAULT_ID);
@@ -137,6 +137,7 @@ public class ClanManager {
         String id = toId(rawName);
         Clan clan = new Clan(id, rawName, owner.getUniqueId(), owner.getName(), System.currentTimeMillis());
         addDefaultRoles(clan);
+        clan.slots(settings.freeSlots());
         ClanMember m = new ClanMember(owner.getUniqueId(), owner.getName(), ClanRole.LEADER_ID, System.currentTimeMillis());
         m.lastSeen(System.currentTimeMillis());
         clan.membersMap().put(owner.getUniqueId(), m);
@@ -287,6 +288,8 @@ public class ClanManager {
         clan.announcement(s.getString("announcement"));
         ItemStack icon = s.getItemStack("icon");
         if (icon != null && !icon.getType().isAir()) clan.icon(icon);
+        if (clan.icon().getType() == Material.WHITE_BANNER) clan.icon(new ItemStack(Material.BELL)); // старая иконка по умолчанию
+        clan.slots(Math.max(settings.freeSlots(), s.getInt("slots", settings.freeSlots())));
         clan.rating(s.getInt("rating"));
         clan.kills(s.getInt("kills"));
         clan.deaths(s.getInt("deaths"));
@@ -332,6 +335,7 @@ public class ClanManager {
                 member.invited(m.getInt("invited"));
                 member.kicked(m.getInt("kicked"));
                 member.lastSeen(m.getLong("last-seen"));
+                member.notifyJoins(m.getBoolean("notify", true));
                 clan.membersMap().put(uuid, member);
             }
         }
@@ -377,6 +381,7 @@ public class ClanManager {
             yml.set(p + "deaths", clan.deaths());
             yml.set(p + "pvp", clan.pvp());
             yml.set(p + "default-role", clan.defaultRoleId());
+            yml.set(p + "slots", clan.slots());
             for (ClanRole r : clan.roles()) {
                 String rp = p + "roles." + r.id() + ".";
                 yml.set(rp + "name", r.name());
@@ -397,6 +402,7 @@ public class ClanManager {
                 yml.set(mp + "invited", m.invited());
                 yml.set(mp + "kicked", m.kicked());
                 yml.set(mp + "last-seen", m.lastSeen());
+                yml.set(mp + "notify", m.notifyJoins());
             }
             List<Map<String, Object>> history = new ArrayList<>();
             for (HistoryEntry h : clan.history()) {
@@ -476,7 +482,7 @@ public class ClanManager {
                 if (hasAdmins) {
                     ClanRole admin = new ClanRole("admin", "Администратор", "&bАдмин", Material.GOLDEN_HELMET);
                     admin.set(EnumSet.of(Perm.ANNOUNCE, Perm.INVITE, Perm.CHAT, Perm.ICON, Perm.DESCRIPTION,
-                            Perm.KICK, Perm.JOIN_TYPE, Perm.PIN, Perm.HISTORY, Perm.SET_ROLE));
+                            Perm.KICK, Perm.JOIN_TYPE, Perm.HISTORY, Perm.SET_ROLE));
                     clan.putRole(admin);
                 }
                 if (clan.membersMap().isEmpty()) continue;

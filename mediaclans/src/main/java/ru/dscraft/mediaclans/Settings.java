@@ -25,7 +25,7 @@ public final class Settings {
     }
 
     public String prefix() {
-        return cfg().getString("message-prefix", "<#FF9F43>Кланы</#FF9F43> <dark_gray>•</dark_gray> ");
+        return cfg().getString("clan-prefix", "<#F6993C>Кланы</#F6993C> <#666666>•</#666666> ");
     }
 
     public String chatSymbol() {
@@ -33,7 +33,7 @@ public final class Settings {
     }
 
     public String chatFormat() {
-        return cfg().getString("clan-chat.format", "<#FF9F43>Клан</#FF9F43> <dark_gray>›</dark_gray> <gray>[</gray><role><gray>]</gray> <#55FFCC><name></#55FFCC> <#D2F5EE><message></#D2F5EE>");
+        return cfg().getString("clan-chat.style", "<#F6993C>Клан</#F6993C> <#666666>»</#666666> <#666666>[</#666666><role><#666666>]</#666666> <#00FFE3><name></#00FFE3><#666666>:</#666666> <white><message></white>");
     }
 
     public String createPermission() {
@@ -74,6 +74,21 @@ public final class Settings {
 
     public int maxMembers() {
         return Math.max(1, cfg().getInt("max-members", 50));
+    }
+
+    /** Сколько слотов участников открыто у нового клана. */
+    public int freeSlots() {
+        return Math.max(1, cfg().getInt("free-slots", 14));
+    }
+
+    /** Всего слотов (открытые + купленные), по 21 на страницу. */
+    public int maxSlots() {
+        return Math.max(freeSlots(), cfg().getInt("max-slots", 63));
+    }
+
+    /** Цена слота в коинах (пока только надпись). */
+    public int slotPrice() {
+        return cfg().getInt("slot-price", 5);
     }
 
     public int inviteSeconds() {

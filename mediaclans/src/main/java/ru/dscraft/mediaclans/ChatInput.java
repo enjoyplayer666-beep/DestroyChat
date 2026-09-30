@@ -51,7 +51,7 @@ public final class ChatInput implements Listener {
 
     private void showTitle(Player player, String prompt, long seconds) {
         player.showTitle(Title.title(
-                ColorUtil.parse("<#3F7FFF><b>" + seconds + "</b></#3F7FFF> <white><b>сек.</b></white>"),
+                ColorUtil.parse("<#479CFF>" + seconds + "</#479CFF> <white>сек.</white>"),
                 ColorUtil.parse("<white>" + prompt + "</white>"),
                 Title.Times.times(Duration.ZERO, Duration.ofMillis(1500), Duration.ZERO)));
     }

@@ -15,6 +15,8 @@ public class ClanMember {
     private volatile int invited;
     private volatile int kicked;
     private volatile long lastSeen;
+    /** Показывать ли этому игроку сообщения о входе/выходе участников клана. */
+    private volatile boolean notify = true;
 
     public ClanMember(UUID uuid, String name, String roleId, long joinedAt) {
         this.uuid = uuid;
@@ -93,6 +95,14 @@ public class ClanMember {
 
     public void lastSeen(long lastSeen) {
         this.lastSeen = lastSeen;
+    }
+
+    public boolean notifyJoins() {
+        return notify;
+    }
+
+    public void notifyJoins(boolean notify) {
+        this.notify = notify;
     }
 
     /** Процент побед на ПВП за клан: убийства / (убийства + смерти). */

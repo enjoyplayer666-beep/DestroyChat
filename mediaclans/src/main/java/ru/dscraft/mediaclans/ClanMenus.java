@@ -1,5 +1,6 @@
 package ru.dscraft.mediaclans;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -13,20 +14,22 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.profile.PlayerTextures;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * Меню кланов (как на сервере-образце):
- * список кланов, клан, участник, настройки, история, закреплённые сообщения, роли, роль.
- * Каждое меню само хранит, что делает клик по каждому слоту.
+ * Меню кланов - точь-в-точь как на сервере-образце (слоты, иконки и цвета сняты со скринов):
+ * список кланов, клан, игрок клана, роль игрока, настройки, история, описание, закреплённые, роли, роль.
  */
 public final class ClanMenus {
 
@@ -37,17 +40,32 @@ public final class ClanMenus {
             28, 29, 30, 31, 32, 33, 34,
             37, 38, 39, 40, 41, 42, 43};
 
-    /** Участники в меню клана: ряды 2-4. */
+    /** Участники в меню клана: 3 ряда по 7 (21 на страницу). */
     static final int[] MEMBER_SLOTS = {
-            9, 10, 11, 12, 13, 14, 15, 16, 17,
-            18, 19, 20, 21, 22, 23, 24, 25, 26,
-            27, 28, 29, 30, 31, 32, 33, 34, 35};
+            19, 20, 21, 22, 23, 24, 25,
+            28, 29, 30, 31, 32, 33, 34,
+            37, 38, 39, 40, 41, 42, 43};
 
-    /** Роли: 3 ряда по 5, по центру. */
+    /** Роли: 3 ряда по 5. */
     static final int[] ROLE_SLOTS = {11, 12, 13, 14, 15, 20, 21, 22, 23, 24, 29, 30, 31, 32, 33};
 
-    /** Права роли: 16 штук, остальные ячейки ряда - чёрные. */
+    /** Права роли: 16 штук, остальные 5 - "Пусто...". */
     static final int[] PERM_SLOTS = {19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43};
+
+    /** Строки описания: 7 штук. */
+    static final int[] DESC_SLOTS = {19, 20, 21, 22, 23, 24, 25};
+
+    private static final String P = ClanText.P;
+    private static final String DG = ClanText.DG;
+    private static final String NEXT = "#79BE79";
+    private static final String PREV = "#BE7979";
+    private static final String CONFIRM = "#00FFE3";
+    private static final String PERM_ON = "#26FF68";
+    private static final String PERM_OFF = "#FF2626";
+    private static final String YELLOW = "#FFF200";
+    /** Голова "Клановый чат". */
+    private static final String CHAT_HEAD = "39144e83e5b92249bf4299b32ae1b7a515dd34cd2a13f13572f6da59785fb74a";
+    private static final Material[] FISH = {Material.COD, Material.SALMON, Material.TROPICAL_FISH, Material.PUFFERFISH};
 
     private final ClanManager manager;
     private final ClanActions actions;
@@ -56,8 +74,6 @@ public final class ClanMenus {
     /** Настройки списка кланов у каждого игрока: сортировка и скрытие закрытых. */
     private final Map<UUID, Boolean> sortAscending = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> hideClosed = new ConcurrentHashMap<>();
-    /** Подтверждение удаления клана: до какого времени второй клик удалит клан. */
-    private final Map<UUID, Long> disbandConfirm = new ConcurrentHashMap<>();
 
     public ClanMenus(ClanManager manager, ClanActions actions, ChatInput input) {
         this.manager = manager;
@@ -81,13 +97,45 @@ public final class ClanMenus {
 
     private Menu create(String title) {
         Menu menu = new Menu();
-        menu.inventory = Bukkit.createInventory(menu, 54, ColorUtil.parse("<dark_gray>• " + title + "</dark_gray>"));
+        menu.inventory = Bukkit.createInventory(menu, 54, Component.text("▪ " + title));
         return menu;
     }
 
     private void set(Menu menu, int slot, ItemStack item, BiConsumer<Player, ClickType> click) {
         menu.inventory.setItem(slot, item);
         if (click != null) menu.clicks.put(slot, click);
+        else menu.clicks.remove(slot);
+    }
+
+    private static Component title(String color, String text) {
+        return ColorUtil.parse("<" + color + ">" + text + "</" + color + ">");
+    }
+
+    private static ItemStack fish() {
+        return new ItemStack(FISH[ThreadLocalRandom.current().nextInt(FISH.length)]);
+    }
+
+    /** Нет права - кликнутый предмет превращается в рыбу "Нет прав на это!". */
+    private void noPerm(Menu menu, int slot) {
+        set(menu, slot, item(fish(), title("#FF3434", "Нет прав на это!"), lines("<white>Твоя роль не может делать это!</white>")), null);
+    }
+
+    /** Действие над самим собой - рыба "Действия с собой нельзя сделать!". */
+    private void noSelf(Menu menu, int slot) {
+        set(menu, slot, item(fish(), title("#FF3434", "Действия с собой нельзя сделать!"),
+                lines("<white>Что ты хочешь там сделать...</white>")), null);
+    }
+
+    /** Клик, который выполняется только при наличии права, иначе - рыба. */
+    private BiConsumer<Player, ClickType> need(Menu menu, int slot, Clan clan, Perm perm, BiConsumer<Player, ClickType> action) {
+        return (pl, c) -> {
+            if (clan.has(pl.getUniqueId(), perm)) action.accept(pl, c);
+            else noPerm(menu, slot);
+        };
+    }
+
+    private static String esc(String s) {
+        return s == null ? "" : s.replace("<", "\\<");
     }
 
     // ---------------- список кланов ----------------
@@ -97,8 +145,8 @@ public final class ClanMenus {
         boolean hide = hideClosed.getOrDefault(player.getUniqueId(), false);
         List<Clan> top = manager.top();
         if (asc) java.util.Collections.reverse(top);
-        int closed = (int) top.stream().filter(c -> c.joinType() == Clan.JoinType.INVITE).count();
-        if (hide) top.removeIf(c -> c.joinType() == Clan.JoinType.INVITE);
+        int closed = (int) top.stream().filter(c -> c.joinType() != Clan.JoinType.OPEN).count();
+        if (hide) top.removeIf(c -> c.joinType() != Clan.JoinType.OPEN);
 
         int pages = Math.max(1, (top.size() + GRID.length - 1) / GRID.length);
         int p = Math.max(0, Math.min(page, pages - 1));
@@ -110,47 +158,38 @@ public final class ClanMenus {
             set(menu, GRID[i], item(clan.icon(), ClanText.name(clan), ClanText.card(clan, manager, true)),
                     (pl, c) -> openClan(pl, clan, 0));
         }
-        if (top.isEmpty()) {
-            set(menu, 22, item(Material.PAPER, ColorUtil.parse("<yellow>Кланов пока нет</yellow>"),
-                    lines("<white>Создай первый клан!</white>")), null);
-        }
 
-        set(menu, 45, item(Material.LEAD, ColorUtil.parse("<#B884FF>Сортировка</#B884FF>"), lines(
+        set(menu, 45, item(Material.LEAD, title(P, "Сортировка"), lines(
                 "<white>Сортировка кланов.</white>",
                 "",
-                "<gray>Текущая:</gray>",
-                asc ? "<gray>  Больше рейтинга.</gray>" : "<aqua>✔</aqua> <white>Больше рейтинга.</white>",
-                asc ? "<aqua>✔</aqua> <white>Меньше рейтинга.</white>" : "<gray>  Меньше рейтинга.</gray>",
+                "<" + DG + ">Текущая:</" + DG + ">",
+                asc ? "<#939393>  Больше рейтинга.</#939393>" : "<#31FBFF>✓</#31FBFF> <#939393>Больше рейтинга.</#939393>",
+                asc ? "<#31FBFF>✓</#31FBFF> <#939393>Меньше рейтинга.</#939393>" : "<#939393>  Меньше рейтинга.</#939393>",
                 "",
-                "<white>Нажми чтобы отсортировать</white>")), (pl, c) -> {
+                "<white>Нажми чтобы отсортировать.</white>")), (pl, c) -> {
             sortAscending.put(pl.getUniqueId(), !asc);
             openList(pl, 0);
         });
 
         Clan mine = manager.getClan(player);
         if (mine != null) {
-            List<Component> lore = new ArrayList<>(ClanText.card(mine, manager, false));
-            lore.add(Component.empty());
-            lore.add(ColorUtil.parse("<white>Нажми чтобы открыть свой клан.</white>"));
-            set(menu, 49, item(mine.icon(), ColorUtil.parse("<#B884FF>Мой клан: </#B884FF>").append(ClanText.name(mine)), lore),
+            set(menu, 49, item(Material.MANGROVE_DOOR, title(P, "Мой клан"), lines("<white>Просмотр своего клана.</white>")),
                     (pl, c) -> openClan(pl, mine, 0));
         } else {
-            set(menu, 49, item(Material.ARMOR_STAND, ColorUtil.parse("<#B884FF>Создать свой клан</#B884FF>"),
-                    lines("<white>Нажми если хочешь клан.</white>")), (pl, c) -> askCreate(pl));
+            set(menu, 49, item(Material.ARMOR_STAND, title(P, "Создать свой клан"), lines("<white>Нажми если хочешь клан.</white>")),
+                    (pl, c) -> askCreate(pl));
         }
-
         if (p > 0) {
-            set(menu, 46, item(Material.ARROW, ColorUtil.parse("<#B884FF>Предыдущая</#B884FF>"),
-                    lines("<white>Открыть " + p + " страницу...</white>")), (pl, c) -> openList(pl, p - 1));
+            set(menu, 50, item(Material.ARROW, title(PREV, "Предыдущая"), lines("<white>Открыть " + p + " страницу...</white>")),
+                    (pl, c) -> openList(pl, p - 1));
         }
         if (p < pages - 1) {
-            set(menu, 52, item(Material.ARROW, ColorUtil.parse("<#B884FF>Следующая</#B884FF>"),
-                    lines("<white>Открыть " + (p + 2) + " страницу...</white>")), (pl, c) -> openList(pl, p + 1));
+            set(menu, 51, item(Material.ARROW, title(NEXT, "Следующая"), lines("<white>Открыть " + (p + 2) + " страницу...</white>")),
+                    (pl, c) -> openList(pl, p + 1));
         }
-        set(menu, 53, item(hide ? Material.GRAY_DYE : Material.SLIME_BALL,
-                ColorUtil.parse(hide ? "<#B884FF>Показать закрытые кланы</#B884FF>" : "<#B884FF>Скрыть закрытые кланы</#B884FF>"),
-                lines(hide ? "<white>Скрыто <green>" + closed + "</green> закрытых кланов.</white>"
-                        : "<white>Отображено <green>" + closed + "</green> закрытых кланов.</white>")), (pl, c) -> {
+        set(menu, 53, item(Material.SLIME_BALL, title(P, hide ? "Показать закрытые кланы" : "Скрыть закрытые кланы"),
+                lines(hide ? "<white>Скрыто <" + CONFIRM + ">" + closed + "</" + CONFIRM + "> закрытых кланов.</white>"
+                        : "<white>Отображено <" + CONFIRM + ">" + closed + "</" + CONFIRM + "> закрытых кланов.</white>")), (pl, c) -> {
             hideClosed.put(pl.getUniqueId(), !hide);
             openList(pl, 0);
         });
@@ -173,142 +212,157 @@ public final class ClanMenus {
             return;
         }
         List<ClanMember> members = clan.sortedMembers();
-        int max = actions.settings().maxMembers();
-        int pages = Math.max(1, (Math.max(members.size(), Math.min(max, MEMBER_SLOTS.length)) + MEMBER_SLOTS.length - 1) / MEMBER_SLOTS.length);
+        int maxSlots = Math.max(actions.settings().maxSlots(), members.size());
+        int pages = Math.max(1, (maxSlots + MEMBER_SLOTS.length - 1) / MEMBER_SLOTS.length);
         int p = Math.max(0, Math.min(page, pages - 1));
         Menu menu = create("Клан, игроки: " + members.size());
         UUID me = player.getUniqueId();
         boolean inClan = clan.member(me) != null;
 
-        set(menu, 3, item(Material.ITEM_FRAME, ColorUtil.parse("<#B884FF>Информация о клане</#B884FF>"),
-                ClanText.info(clan, manager)), null);
-        set(menu, 5, item(Material.BARREL, ColorUtil.parse("<#B884FF>Клановый чат</#B884FF>"),
-                lines("<white>Поставь знак <#B884FF>" + escape(actions.settings().chatSymbol()) + "</#B884FF> в начале сообщения.</white>")), null);
-        set(menu, 6, item(Material.LECTERN, ColorUtil.parse("<#B884FF>Закреплённые сообщения</#B884FF>"),
-                lines("<white>У клана <#B884FF>" + clan.pins().size() + "</#B884FF> сообщений.</white>")),
-                (pl, c) -> {
-                    if (clan.member(pl.getUniqueId()) != null) openPins(pl, clan);
-                });
+        set(menu, 11, item(Material.ITEM_FRAME, title(P, "Информация о клане"), ClanText.info(clan, manager)), null);
+        set(menu, 13, head(CHAT_HEAD, title(P, "Клановый чат"), lines(
+                "<white>Поставь знак " + esc(actions.settings().chatSymbol()) + " в начале сообщения.</white>")), null);
+        set(menu, 15, item(Material.LECTERN, title(P, "Закреплённые сообщения"),
+                lines("<white>У клана <" + P + ">" + clan.pins().size() + "</" + P + "> сообщений.</white>")), (pl, c) -> {
+            if (clan.member(pl.getUniqueId()) != null) openPins(pl, clan);
+        });
 
-        // ---- участники ----
+        // ---- участники и слоты ----
+        boolean canBuy = inClan && clan.has(me, Perm.BUY_SLOTS);
         int start = p * MEMBER_SLOTS.length;
         for (int i = 0; i < MEMBER_SLOTS.length; i++) {
             int idx = start + i;
+            int slot = MEMBER_SLOTS[i];
             if (idx < members.size()) {
                 ClanMember m = members.get(idx);
-                boolean manage = clan.canManage(me, m)
-                        && (clan.has(me, Perm.KICK) || clan.has(me, Perm.SET_ROLE) || me.equals(clan.owner()));
-                set(menu, MEMBER_SLOTS[i], head(m, ClanText.memberTitle(clan, m), ClanText.member(clan, m, manage)),
-                        manage ? (pl, c) -> openMember(pl, clan, m.uuid()) : null);
-            } else if (idx < max) {
-                set(menu, MEMBER_SLOTS[i], item(Material.BLACK_CONCRETE, ColorUtil.parse("<gray>Свободное место</gray>"),
-                        clan.has(me, Perm.INVITE) ? lines("<white>Нажми чтобы пригласить игрока.</white>") : List.of()),
-                        clan.has(me, Perm.INVITE) ? (pl, c) -> askInvite(pl, clan) : null);
+                ClanRole role = clan.roleOf(m);
+                ItemStack icon = new ItemStack(role == null ? Material.RABBIT_HIDE : role.icon());
+                set(menu, slot, item(icon, ClanText.memberTitle(clan, m), ClanText.member(clan, m, inClan)),
+                        inClan ? (pl, c) -> openMember(pl, clan, m.uuid()) : null);
+            } else if (idx < clan.slots()) {
+                if (inClan && clan.has(me, Perm.INVITE)) {
+                    set(menu, slot, item(Material.BLACK_CONCRETE, title(P, "Пригласить игрока!"),
+                            lines("<white>Нажми чтобы отправить запрос.</white>")), need(menu, slot, clan, Perm.INVITE,
+                            (pl, c) -> actions.invitePrompt(pl)));
+                } else {
+                    set(menu, slot, item(Material.GRAY_STAINED_GLASS_PANE, title("#939393", "Пустой слот"),
+                            lines("<white>Тут никого нет.</white>")), null);
+                }
+            } else if (idx < actions.settings().maxSlots()) {
+                if (canBuy) {
+                    set(menu, slot, item(Material.GOLD_BLOCK, title("#FFE822", "Купить слот!"),
+                            lines("<white>Купить слот за <" + YELLOW + ">" + actions.settings().slotPrice() + "</" + YELLOW + "> коинов.</white>")),
+                            need(menu, slot, clan, Perm.BUY_SLOTS, (pl, c) -> {
+                                actions.buySlot(pl);
+                                openClan(pl, clan, p);
+                            }));
+                } else {
+                    set(menu, slot, item(Material.BARRIER, title("#FF3434", "Слот заблокирован"),
+                            lines("<white>У вас нет прав на покупку.</white>")), null);
+                }
             }
         }
 
         // ---- нижний ряд ----
         if (inClan) {
-            set(menu, 45, item(Material.REDSTONE_TORCH, ColorUtil.parse("<#B884FF>Опции</#B884FF>"),
-                    lines("<white>Нажми чтобы настроить клан.</white>")), (pl, c) -> openSettings(pl, clan));
-            if (!me.equals(clan.owner())) {
-                set(menu, 47, item(Material.OAK_DOOR, ColorUtil.parse("<red>Покинуть клан</red>"),
-                        lines("<white>Shift + ПКМ чтобы выйти из клана.</white>")), (pl, c) -> {
-                    if (c != ClickType.SHIFT_RIGHT) return;
-                    pl.closeInventory();
-                    actions.leave(pl);
-                });
-            }
+            set(menu, 46, item(Material.REPEATER, title(P, "Опции"), lines("<white>Нажми чтобы настроить клан.</white>")),
+                    (pl, c) -> openSettings(pl, clan));
         } else if (manager.getClan(player) == null) {
-            ClanManager.Invite invite = manager.getInvite(me);
-            boolean invited = invite != null && invite.clanId().equals(clan.id());
-            if (invited) {
-                set(menu, 47, item(Material.OAK_DOOR, ColorUtil.parse("<green>Вступить в клан</green>"),
-                        lines("<white>У тебя есть приглашение в этот клан.</white>")), (pl, c) -> {
-                    actions.accept(pl);
-                    openClan(pl, clan, 0);
-                });
-            } else if (clan.joinType() == Clan.JoinType.PASSWORD) {
-                set(menu, 47, item(Material.OAK_DOOR, ColorUtil.parse("<gold>Вступить по паролю</gold>"),
-                        lines("<white>Нажми и напиши пароль клана в чат.</white>")), (pl, c) ->
-                        input.ask(pl, "Напиши в чат пароль клана.", text -> {
-                            actions.joinWithPassword(pl, clan, text);
-                            if (clan.member(pl.getUniqueId()) != null) openClan(pl, clan, 0);
-                        }));
-            } else {
-                set(menu, 47, item(Material.IRON_DOOR, ColorUtil.parse("<red>Вход по приглашению</red>"),
-                        lines("<white>Попроси участника клана пригласить тебя.</white>")), null);
-            }
+            set(menu, 47, item(Material.SPRUCE_DOOR, title(P, "Вступить в клан"), lines("<white>Нажми для вступления.</white>")),
+                    (pl, c) -> {
+                        ClanManager.Invite invite = manager.getInvite(pl.getUniqueId());
+                        boolean invited = invite != null && invite.clanId().equals(clan.id());
+                        if (!invited && clan.joinType() == Clan.JoinType.PASSWORD) {
+                            input.ask(pl, "Напиши в чат пароль клана.", text -> {
+                                actions.joinWithPassword(pl, clan, text);
+                                if (clan.member(pl.getUniqueId()) != null) openClan(pl, clan, 0);
+                            });
+                            return;
+                        }
+                        actions.join(pl, clan);
+                        if (clan.member(pl.getUniqueId()) != null) openClan(pl, clan, 0);
+                    });
         }
-        set(menu, 49, item(Material.MAP, ColorUtil.parse("<#B884FF>На главную страницу</#B884FF>"),
-                lines("<white>Открыть все кланы сервера.</white>")), (pl, c) -> openList(pl, 0));
-        if (clan.has(me, Perm.INVITE) && clan.size() < max) {
-            set(menu, 51, item(Material.NAME_TAG, ColorUtil.parse("<#B884FF>Пригласить игрока</#B884FF>"),
-                    lines("<white>Нажми и напиши ник в чат.</white>")), (pl, c) -> askInvite(pl, clan));
-        }
+        set(menu, 49, item(Material.BELL, title(P, "На главную страницу"), lines("<white>Открыть все кланы сервера.</white>")),
+                (pl, c) -> openList(pl, 0));
         if (p > 0) {
-            set(menu, 46, item(Material.ARROW, ColorUtil.parse("<#B884FF>Предыдущая</#B884FF>"), List.of()),
+            set(menu, 50, item(Material.ARROW, title(PREV, "Предыдущая"), lines("<white>Открыть " + p + " страницу...</white>")),
                     (pl, c) -> openClan(pl, clan, p - 1));
         }
         if (p < pages - 1) {
-            set(menu, 52, item(Material.ARROW, ColorUtil.parse("<#B884FF>Следующая</#B884FF>"), List.of()),
+            set(menu, 51, item(Material.ARROW, title(NEXT, "Следующая"), lines("<white>Открыть " + (p + 2) + " страницу...</white>")),
                     (pl, c) -> openClan(pl, clan, p + 1));
         }
         if (me.equals(clan.owner())) {
-            set(menu, 53, item(Material.BARRIER, ColorUtil.parse("<red>Удалить клан</red>"),
-                    lines("<white>Удалить этот клан.</white>", "", "<gray>Нажми два раза для подтверждения.</gray>")), (pl, c) -> {
-                Long until = disbandConfirm.get(pl.getUniqueId());
-                if (until != null && until > System.currentTimeMillis()) {
-                    disbandConfirm.remove(pl.getUniqueId());
-                    pl.closeInventory();
-                    actions.disband(pl);
-                } else {
-                    disbandConfirm.put(pl.getUniqueId(), System.currentTimeMillis() + 5000L);
-                    actions.msg(pl, "<red>Нажми ещё раз в течение 5 секунд, чтобы удалить клан навсегда.</red>");
-                }
-            });
+            set(menu, 53, item(Material.STRUCTURE_VOID, title("#FF4920", "Удалить клан"), lines("<white>Удалить этот клан.</white>")),
+                    (pl, c) -> set(menu, 53, item(Material.STRING, title(CONFIRM, "Подтверди удаление"),
+                            lines("<white>Ты точно хочешь удалить клан?</white>")), (pl2, c2) -> {
+                        pl2.closeInventory();
+                        actions.disband(pl2);
+                    }));
+        } else if (inClan) {
+            set(menu, 47, item(Material.LEATHER, title("#FF3434", "Покинуть клан"), lines("<white>Покинуть этот клан.</white>")),
+                    (pl, c) -> set(menu, 47, item(Material.STRING, title(CONFIRM, "Подтверди выход"),
+                            lines("<white>Ты точно хочешь выйти из клана?</white>")), (pl2, c2) -> {
+                        pl2.closeInventory();
+                        actions.leave(pl2);
+                    }));
         }
         player.openInventory(menu.inventory);
     }
 
-    private void askInvite(Player player, Clan clan) {
-        input.ask(player, "Напиши в чат ник игрока для приглашения.", text -> actions.invite(player, text.split("\\s+")[0]));
-    }
-
-    // ---------------- участник ----------------
+    // ---------------- игрок клана ----------------
 
     public void openMember(Player player, Clan clan, UUID targetId) {
         ClanMember target = clan.member(targetId);
-        if (target == null || !clan.canManage(player.getUniqueId(), target)) {
+        if (target == null || clan.member(player.getUniqueId()) == null) {
             openClan(player, clan, 0);
             return;
         }
-        Menu menu = create("Клан, участник " + target.name());
+        Menu menu = create("Клан, игрок: " + target.name());
         UUID me = player.getUniqueId();
-        set(menu, 4, head(target, ClanText.memberTitle(clan, target), ClanText.member(clan, target, false)), null);
+
+        boolean self = me.equals(targetId);
+        set(menu, 11, item(Material.LEATHER, title(P, "Телепорт к игроку"), lines("<white>Нажми чтобы телепортироваться.</white>")),
+                (pl, c) -> {
+                    if (self) noSelf(menu, 11);
+                    else actions.teleport(pl, targetId);
+                });
         if (clan.has(me, Perm.SET_ROLE)) {
-            set(menu, 20, item(Material.ANVIL, ColorUtil.parse("<#B884FF>Изменить роль</#B884FF>"), List.of(
-                    ColorUtil.parse("<white>Сейчас: </white>").append(ClanText.rolePrefix(clan.roleOf(target))),
-                    ColorUtil.parse("<white>Нажми чтобы выбрать роль.</white>"))), (pl, c) -> openRolePick(pl, clan, targetId));
+            set(menu, 13, item(Material.ANVIL, title(P, "Роль игрока"), lines("<white>Нажми чтобы изменить роль.</white>")), (pl, c) -> {
+                if (self) noSelf(menu, 13);
+                else if (!clan.has(pl.getUniqueId(), Perm.SET_ROLE) || !clan.canManage(pl.getUniqueId(), clan.member(targetId))) noPerm(menu, 13);
+                else openRolePick(pl, clan, targetId);
+            });
         }
+        ClanMember mine = clan.member(me);
+        boolean notify = mine == null || mine.notifyJoins();
+        set(menu, 15, notifyItem(notify), (pl, c) -> {
+            boolean now = actions.toggleNotify(pl);
+            menu.inventory.setItem(15, notifyItem(now));
+        });
         if (clan.has(me, Perm.KICK)) {
-            set(menu, 22, item(Material.BARRIER, ColorUtil.parse("<red>Исключить из клана</red>"),
-                    lines("<white>Shift + ПКМ чтобы исключить.</white>")), (pl, c) -> {
-                if (c != ClickType.SHIFT_RIGHT) return;
-                actions.kick(pl, targetId);
-                openClan(pl, clan, 0);
-            });
-        }
-        if (me.equals(clan.owner())) {
-            set(menu, 24, item(Material.NETHER_STAR, ColorUtil.parse("<gold>Передать владение кланом</gold>"),
-                    lines("<white>Ты получишь начальную роль.</white>", "", "<white>Shift + ПКМ чтобы передать.</white>")), (pl, c) -> {
-                if (c != ClickType.SHIFT_RIGHT) return;
-                actions.transfer(pl, targetId);
-                openClan(pl, clan, 0);
-            });
+            set(menu, 31, item(Material.BARRIER, title(P, "Кикнуть игрока"), lines("<white>Выгнать этого игрока из клана.</white>")),
+                    (pl, c) -> {
+                        if (self) {
+                            noSelf(menu, 31);
+                            return;
+                        }
+                        if (!clan.has(pl.getUniqueId(), Perm.KICK) || !clan.canManage(pl.getUniqueId(), clan.member(targetId))) {
+                            noPerm(menu, 31);
+                            return;
+                        }
+                        actions.kick(pl, targetId);
+                        if (clan.member(targetId) == null) openClan(pl, clan, 0);
+                    });
         }
         set(menu, 49, backDoor(), (pl, c) -> openClan(pl, clan, 0));
         player.openInventory(menu.inventory);
+    }
+
+    private ItemStack notifyItem(boolean on) {
+        return item(on ? Material.LIME_CANDLE : Material.RED_CANDLE, title(P, "Сообщения выхода и входа на сервер"),
+                lines(on ? "<white>Ты включил для себя сообщения.</white>" : "<white>Ты отключил для себя сообщения.</white>"));
     }
 
     private void openRolePick(Player player, Clan clan, UUID targetId) {
@@ -317,18 +371,41 @@ public final class ClanMenus {
             openClan(player, clan, 0);
             return;
         }
-        Menu menu = create("Клан, выбор роли");
+        Menu menu = create("Роль игрока");
         List<ClanRole> roles = clan.roles();
-        for (int i = 0; i < roles.size() && i < ROLE_SLOTS.length; i++) {
-            ClanRole role = roles.get(i);
-            if (role.leader()) continue;
-            boolean current = role == clan.roleOf(target);
-            set(menu, ROLE_SLOTS[i], item(new ItemStack(role.icon()), ClanText.rolePrefix(role),
-                    lines(current ? "<green>Текущая роль игрока.</green>" : "<white>Нажми чтобы выдать эту роль.</white>")),
-                    (pl, c) -> {
-                        actions.setRole(pl, targetId, role.id());
-                        openMember(pl, clan, targetId);
-                    });
+        ClanRole current = clan.roleOf(target);
+        for (int i = 0; i < ROLE_SLOTS.length; i++) {
+            if (i < roles.size()) {
+                ClanRole role = roles.get(i);
+                ItemStack icon = new ItemStack(role == current ? Material.LIME_CONCRETE : Material.RED_CONCRETE);
+                ItemStack it = item(icon, roleTitle(role), lines("<white>Дать игроку эту роль.</white>"));
+                it.setAmount(i + 1);
+                int slot = ROLE_SLOTS[i];
+                set(menu, slot, it, (pl, c) -> {
+                    ClanRole mine = clan.roleOf(clan.member(pl.getUniqueId()));
+                    boolean ok = clan.has(pl.getUniqueId(), Perm.SET_ROLE) && clan.canManage(pl.getUniqueId(), clan.member(targetId))
+                            && !role.leader() && (pl.getUniqueId().equals(clan.owner()) || (mine != null && mine.above(role)));
+                    if (!ok) {
+                        noPerm(menu, slot);
+                        return;
+                    }
+                    actions.setRole(pl, targetId, role.id());
+                    openRolePick(pl, clan, targetId);
+                });
+            } else {
+                ItemStack empty = item(Material.BLACK_CONCRETE, Component.text(" "), List.of());
+                empty.setAmount(i + 1);
+                set(menu, ROLE_SLOTS[i], empty, null);
+            }
+        }
+        if (player.getUniqueId().equals(clan.owner()) && !targetId.equals(clan.owner())) {
+            set(menu, 47, item(Material.NETHER_STAR, title(P, "Сделать игрока создателем"),
+                    lines("<white>Передать игроку право на клан.</white>")), (pl, c) ->
+                    set(menu, 47, item(Material.STRING, title(CONFIRM, "Подтверди передачу"),
+                            lines("<white>Сделать игрока владельцем?</white>")), (pl2, c2) -> {
+                        actions.transfer(pl2, targetId);
+                        openClan(pl2, clan, 0);
+                    }));
         }
         set(menu, 49, backDoor(), (pl, c) -> openMember(pl, clan, targetId));
         player.openInventory(menu.inventory);
@@ -344,82 +421,102 @@ public final class ClanMenus {
         Menu menu = create("Клан, настройки");
         UUID me = player.getUniqueId();
 
-        set(menu, 11, item(Material.GRAY_SHULKER_BOX, ColorUtil.parse("<#B884FF>Настройка ролей</#B884FF>"),
-                lines("<white>У клана <#B884FF>" + clan.roles().size() + "</#B884FF> ролей.</white>")), (pl, c) -> openRoles(pl, clan));
-        set(menu, 13, item(Material.LANTERN, ColorUtil.parse("<#B884FF>История клана</#B884FF>"),
-                lines("<white>Логи входов, выходов и киков.</white>")), (pl, c) -> {
-            if (clan.has(pl.getUniqueId(), Perm.HISTORY)) openHistory(pl, clan);
-            else actions.error(pl, "У твоей роли нет права: " + Perm.HISTORY.title() + ".");
-        });
-        boolean password = clan.joinType() == Clan.JoinType.PASSWORD;
-        set(menu, 15, item(password ? Material.ENDER_EYE : Material.ENDER_PEARL,
-                ColorUtil.parse(password ? "<gold>Вход по паролю</gold>" : "<red>Вход по приглашению</red>"),
-                lines(password ? "<white>Нажми чтобы включить <u>вход по приглашению</u>.</white>"
-                        : "<white>Нажми чтобы включить <u>вход по паролю</u>.</white>")), (pl, c) -> {
-            actions.toggleJoinType(pl);
-            openSettings(pl, clan);
-        });
-        set(menu, 20, item(Material.WOODEN_SWORD, ColorUtil.parse("<#B884FF>PvP клана</#B884FF>"),
-                lines(clan.pvp() ? "<white>Огонь по своим: <green>Включён</green></white>" : "<white>Огонь по своим: <red>Выключен</red></white>",
-                        clan.pvp() ? "<white>Нажми чтобы выключить.</white>" : "<white>Нажми чтобы включить.</white>")), (pl, c) -> {
-            actions.togglePvp(pl);
-            openSettings(pl, clan);
-        });
-        set(menu, 22, item(Material.PAINTING, ColorUtil.parse("<#B884FF>Изменить иконку</#B884FF>"),
-                lines("<white>Нажми по предмету инвентаря.</white>")), null);
+        set(menu, 11, item(Material.ANVIL, title(P, "Настройка ролей"),
+                lines("<white>У клана <" + P + ">" + clan.roles().size() + "</" + P + "> ролей.</white>")), need(menu, 11, clan, Perm.EDIT_ROLES,
+                (pl, c) -> openRoles(pl, clan)));
+        set(menu, 13, item(clan.icon(), title(P, "Изменить иконку"), lines("<white>Нажми по предмету инветаря.</white>")), null);
         menu.ownItemClick = item -> {
+            if (!clan.has(player.getUniqueId(), Perm.ICON)) {
+                noPerm(menu, 13);
+                return;
+            }
             actions.setIcon(player, item);
             openSettings(player, clan);
         };
-        boolean seePassword = clan.has(me, Perm.PASSWORD);
-        set(menu, 24, item(Material.FILLED_MAP, ColorUtil.parse("<#B884FF>Пароль клана</#B884FF>"),
-                lines(seePassword
-                        ? "<white>У клана <#B884FF>" + escape(clan.password() == null ? "нет" : clan.password()) + "</#B884FF> пароль,</white>"
-                        : "<white>Пароль скрыт.</white>",
-                        seePassword ? "<white>нажми чтобы изменить.</white>" : "")), (pl, c) -> {
-            if (!clan.has(pl.getUniqueId(), Perm.PASSWORD)) {
-                actions.error(pl, "У твоей роли нет права: " + Perm.PASSWORD.title() + ".");
-                return;
-            }
-            input.ask(pl, "Напиши в чат пароль клана.", text -> {
-                actions.setPassword(pl, text);
-                openSettings(pl, clan);
-            });
-        });
-        set(menu, 29, item(Material.NAME_TAG, ColorUtil.parse("<#B884FF>Изменить название</#B884FF>"),
-                lines("<white>Нажми чтобы поменять название.</white>")), (pl, c) -> {
-            if (!clan.has(pl.getUniqueId(), Perm.RENAME)) {
-                actions.error(pl, "У твоей роли нет права: " + Perm.RENAME.title() + ".");
-                return;
-            }
-            input.ask(pl, "Напиши в чат новое название клана.", text -> {
-                actions.rename(pl, text.split("\\s+")[0]);
-                openSettings(pl, clan);
-            });
-        });
-        set(menu, 31, item(Material.WRITABLE_BOOK, ColorUtil.parse("<#B884FF>Изменить описание</#B884FF>"),
-                lines("<white>Нажми чтобы поменять описание.</white>")), (pl, c) -> {
-            if (!clan.has(pl.getUniqueId(), Perm.DESCRIPTION)) {
-                actions.error(pl, "У твоей роли нет права: " + Perm.DESCRIPTION.title() + ".");
-                return;
-            }
-            input.ask(pl, "Напиши в чат новое описание клана.", text -> {
-                actions.setDescription(pl, text);
-                openSettings(pl, clan);
-            });
-        });
+        set(menu, 15, joinItem(clan), need(menu, 15, clan, Perm.JOIN_TYPE, (pl, c) -> {
+            actions.cycleJoinType(pl);
+            openSettings(pl, clan);
+        }));
+
+        ItemStack sword = item(new ItemStack(clan.pvp() ? Material.GOLDEN_SWORD : Material.WOODEN_SWORD), title(P, "PvP клана"), lines(
+                "<white>Огонь по своим: " + (clan.pvp() ? "<#3DFF66>Включен</#3DFF66>" : "<" + ClanText.RED + ">Выключен</" + ClanText.RED + ">") + "</white>",
+                clan.pvp() ? "<white>Нажми чтобы выключить.</white>" : "<white>Нажми чтобы включить.</white>",
+                ""), true);
+        set(menu, 20, sword, need(menu, 20, clan, Perm.PVP, (pl, c) -> {
+            actions.togglePvp(pl);
+            openSettings(pl, clan);
+        }));
+        set(menu, 22, item(Material.PAPER, title(P, "История клана"), lines("<white>Логи входов, выходов и киков.</white>")),
+                need(menu, 22, clan, Perm.HISTORY, (pl, c) -> openHistory(pl, clan)));
+        boolean see = clan.has(me, Perm.VIEW_PASSWORD) || clan.has(me, Perm.PASSWORD);
+        String pw = clan.password() == null ? "нет" : clan.password();
+        set(menu, 24, item(Material.SKULL_BANNER_PATTERN, title(P, "Пароль клана"), lines(
+                see ? "<white>У клана <" + P + ">" + esc(pw) + "</" + P + "> пароль,</white>" : "<white>Пароль клана скрыт,</white>",
+                "<white>нажми чтобы изменить.</white>")), need(menu, 24, clan, Perm.PASSWORD, (pl, c) ->
+                input.ask(pl, "Напиши в чат пароль для клана.", text -> {
+                    actions.setPassword(pl, text);
+                    openSettings(pl, clan);
+                })));
+        set(menu, 29, item(Material.NAME_TAG, title(P, "Изменить название"), lines("<white>Нажми чтобы поменять название.</white>")), need(menu, 29, clan, Perm.RENAME, (pl, c) ->
+                input.ask(pl, "Напиши в чат название для клана.", text -> actions.rename(pl, text.split("\\s+")[0]))));
+        set(menu, 31, item(Material.KNOWLEDGE_BOOK, title(P, "Изменить описание"), lines("<white>Нажми чтобы поменять описание.</white>")),
+                need(menu, 31, clan, Perm.DESCRIPTION, (pl, c) -> openDescription(pl, clan)));
         List<Component> ann = new ArrayList<>();
-        ann.add(clan.announcement() == null ? ColorUtil.parse("<gray>Объявлений ещё не было.</gray>")
-                : ColorUtil.parse("<white><text></white>", Placeholder.unparsed("text", clan.announcement())));
+        ann.add(clan.announcement() == null ? ColorUtil.parse("<#CDCDCD>Объявлений ещё не было</#CDCDCD>")
+                : ColorUtil.parse("<#CDCDCD><text></#CDCDCD>", Placeholder.unparsed("text", clan.announcement())));
         ann.add(ColorUtil.parse("<white>Написать всем игрокам онлайн.</white>"));
-        set(menu, 33, item(Material.PAPER, ColorUtil.parse("<#B884FF>Объявление для клана</#B884FF>"), ann), (pl, c) -> {
-            if (!clan.has(pl.getUniqueId(), Perm.ANNOUNCE)) {
-                actions.error(pl, "У твоей роли нет права: " + Perm.ANNOUNCE.title() + ".");
-                return;
-            }
-            input.ask(pl, "Напиши в чат объявление для клана.", text -> actions.announce(pl, text));
-        });
+        set(menu, 33, item(Material.MAP, title(P, "Объявление для клана"), ann), need(menu, 33, clan, Perm.ANNOUNCE, (pl, c) ->
+                input.ask(pl, "Напиши в чат текст объявления для клана.", text -> actions.announce(pl, text))));
         set(menu, 49, backDoor(), (pl, c) -> openClan(pl, clan, 0));
+        player.openInventory(menu.inventory);
+    }
+
+    private ItemStack joinItem(Clan clan) {
+        return switch (clan.joinType()) {
+            case PASSWORD -> item(Material.MAP, title(ClanText.RED, "Клан под паролем"),
+                    lines("<white>Нажми чтобы включить <u>открыть</u>.</white>"));
+            case OPEN -> item(Material.ENDER_EYE, title(PERM_ON, "Клан открыт"),
+                    lines("<white>Нажми чтобы <u>прикрыть клан</u>.</white>"));
+            default -> item(Material.ENDER_EYE, title(ClanText.RED, "Вход по приглашению"),
+                    lines("<white>Нажми чтобы включить <u>вход по паролю</u>.</white>"));
+        };
+    }
+
+    // ---------------- описание ----------------
+
+    public void openDescription(Player player, Clan clan) {
+        Menu menu = create("Описание клана");
+        String[] desc = ClanText.descLines(clan);
+        List<Component> preview = new ArrayList<>();
+        boolean any = false;
+        for (String line : desc) {
+            if (line.isBlank()) continue;
+            any = true;
+            preview.add(Component.empty().color(net.kyori.adventure.text.format.NamedTextColor.WHITE).append(ColorUtil.rich(line)));
+        }
+        if (!any) preview.add(ColorUtil.parse("<gray>Нет описания...</gray>"));
+        set(menu, 13, item(Material.BEACON, ColorUtil.parse("<white>Описание клана:</white>"), preview), null);
+        for (int i = 0; i < DESC_SLOTS.length; i++) {
+            int index = i;
+            boolean filled = !desc[i].isBlank();
+            ItemStack it = filled
+                    ? item(Material.LIME_CONCRETE, Component.empty().color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
+                    .append(ColorUtil.rich(desc[i])), List.of())
+                    : item(Material.BLACK_CONCRETE, ColorUtil.parse("<white>Пусто...</white>"), List.of());
+            it.setAmount(i + 1);
+            set(menu, DESC_SLOTS[i], it, (pl, c) -> {
+                if (filled && c.isShiftClick()) {
+                    actions.setDescriptionLine(pl, index, "");
+                    openDescription(pl, clan);
+                    return;
+                }
+                input.ask(pl, "Напиши в чат строку для описания.", text -> {
+                    actions.setDescriptionLine(pl, index, text);
+                    openDescription(pl, clan);
+                });
+            });
+        }
+        set(menu, 49, backDoor(), (pl, c) -> openSettings(pl, clan));
         player.openInventory(menu.inventory);
     }
 
@@ -427,45 +524,60 @@ public final class ClanMenus {
 
     public void openHistory(Player player, Clan clan) {
         Menu menu = create("История клана");
+        ItemStack pane = item(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
+        for (int i = 0; i < 54; i++) menu.inventory.setItem(i, pane);
+        for (int s : GRID) menu.inventory.setItem(s, null);
         List<HistoryEntry> history = new ArrayList<>(clan.history());
         java.util.Collections.reverse(history);
         for (int i = 0; i < GRID.length && i < history.size(); i++) {
             HistoryEntry h = history.get(i);
+            String a = esc(h.actor() == null ? "?" : h.actor());
+            String t = h.target() == null ? "?" : h.target();
+            String v = "<" + P + ">";
+            String ve = "</" + P + ">";
             Material icon;
-            String title;
-            String line;
+            String head;
+            List<String> body = new ArrayList<>();
             switch (h.type()) {
                 case CREATE -> {
                     icon = Material.NETHER_STAR;
-                    title = "Создание клана";
-                    line = "<white>Создатель: <#B884FF><a></#B884FF></white>";
+                    head = "<" + P + ">Создание клана</" + P + ">";
+                    body.add("<white>Создатель: " + v + a + ve + "</white>");
                 }
                 case JOIN -> {
-                    icon = Material.LIME_DYE;
-                    title = "Вход в клан";
-                    line = "<white>Игрок: <#B884FF><a></#B884FF></white>";
+                    icon = Material.SLIME_BALL;
+                    head = "<" + PERM_ON + ">Вступление</" + PERM_ON + ">";
+                    body.add("<white>Игрок: " + v + a + ve + "</white>");
                 }
                 case LEAVE -> {
                     icon = Material.RED_DYE;
-                    title = "Выход из клана";
-                    line = "<white>Игрок: <#B884FF><a></#B884FF></white>";
+                    head = "<" + ClanText.RED + ">Выход из клана</" + ClanText.RED + ">";
+                    body.add("<white>Игрок: " + v + a + ve + "</white>");
                 }
                 case KICK -> {
                     icon = Material.BARRIER;
-                    title = "Исключение";
-                    line = "<white><#B884FF><a></#B884FF> исключил <#B884FF><t></#B884FF></white>";
+                    head = "<" + ClanText.RED + ">Исключение</" + ClanText.RED + ">";
+                    body.add("<white>Игрок: " + v + esc(t) + ve + "</white>");
+                    body.add("<white>Кто выгнал: " + v + a + ve + "</white>");
+                }
+                case ROLE -> {
+                    icon = Material.NAME_TAG;
+                    head = "<#479CFF>Смена роли</#479CFF>";
+                    String[] parts = t.split("\\|", 2);
+                    body.add("<white>Игрок: " + v + esc(parts[0]) + ve + "</white>");
+                    body.add("<white>Кто выдал: " + v + a + ve + "</white>");
+                    body.add("<white>Новая роль: " + v + esc(parts.length > 1 ? parts[1] : "?") + ve + "</white>");
                 }
                 default -> {
-                    icon = Material.GOLDEN_HELMET;
-                    title = "Передача владения";
-                    line = "<white><#B884FF><a></#B884FF> передал клан <#B884FF><t></#B884FF></white>";
+                    icon = Material.GOLD_BLOCK;
+                    head = "<" + YELLOW + ">Смена владельца</" + YELLOW + ">";
+                    body.add("<white>Новый владелец: " + v + esc(t) + ve + "</white>");
+                    body.add("<white>Кто передал: " + v + a + ve + "</white>");
                 }
             }
-            set(menu, GRID[i], item(new ItemStack(icon), ColorUtil.parse("<#B884FF>" + title + "</#B884FF>"), List.of(
-                    ColorUtil.parse(line, Placeholder.unparsed("a", h.actor() == null ? "?" : h.actor()),
-                            Placeholder.unparsed("t", h.target() == null ? "?" : h.target())),
-                    Component.empty(),
-                    ColorUtil.parse("<gray>Дата: " + ClanText.date(h.time()) + "</gray>"))), null);
+            body.add("");
+            body.add("<gray>Дата: " + ClanText.date(h.time()) + "</gray>");
+            set(menu, GRID[i], item(new ItemStack(icon), ColorUtil.parse(head), lines(body.toArray(new String[0]))), null);
         }
         set(menu, 49, backDoor(), (pl, c) -> openSettings(pl, clan));
         player.openInventory(menu.inventory);
@@ -475,7 +587,7 @@ public final class ClanMenus {
 
     public void openPins(Player player, Clan clan) {
         Menu menu = create("Закреплённые сообщения");
-        boolean canPin = clan.has(player.getUniqueId(), Perm.PIN);
+        boolean canPin = clan.has(player.getUniqueId(), Perm.ANNOUNCE);
         List<Pin> pins = new ArrayList<>(clan.pins());
         for (int i = 0; i < GRID.length && i < pins.size(); i++) {
             Pin pin = pins.get(i);
@@ -485,10 +597,10 @@ public final class ClanMenus {
                 lore.add(ColorUtil.parse("<white><l></white>", Placeholder.unparsed("l", line)));
             }
             lore.add(Component.empty());
-            lore.add(ColorUtil.parse("<gray>Закрепил <aqua><a></aqua>, " + ClanText.date(pin.time()) + "</gray>",
+            lore.add(ColorUtil.parse("<gray>Закрепил <" + P + "><a></" + P + ">, " + ClanText.date(pin.time()) + "</gray>",
                     Placeholder.unparsed("a", pin.author())));
-            if (canPin) lore.add(ColorUtil.parse("<red>Shift + ПКМ</red><gray> - открепить</gray>"));
-            set(menu, GRID[i], item(Material.PAPER, ColorUtil.parse("<#B884FF>Сообщение #" + (i + 1) + "</#B884FF>"), lore),
+            if (canPin) lore.add(ColorUtil.parse("<white>Shift + ПКМ чтобы открепить.</white>"));
+            set(menu, GRID[i], item(Material.PAPER, title(P, "Сообщение #" + (i + 1)), lore),
                     canPin ? (pl, c) -> {
                         if (c != ClickType.SHIFT_RIGHT) return;
                         actions.unpin(pl, index);
@@ -496,8 +608,8 @@ public final class ClanMenus {
                     } : null);
         }
         if (canPin) {
-            set(menu, 51, item(Material.WRITABLE_BOOK, ColorUtil.parse("<#B884FF>Закрепить сообщение</#B884FF>"),
-                    lines("<white>Нажми и напиши сообщение в чат.</white>")), (pl, c) ->
+            set(menu, 51, item(Material.WRITABLE_BOOK, title(P, "Закрепить сообщение"),
+                    lines("<white>Нажми чтобы закрепить сообщение.</white>")), (pl, c) ->
                     input.ask(pl, "Напиши в чат сообщение для закрепа.", text -> {
                         actions.pin(pl, text);
                         openPins(pl, clan);
@@ -509,9 +621,13 @@ public final class ClanMenus {
 
     // ---------------- роли ----------------
 
+    private static Component roleTitle(ClanRole role) {
+        return ColorUtil.parse("<" + P + "><n></" + P + "> <" + DG + ">ID: <id></" + DG + ">",
+                Placeholder.component("n", ColorUtil.rich(role.name())), Placeholder.unparsed("id", role.id()));
+    }
+
     public void openRoles(Player player, Clan clan) {
         Menu menu = create("Клан, настройка ролей");
-        UUID me = player.getUniqueId();
         List<ClanRole> roles = clan.roles();
         int total = Perm.values().length;
         for (int i = 0; i < ROLE_SLOTS.length; i++) {
@@ -521,47 +637,37 @@ public final class ClanMenus {
                 List<Component> lore = new ArrayList<>();
                 lore.add(ColorUtil.parse("<white>Префикс этой роли </white>").append(ClanText.rolePrefix(role)));
                 lore.add(Component.empty());
-                lore.add(ColorUtil.parse("<gray>Права роли:</gray>"));
-                lore.add(ColorUtil.parse("<white>  У роли <green>" + count + "</green> из <red>" + total + "</red> возможных.</white>"));
+                lore.add(ColorUtil.parse("<" + DG + ">Права роли:</" + DG + ">"));
+                lore.add(ColorUtil.parse("<white>  У роли <" + PERM_ON + ">" + count + "</" + PERM_ON + "> из <" + PERM_OFF + ">" + total
+                        + "</" + PERM_OFF + "> возможных.</white>"));
                 lore.add(Component.empty());
                 lore.add(ColorUtil.parse("<white>Нажми чтобы изменить роль.</white>"));
-                set(menu, ROLE_SLOTS[i], item(new ItemStack(role.icon()),
-                        ColorUtil.parse("<#B884FF><n></#B884FF> <gray>ID: <id></gray>",
-                                Placeholder.unparsed("n", role.name()), Placeholder.unparsed("id", role.id())), lore),
-                        (pl, c) -> {
-                            if (role.leader()) actions.msg(pl, "<white>У роли лидера все права, её нельзя изменить.</white>");
-                            else if (actions.canEditRole(clan, pl.getUniqueId(), role)) openRole(pl, clan, role.id());
-                            else actions.error(pl, "Эту роль менять нельзя: нужна роль старше и право «" + Perm.EDIT_ROLES.title() + "».");
-                        });
-            } else {
-                ItemStack free = item(new ItemStack(Material.BLACK_CONCRETE), ColorUtil.parse("<aqua>Создать новую!</aqua>"),
-                        lines("<white>Нажми чтобы создать.</white>"));
-                free.setAmount(i + 1);
-                set(menu, ROLE_SLOTS[i], free, (pl, c) -> {
-                    if (!clan.has(pl.getUniqueId(), Perm.EDIT_ROLES)) {
-                        actions.error(pl, "У твоей роли нет права: " + Perm.EDIT_ROLES.title() + ".");
-                        return;
-                    }
-                    input.ask(pl, "Напиши в чат ID новой роли (латиница).", text -> {
-                        ClanRole created = actions.createRole(pl, text.split("\\s+")[0]);
-                        if (created != null) openRole(pl, clan, created.id());
-                    });
+                int slot = ROLE_SLOTS[i];
+                set(menu, slot, item(new ItemStack(role.icon()), roleTitle(role), lore), (pl, c) -> {
+                    if (actions.canEditRole(clan, pl.getUniqueId(), role)) openRole(pl, clan, role.id());
+                    else noPerm(menu, slot);
                 });
+            } else {
+                ItemStack free = item(Material.BLACK_CONCRETE, title("#00FFFF", "Создать новую!"), lines("<white>Нажми чтобы создать.</white>"));
+                free.setAmount(i + 1);
+                set(menu, ROLE_SLOTS[i], free, need(menu, ROLE_SLOTS[i], clan, Perm.EDIT_ROLES, (pl, c) -> {
+                    actions.createRole(pl);
+                    openRoles(pl, clan);
+                }));
             }
         }
-        set(menu, 47, item(Material.LEAD, ColorUtil.parse("<yellow>Порядок ролей!</yellow>"), lines(
+        set(menu, 47, item(Material.LEAD, title(YELLOW, "Порядок ролей!"), lines(
                 "<white>Все роли сортируются по</white>",
-                "<white>алфавиту, зависит от <yellow>ID</yellow> роли.</white>",
+                "<white>алфавиту, зависит от <" + YELLOW + ">ID</" + YELLOW + "> роли.</white>",
                 "",
-                "<red>→ Чем выше роль тем больше</red>",
-                "<red>её вес и значимость.</red>")), null);
+                "<#FF3434>→ Чем выше роль тем больше</#FF3434>",
+                "<#FF3434>её вес и значимость.</#FF3434>")), null);
         set(menu, 49, backDoor(), (pl, c) -> openSettings(pl, clan));
-        set(menu, 51, item(Material.GOLD_BLOCK, ColorUtil.parse("<yellow>Установить начальную роль</yellow>"),
-                lines("<white>При входе выдаётся: <yellow>" + escape(clan.defaultRoleId()) + "</yellow></white>",
-                        "", "<gray>Нажми чтобы выбрать следующую роль.</gray>")), (pl, c) -> {
+        set(menu, 51, item(Material.GOLD_BLOCK, title(YELLOW, "Установить начальную роль"),
+                lines("<white>При входе выдаёся: <" + YELLOW + ">" + esc(clan.defaultRoleId()) + "</" + YELLOW + "></white>")), need(menu, 51, clan, Perm.EDIT_ROLES, (pl, c) -> {
             actions.cycleDefaultRole(pl);
             openRoles(pl, clan);
-        });
+        }));
         player.openInventory(menu.inventory);
     }
 
@@ -572,47 +678,71 @@ public final class ClanMenus {
             return;
         }
         Menu menu = create("Клан, настройка ролей");
-        set(menu, 11, item(Material.ITEM_FRAME, ColorUtil.parse("<#B884FF>Изменить префикс</#B884FF>"), List.of(
+        set(menu, 11, item(Material.ITEM_FRAME, title(P, "Изменить префикс"), List.of(
                 ColorUtil.parse("<white>Сейчас префикс: </white>").append(ClanText.rolePrefix(role)))), (pl, c) ->
-                input.ask(pl, "Напиши в чат новый префикс роли.", text -> {
+                input.ask(pl, "Напиши в чат префикс для роли.", text -> {
                     actions.setRolePrefix(pl, roleId, text);
                     openRole(pl, clan, roleId);
                 }));
-        set(menu, 13, item(new ItemStack(role.icon()), ColorUtil.parse("<#B884FF>Изменить иконку</#B884FF>"),
-                lines("<white>Нажми по предмету инветаря.</white>")), null);
+        set(menu, 13, item(new ItemStack(role.icon()), title(P, "Изменить иконку"), lines("<white>Нажми по предмету инветаря.</white>")), null);
         menu.ownItemClick = item -> {
             actions.setRoleIcon(player, roleId, item);
             openRole(player, clan, roleId);
         };
-        set(menu, 15, item(Material.FEATHER, ColorUtil.parse("<#B884FF>Изменить название</#B884FF>"),
-                lines("<white>Сейчас название: <#B884FF>" + escape(role.name()) + "</#B884FF></white>")), (pl, c) ->
-                input.ask(pl, "Напиши в чат новое название роли.", text -> {
+        set(menu, 15, item(Material.NAME_TAG, title(P, "Изменить название"), List.of(
+                ColorUtil.parse("<white>Сейчас название: </white>").append(ColorUtil.parse("<" + P + "><n></" + P + ">",
+                        Placeholder.component("n", ColorUtil.rich(role.name())))))), (pl, c) ->
+                input.ask(pl, "Напиши в чат название для роли.", text -> {
                     actions.renameRole(pl, roleId, text);
                     openRole(pl, clan, roleId);
                 }));
 
-        Perm[] perms = Perm.values();
-        for (int i = 0; i < PERM_SLOTS.length; i++) {
-            if (i < perms.length) {
-                Perm perm = perms[i];
-                boolean on = role.hasOwn(perm);
-                set(menu, PERM_SLOTS[i], item(new ItemStack(on ? Material.LIME_CONCRETE : Material.RED_CONCRETE),
-                        ColorUtil.parse((on ? "<green>" : "<red>") + "#" + perm.number() + ". " + perm.title()),
-                        lines(on ? "<white>У этой роли есть доступ.</white>" : "<white>У этой роли нет доступа.</white>",
-                                "", "<gray>Нажми чтобы переключить.</gray>")), (pl, c) -> {
-                    actions.toggleRolePerm(pl, roleId, perm);
-                    openRole(pl, clan, roleId);
-                });
-            } else {
-                set(menu, PERM_SLOTS[i], item(Material.BLACK_CONCRETE, ColorUtil.parse("<dark_gray>Недоступно</dark_gray>"), List.of()), null);
+        if (role.leader()) {
+            set(menu, 31, item(Material.CHAINMAIL_LEGGINGS, title(PERM_OFF, "Нельзя поменять права..."), List.of()), null);
+        } else {
+            Perm[] perms = Perm.values();
+            for (int i = 0; i < PERM_SLOTS.length; i++) {
+                if (i < perms.length) {
+                    Perm perm = perms[i];
+                    boolean on = role.hasOwn(perm);
+                    set(menu, PERM_SLOTS[i], item(new ItemStack(on ? Material.LIME_CONCRETE : Material.RED_CONCRETE),
+                            title(on ? PERM_ON : PERM_OFF, "#" + perm.number() + ". " + perm.title()),
+                            lines(on ? "<white>У этой роли есть доступ.</white>" : "<white>У этой роли нет доступа.</white>")), (pl, c) -> {
+                        actions.toggleRolePerm(pl, roleId, perm);
+                        openRole(pl, clan, roleId);
+                    });
+                } else {
+                    set(menu, PERM_SLOTS[i], item(Material.BLACK_CONCRETE, ColorUtil.parse("<white>Пусто...</white>"), List.of()), null);
+                }
             }
         }
-        set(menu, 45, item(Material.LEAD, ColorUtil.parse("<#B884FF>Назад к ролям</#B884FF>"), List.of()), (pl, c) -> openRoles(pl, clan));
+
+        set(menu, 45, item(Material.LEAD, title(P, "Изменить ID"),
+                lines("<white>Сейчас айди: <" + P + ">" + esc(role.id()) + "</" + P + "></white>")), (pl, c) -> {
+            if (role.leader()) {
+                set(menu, 45, item(fish(), title(PERM_OFF, "Этой роли нельзя менять!"),
+                        lines("<white>Айди этой роли нельзя изменить.</white>")), null);
+                return;
+            }
+            input.ask(pl, "Напиши в чат новый ID для роли.", text -> {
+                String newId = text.split("\\s+")[0];
+                if (actions.changeRoleId(pl, roleId, newId)) openRole(pl, clan, newId.toLowerCase(java.util.Locale.ROOT));
+                else openRole(pl, clan, roleId);
+            });
+        });
         set(menu, 49, backDoor(), (pl, c) -> openRoles(pl, clan));
-        set(menu, 51, item(Material.STRUCTURE_VOID, ColorUtil.parse("<red>Удалить роль</red>"),
-                lines("<white>Нажми чтобы удалить.</white>", "<gray>Её участники получат начальную роль.</gray>")), (pl, c) -> {
-            actions.deleteRole(pl, roleId);
-            openRoles(pl, clan);
+        set(menu, 53, item(Material.STRUCTURE_VOID, title(P, "Удалить роль"), lines("<white>Нажми чтобы удалить роль.</white>")), (pl, c) -> {
+            if (role.leader()) {
+                set(menu, 53, item(fish(), title("#FF3434", "Эта роль главная!"), lines("<white>А значит нельзя удалить.</white>")), null);
+            } else if (role.id().equals(clan.defaultRoleId())) {
+                set(menu, 53, item(fish(), title("#FF3434", "Это стандартная роль!"), lines("<white>Она выдаётся новым игрокам.</white>")), null);
+            } else {
+                set(menu, 53, item(Material.STRING, title(CONFIRM, "Подтверди удаление"), lines("<white>Хочешь удалить эту роль?</white>")),
+                        (pl2, c2) -> {
+                            actions.deleteRole(pl2, roleId);
+                            openRoles(pl2, clan);
+                        });
+            }
         });
         player.openInventory(menu.inventory);
     }
@@ -620,11 +750,7 @@ public final class ClanMenus {
     // ---------------- предметы ----------------
 
     private ItemStack backDoor() {
-        return item(Material.WARPED_DOOR, ColorUtil.parse("<#B884FF>Назад</#B884FF>"), List.of());
-    }
-
-    private static String escape(String s) {
-        return s == null ? "" : s.replace("<", "\\<");
+        return item(Material.WARPED_DOOR, title(P, "Перейти назад"), lines("<white>Нажми чтобы перейти назад.</white>"));
     }
 
     static List<Component> lines(String... miniMessage) {
@@ -638,20 +764,34 @@ public final class ClanMenus {
     }
 
     static ItemStack item(ItemStack base, Component name, List<Component> lore) {
+        return item(base, name, lore, false);
+    }
+
+    /** showAttributes - оставить "Когда в ведущей руке: урон..." (как у меча "PvP клана"). */
+    static ItemStack item(ItemStack base, Component name, List<Component> lore, boolean showAttributes) {
         ItemStack stack = base.clone();
         stack.setAmount(1);
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
             applyMeta(meta, name, lore);
+            if (showAttributes) meta.removeItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             stack.setItemMeta(meta);
         }
         return stack;
     }
 
-    private static ItemStack head(ClanMember m, Component name, List<Component> lore) {
+    /** Голова с текстурой textures.minecraft.net/texture/<hash>. */
+    private static ItemStack head(String texture, Component name, List<Component> lore) {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) head.getItemMeta();
-        meta.setOwningPlayer(Bukkit.getOfflinePlayer(m.uuid()));
+        try {
+            PlayerProfile profile = Bukkit.createProfile(UUID.nameUUIDFromBytes(texture.getBytes()), "clanhead");
+            PlayerTextures textures = profile.getTextures();
+            textures.setSkin(new URL("http://textures.minecraft.net/texture/" + texture));
+            profile.setTextures(textures);
+            meta.setPlayerProfile(profile);
+        } catch (Exception ignored) {
+        }
         applyMeta(meta, name, lore);
         head.setItemMeta(meta);
         return head;

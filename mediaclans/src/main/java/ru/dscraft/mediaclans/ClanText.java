@@ -8,7 +8,6 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 import java.time.Instant;
@@ -17,19 +16,35 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Тексты кланов: карточки клана и участника, тег в чате, топ. */
+/**
+ * Тексты кланов: карточки клана и участника, тег в чате, топ.
+ * Цвета сняты с сервера-образца по пикселям.
+ */
 public final class ClanText {
 
-    private static final String BOX = "<#6F63C9>";
-    private static final String BOX_TOP = BOX + "┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐";
-    private static final String BOX_BOTTOM = BOX + "└ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘";
-    private static final String BOX_LINE = BOX + "│</#6F63C9> ";
+    /** Заголовки кнопок меню. */
+    public static final String P = "#C38CE0";
+    /** Ники и значения в сообщениях чата. */
+    public static final String A = "#00FFE3";
+    /** Ники в карточках. */
+    public static final String CYAN = "#53E7F6";
+    public static final String RED = "#FF3C3C";
+    public static final String YELLOW = "#FFFF00";
+    public static final String GOLD = "#FFCD00";
+    public static final String GREEN = "#3DFF66";
+    public static final String KILLS = "#FF3434";
+    public static final String DG = "#666666";
+    public static final String BOX = "#806DF8";
+
+    private static final String BAR = "<" + BOX + ">|</" + BOX + "> ";
+    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm")
+            .withZone(ZoneId.systemDefault());
     private static final String TOP_BORDER = "<#7B6FE0>";
     private static final String TOP_LINE = "<#7B6FE0>│</#7B6FE0> ";
     private static final String DASHES = "- - - - - - - - - - - ";
     private static final String DASHES_MID = "- - - - - - - ";
-    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm")
-            .withZone(ZoneId.systemDefault());
+    /** Строк в описании клана. */
+    public static final int DESC_LINES = 7;
 
     private ClanText() {
     }
@@ -38,14 +53,12 @@ public final class ClanText {
         return DATE.format(Instant.ofEpochMilli(millis));
     }
 
-    /** "5 мин. назад", "2 ч. 12 мин. назад", "3 дн. назад". */
-    public static String ago(long millis) {
-        long minutes = Math.max(0, (System.currentTimeMillis() - millis) / 60_000L);
-        if (minutes < 1) return "только что";
-        if (minutes < 60) return minutes + " мин. назад";
-        long hours = minutes / 60;
-        if (hours < 24) return hours + " ч. " + (minutes % 60) + " мин. назад";
-        return hours / 24 + " дн. назад";
+    private static String boxTop(int dashes) {
+        return "<" + BOX + ">╭" + "-".repeat(dashes) + "╮</" + BOX + ">";
+    }
+
+    private static String boxBottom(int dashes) {
+        return "<" + BOX + ">╰" + "-".repeat(dashes) + "╯</" + BOX + ">";
     }
 
     /** Название клана с его цветами (по умолчанию белое). */
@@ -58,20 +71,35 @@ public final class ClanText {
                 : Component.empty().color(NamedTextColor.WHITE).append(ColorUtil.rich(role.prefix()));
     }
 
-    private static String joinType(Clan clan) {
-        return clan.joinType() == Clan.JoinType.PASSWORD ? "<gold>По паролю</gold>" : "<red>По приглашению</red>";
+    /** Тип вступления для карточек. */
+    public static String joinType(Clan clan) {
+        return switch (clan.joinType()) {
+            case PASSWORD -> "<#FF9F2B>По паролю</#FF9F2B>";
+            case OPEN -> "<#26FF68>Свободный</#26FF68>";
+            default -> "<" + RED + ">По приглашению</" + RED + ">";
+        };
     }
 
-    private static void description(List<Component> lines, Clan clan) {
-        lines.add(ColorUtil.parse("<white>Описание:</white>"));
-        String desc = clan.description();
-        if (desc == null || desc.isBlank()) {
-            lines.add(ColorUtil.parse("<gray>  Нет описания...</gray>"));
-        } else {
-            for (String line : wrap(desc, 36)) {
-                lines.add(ColorUtil.parse("<gray>  <line></gray>", Placeholder.unparsed("line", line)));
-            }
+    /** Строки описания (до 7), пустые - "". */
+    public static String[] descLines(Clan clan) {
+        String[] out = new String[DESC_LINES];
+        java.util.Arrays.fill(out, "");
+        String d = clan.description();
+        if (d == null) return out;
+        String[] parts = d.split("\n", -1);
+        for (int i = 0; i < DESC_LINES && i < parts.length; i++) out[i] = parts[i];
+        return out;
+    }
+
+    private static void description(List<Component> lines, Clan clan, String header) {
+        lines.add(ColorUtil.parse(header));
+        boolean any = false;
+        for (String line : descLines(clan)) {
+            if (line.isBlank()) continue;
+            any = true;
+            lines.add(Component.text("  ").append(Component.empty().color(NamedTextColor.WHITE).append(ColorUtil.rich(line))));
         }
+        if (!any) lines.add(ColorUtil.parse("<white>  Нет описания...</white>"));
     }
 
     private static TagResolver clanTags(Clan clan, ClanManager manager) {
@@ -92,23 +120,23 @@ public final class ClanText {
     public static List<Component> card(Clan clan, ClanManager manager, boolean clickHint) {
         TagResolver r = clanTags(clan, manager);
         List<Component> lines = new ArrayList<>();
-        lines.add(ColorUtil.parse("<white>Создал <aqua><creator></aqua>, дата <date></white>", r));
+        lines.add(ColorUtil.parse("<white>Создал <" + CYAN + "><creator></" + CYAN + ">, дата <date></white>", r));
         lines.add(Component.empty());
-        lines.add(ColorUtil.parse("<white>Владелец клана: <aqua><owner></aqua></white>", r));
+        lines.add(ColorUtil.parse("<white>Владелец клана: <" + CYAN + "><owner></" + CYAN + "></white>", r));
         lines.add(ColorUtil.parse("<white>Тип вступления: " + joinType(clan) + "</white>", r));
-        lines.add(ColorUtil.parse("<white>Игроков в клане: <yellow><count> ☺</yellow></white>", r));
+        lines.add(ColorUtil.parse("<white>Игроков в клане: <" + YELLOW + "><count> ☺</" + YELLOW + "></white>", r));
         lines.add(Component.empty());
-        lines.add(ColorUtil.parse(BOX_TOP));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Рейтинг: <gold><rating> ★</gold></white>", r));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Побед на ПВП: <green><wins>%</green></white>", r));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Убито игроков: <red><kills></red></white>", r));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Статус: <status></white>", r));
-        lines.add(ColorUtil.parse(BOX_BOTTOM));
+        lines.add(ColorUtil.parse(boxTop(20)));
+        lines.add(ColorUtil.parse(BAR + "<white>Рейтинг: <" + GOLD + "><rating> ★</" + GOLD + "></white>", r));
+        lines.add(ColorUtil.parse(BAR + "<white>Побед на ПВП: <" + GREEN + "><wins>%</" + GREEN + "></white>", r));
+        lines.add(ColorUtil.parse(BAR + "<white>Убито игроков: <" + KILLS + "><kills></" + KILLS + "></white>", r));
+        lines.add(ColorUtil.parse(BAR + "<white>Статус: <status></white>", r));
+        lines.add(ColorUtil.parse(boxBottom(20)));
         lines.add(Component.empty());
-        description(lines, clan);
+        description(lines, clan, "<white>Описание:</white>");
         if (clickHint) {
             lines.add(Component.empty());
-            lines.add(ColorUtil.parse("<gray>Нажми чтобы посмотреть клан.</gray>"));
+            lines.add(ColorUtil.parse("<white>Нажми чтобы посмотреть клан.</white>"));
         }
         return lines;
     }
@@ -117,39 +145,42 @@ public final class ClanText {
     public static List<Component> info(Clan clan, ClanManager manager) {
         TagResolver r = clanTags(clan, manager);
         List<Component> lines = new ArrayList<>();
-        lines.add(ColorUtil.parse("<white>Игрок <aqua><owner></aqua> владелец клана</white>", r));
+        lines.add(ColorUtil.parse("<white>Игрок <" + CYAN + "><owner></" + CYAN + "> владелец клана</white>", r));
         lines.add(Component.empty());
-        lines.add(ColorUtil.parse("<white>Участников в клане: <yellow><count></yellow> <gray>(Онлайн: <online>)</gray></white>", r));
+        lines.add(ColorUtil.parse("<white>Участников в клане: <" + YELLOW + "><count></" + YELLOW + "> <" + DG + ">(Онлайн: <online>)</" + DG + "></white>", r));
         lines.add(ColorUtil.parse("<white>Тип вступления: " + joinType(clan) + "</white>", r));
         lines.add(Component.empty());
-        lines.add(ColorUtil.parse(BOX_TOP));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Название: <gray>[</gray><clan><gray>]</gray></white>", r));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Рейтинг: <gold><rating></gold></white>", r));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Побед на ПВП: <green><wins>%</green></white>", r));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Убито игроков: <red><kills></red></white>", r));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Статус клана: <status></white>", r));
-        lines.add(ColorUtil.parse(BOX_BOTTOM));
+        lines.add(ColorUtil.parse(boxTop(24)));
+        lines.add(ColorUtil.parse(BAR + "<white>Название: <" + P + ">[</" + P + "><clan><" + P + ">]</" + P + "></white>", r));
+        lines.add(ColorUtil.parse(BAR + "<white>Рейтинг: <" + GOLD + "><rating></" + GOLD + "></white>", r));
+        lines.add(ColorUtil.parse(BAR + "<white>Побед на ПВП: <" + GREEN + "><wins>%</" + GREEN + "></white>", r));
+        lines.add(ColorUtil.parse(BAR + "<white>Убито игроков: <" + KILLS + "><kills></" + KILLS + "></white>", r));
+        lines.add(ColorUtil.parse(BAR + "<white>Статус клана: <status></white>", r));
+        lines.add(ColorUtil.parse(boxBottom(24)));
         lines.add(Component.empty());
-        description(lines, clan);
+        description(lines, clan, "<#6F6F6F>Описание:</#6F6F6F>");
         lines.add(Component.empty());
         lines.add(ColorUtil.parse("<white>Дата создания <date></white>", r));
         return lines;
     }
 
-    /** Название карточки участника: "[Лидер] ник [Оффлайн]". */
+    /** Название карточки участника: "[Участник] ник [Онлайн]". */
     public static Component memberTitle(Clan clan, ClanMember m) {
         boolean online = Bukkit.getPlayer(m.uuid()) != null;
-        return ColorUtil.parse("<gray>[</gray><role><gray>]</gray> <white><name></white> "
-                        + (online ? "<green>[Онлайн]</green>" : "<gray>[Оффлайн]</gray>"),
+        return ColorUtil.parse("<" + DG + ">[</" + DG + "><role><" + DG + ">]</" + DG + "> <" + P + "><name></" + P + "> "
+                        + "<" + DG + ">[</" + DG + ">" + (online ? "<" + GREEN + ">Онлайн</" + GREEN + ">" : "<" + RED + ">Оффлайн</" + RED + ">")
+                        + "<" + DG + ">]</" + DG + ">",
                 Placeholder.component("role", rolePrefix(clan.roleOf(m))),
                 Placeholder.unparsed("name", m.name()));
     }
 
     /** Карточка участника в меню клана. */
     public static List<Component> member(Clan clan, ClanMember m, boolean clickHint) {
+        ClanRole role = clan.roleOf(m);
         TagResolver r = TagResolver.resolver(
                 Placeholder.unparsed("joined", date(m.joinedAt())),
-                Placeholder.component("role", rolePrefix(clan.roleOf(m))),
+                Placeholder.component("rank", Component.empty().color(net.kyori.adventure.text.format.TextColor.fromHexString(YELLOW))
+                        .append(Component.text(role == null ? "?" : ColorUtil.plain(ColorUtil.rich(role.name()))))),
                 Placeholder.unparsed("rating", String.valueOf(m.rating())),
                 Placeholder.unparsed("kills", String.valueOf(m.kills())),
                 Placeholder.unparsed("deaths", String.valueOf(m.deaths())),
@@ -159,30 +190,19 @@ public final class ClanText {
         List<Component> lines = new ArrayList<>();
         lines.add(ColorUtil.parse("<white>Дата вступления <joined></white>", r));
         lines.add(Component.empty());
-        lines.add(ColorUtil.parse(BOX_TOP));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Звание: <role></white>", r));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Рейтинг: <gold><rating> ★</gold></white>", r));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Убил игроков: <red><kills></red></white>", r));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Смертей: <gray><deaths></gray></white>", r));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Побед на ПВП: <green><wins>%</green></white>", r));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Пригласил: <aqua><invited></aqua></white>", r));
-        lines.add(ColorUtil.parse(BOX_LINE + "<white>Выгнал: <red><kicked></red></white>", r));
-        lines.add(ColorUtil.parse(BOX_BOTTOM));
-        lines.add(Component.empty());
-        Player online = Bukkit.getPlayer(m.uuid());
-        if (online != null) {
-            lines.add(ColorUtil.parse("<white>Сейчас <green>в сети</green></white>"));
-        } else {
-            long seen = m.lastSeen();
-            if (seen <= 0) {
-                OfflinePlayer op = Bukkit.getOfflinePlayer(m.uuid());
-                seen = op.getLastSeen();
-            }
-            lines.add(seen > 0
-                    ? ColorUtil.parse("<white>Последний вход: <#5AA9FF><ago></#5AA9FF></white>", Placeholder.unparsed("ago", ago(seen)))
-                    : ColorUtil.parse("<white>Последний вход: <gray>неизвестно</gray></white>"));
+        lines.add(ColorUtil.parse(boxTop(20)));
+        lines.add(ColorUtil.parse(BAR + "<white>Звание: <rank></white>", r));
+        lines.add(ColorUtil.parse(BAR + "<white>Рейтинг: <" + GOLD + "><rating> ★</" + GOLD + "></white>", r));
+        lines.add(ColorUtil.parse(BAR + "<white>Убил игроков: <" + KILLS + "><kills></" + KILLS + "></white>", r));
+        lines.add(ColorUtil.parse(BAR + "<white>Смертей: <#BEBEBE><deaths></#BEBEBE></white>", r));
+        lines.add(ColorUtil.parse(BAR + "<white>Побед на ПВП: <" + GREEN + "><wins>%</" + GREEN + "></white>", r));
+        lines.add(ColorUtil.parse(BAR + "<white>Пригласил: <#00FFE3><invited></#00FFE3></white>", r));
+        lines.add(ColorUtil.parse(BAR + "<white>Выгнал: <" + RED + "><kicked></" + RED + "></white>", r));
+        lines.add(ColorUtil.parse(boxBottom(20)));
+        if (clickHint) {
+            lines.add(Component.empty());
+            lines.add(ColorUtil.parse("<white>Нажми для взаимодействия.</white>"));
         }
-        if (clickHint) lines.add(ColorUtil.parse("<gray>Нажми для взаимодействия.</gray>"));
         return lines;
     }
 

@@ -8,13 +8,13 @@
 chat-tag: "<dark_gray><bold>[</bold></dark_gray><clan><dark_gray><bold>]</bold></dark_gray> "
 
 # начало всех сообщений кланов
-message-prefix: "<#FF9F43>Кланы</#FF9F43> <dark_gray>•</dark_gray> "
+clan-prefix: "<#F6993C>Кланы</#F6993C> <#666666>•</#666666> "
 
 # клановый чат: сообщение, которое начинается с этого знака, видят только участники клана
 clan-chat:
   symbol: "%"
   # <role> - префикс роли, <name> - ник, <message> - сообщение
-  format: "<#FF9F43>Клан</#FF9F43> <dark_gray>›</dark_gray> <gray>[</gray><role><gray>]</gray> <#55FFCC><name></#55FFCC> <#D2F5EE><message></#D2F5EE>"
+  style: "<#F6993C>Клан</#F6993C> <#666666>»</#666666> <#666666>[</#666666><role><#666666>]</#666666> <#00FFE3><name></#00FFE3><#666666>:</#666666> <white><message></white>"
 
 # создание клана: право ("" - могут все, например "mediaclans.create" - только у кого есть право)
 create-permission: ""
@@ -35,6 +35,10 @@ death-message: "<red>Ваш клан потерял <yellow><amount></yellow> к
 name-min-length: 3
 name-max-length: 16
 max-members: 50
+# слоты игроков в клане: бесплатно при создании, максимум (3 страницы по 21), цена слота в коинах (пока только текст)
+free-slots: 14
+max-slots: 63
+slot-price: 5
 # сколько секунд действует приглашение
 invite-seconds: 60
 # сколько секунд ждать ответа в чат (название, пароль, описание ...)

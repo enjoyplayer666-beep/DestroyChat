@@ -20,7 +20,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class Clan {
 
-    public enum JoinType { INVITE, PASSWORD }
+    public enum JoinType { INVITE, PASSWORD, OPEN }
 
     /** Название без цветов в нижнем регистре - ключ клана. */
     private volatile String id;
@@ -33,13 +33,15 @@ public class Clan {
     private volatile String password;
     private volatile String description;
     private volatile String announcement;
-    private volatile ItemStack icon = new ItemStack(Material.WHITE_BANNER);
+    private volatile ItemStack icon = new ItemStack(Material.BELL);
     private volatile int rating;
     private volatile int kills;
     private volatile int deaths;
     /** Огонь по своим. */
     private volatile boolean pvp;
     private volatile String defaultRoleId = ClanRole.DEFAULT_ID;
+    /** Открытые слоты участников (остальные - купить). */
+    private volatile int slots = 14;
     private final Map<UUID, ClanMember> members = new ConcurrentHashMap<>();
     /** Роли по ID: TreeMap - сразу по порядку (старшие первые). Меняется под synchronized(roles). */
     private final TreeMap<String, ClanRole> roles = new TreeMap<>();
@@ -184,6 +186,28 @@ public class Clan {
         synchronized (roles) {
             roles.put(role.id(), role);
         }
+    }
+
+    /** Новый ID роли: участники и начальная роль переходят на него. */
+    public void changeRoleId(String oldId, String newId) {
+        synchronized (roles) {
+            ClanRole role = roles.remove(oldId);
+            if (role == null) return;
+            role.id(newId);
+            roles.put(role.id(), role);
+        }
+        for (ClanMember m : members.values()) {
+            if (oldId.equals(m.roleId())) m.roleId(newId);
+        }
+        if (oldId.equals(defaultRoleId)) defaultRoleId = newId;
+    }
+
+    public int slots() {
+        return slots;
+    }
+
+    public void slots(int slots) {
+        this.slots = slots;
     }
 
     public void removeRole(String roleId) {

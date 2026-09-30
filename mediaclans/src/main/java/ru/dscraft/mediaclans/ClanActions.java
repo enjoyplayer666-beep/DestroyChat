@@ -12,18 +12,23 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.EnumSet;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Действия с кланами. Их вызывают и команды /clan, и кнопки меню, поэтому все проверки прав здесь.
- * Все методы - из основного потока (кроме clanChat).
+ * Все методы - из основного потока (кроме clanChat). Тексты - как на сервере-образце.
  */
 public class ClanActions {
 
     /** Жирные/курсивные названия и префиксы - как у /prefix (Ultra+). */
     public static final String FORMAT_PERMISSION = "destroylobby.prefix.format";
+
+    private static final String A = ClanText.A;
+    private static final String P = ClanText.P;
+    private static final String DG = ClanText.DG;
 
     private final ClanManager manager;
     private final Settings settings;
@@ -44,7 +49,7 @@ public class ClanActions {
     // ---------------- сообщения ----------------
 
     public void msg(Player player, String miniMessage, TagResolver... resolvers) {
-        player.sendMessage(ColorUtil.parse(settings.prefix() + miniMessage, resolvers));
+        player.sendMessage(ColorUtil.parse(settings.prefix() + "<white>" + miniMessage + "</white>", resolvers));
     }
 
     public void error(Player player, String text) {
@@ -53,12 +58,22 @@ public class ClanActions {
 
     /** Сообщение всем участникам клана в сети. */
     public void broadcast(Clan clan, String miniMessage, TagResolver... resolvers) {
-        Component text = ColorUtil.parse(settings.prefix() + miniMessage, resolvers);
+        Component text = ColorUtil.parse(settings.prefix() + "<white>" + miniMessage + "</white>", resolvers);
         for (Player p : clan.onlineMembers()) p.sendMessage(text);
     }
 
     static TagResolver ph(String key, String value) {
         return Placeholder.unparsed(key, value == null ? "" : value);
+    }
+
+    /** "Игрок [Лидер] ник" для сообщений о настройке клана. */
+    private TagResolver actor(Clan clan, Player player) {
+        return Placeholder.component("actor", ColorUtil.parse("<" + DG + ">[</" + DG + "><role><" + DG + ">]</" + DG + "> ",
+                Placeholder.component("role", ClanText.rolePrefix(clan.roleOf(clan.member(player.getUniqueId()))))));
+    }
+
+    private void noPerm(Player player, Perm perm) {
+        error(player, "У твоей роли нет права: " + perm.title() + ".");
     }
 
     // ---------------- проверки ----------------
@@ -71,7 +86,7 @@ public class ClanActions {
             return null;
         }
         if (!clan.has(player.getUniqueId(), perm)) {
-            error(player, "У твоей роли нет права: " + perm.title() + ".");
+            noPerm(player, perm);
             return null;
         }
         return clan;
@@ -90,11 +105,12 @@ public class ClanActions {
         return clan;
     }
 
-    /** Может ли игрок менять эту роль: владелец - любую кроме лидера, остальные - только младше своей. */
+    /** Может ли игрок менять эту роль: владелец - любую (у лидера - кроме прав и ID), остальные - только младше своей. */
     public boolean canEditRole(Clan clan, UUID player, ClanRole role) {
-        if (role == null || role.leader()) return false;
+        if (role == null) return false;
         if (!clan.has(player, Perm.EDIT_ROLES)) return false;
         if (player.equals(clan.owner())) return true;
+        if (role.leader()) return false;
         ClanRole mine = clan.roleOf(clan.member(player));
         return mine != null && mine.above(role);
     }
@@ -121,8 +137,7 @@ public class ClanActions {
             return;
         }
         Clan clan = manager.create(player, rawName);
-        msg(player, "<white>Клан</white> <clan> <white>создан! Приглашай игроков: <#FF9F43>/c invite \\<ник></#FF9F43></white>",
-                Placeholder.component("clan", ClanText.name(clan)));
+        msg(player, "Ты создал клан с названием <clan>", Placeholder.component("clan", ClanText.name(clan)));
     }
 
     public void rename(Player player, String rawName) {
@@ -139,20 +154,28 @@ public class ClanActions {
             return;
         }
         manager.rename(clan, rawName);
-        broadcast(clan, "<white>Новое название клана:</white> <clan>", Placeholder.component("clan", ClanText.name(clan)));
+        broadcast(clan, "Игрок <actor><" + A + "><name></" + A + "> поменял название: <clan>",
+                actor(clan, player), ph("name", player.getName()), Placeholder.component("clan", ClanText.name(clan)));
     }
 
     public void disband(Player player) {
         Clan clan = requireOwner(player);
         if (clan == null) return;
-        for (Player p : clan.onlineMembers()) {
-            if (!p.equals(player)) msg(p, "<white>Клан в котором вы находились был удалён!</white>");
-        }
+        for (Player p : clan.onlineMembers()) msg(p, "Клан в котором вы находились был удалён!");
         manager.disband(clan);
-        msg(player, "<white>Вы успешно распустили клан.</white>");
     }
 
     // ---------------- вступление / выход ----------------
+
+    /** Кнопка "Пригласить игрока!": в чат ссылка, по клику подставляется /clan invite Ник. */
+    public void invitePrompt(Player player) {
+        player.closeInventory();
+        Component link = ColorUtil.parse("<" + A + ">сюда</" + A + ">")
+                .clickEvent(ClickEvent.suggestCommand("/clan invite Ник"))
+                .hoverEvent(HoverEvent.showText(ColorUtil.parse("<white>Пригласить игрока...</white>")));
+        player.sendMessage(ColorUtil.parse(settings.prefix() + "<white>Нажми <link> чтобы пригласить игрока.</white>",
+                Placeholder.component("link", link)));
+    }
 
     public void invite(Player player, String targetName) {
         Clan clan = require(player, Perm.INVITE);
@@ -170,25 +193,22 @@ public class ClanActions {
             error(player, target.getName() + " уже состоит в клане.");
             return;
         }
-        if (clan.size() >= settings.maxMembers()) {
-            error(player, "В клане уже максимум игроков (" + settings.maxMembers() + ").");
+        if (clan.size() >= clan.slots()) {
+            error(player, "В клане нет свободных слотов.");
             return;
         }
         manager.invite(target.getUniqueId(), clan, player);
-        msg(player, "<white>Приглашение отправлено игроку <aqua><target></aqua>.</white>", ph("target", target.getName()));
+        msg(player, "Приглашение <" + A + "><target></" + A + "> было отправлено.", ph("target", target.getName()));
 
-        Component accept = Component.text("[Принять]", NamedTextColor.GREEN)
+        msg(target, "Игрок <" + A + "><inviter></" + A + "> приглашает в клан <clan>",
+                ph("inviter", player.getName()), Placeholder.component("clan", ClanText.chatTag(clan, manager)));
+        Component accept = ColorUtil.parse("<" + DG + ">[</" + DG + "><#2BFF5C>✓ Принять</#2BFF5C><" + DG + ">]</" + DG + ">")
                 .clickEvent(ClickEvent.runCommand("/clan accept"))
-                .hoverEvent(HoverEvent.showText(Component.text("Вступить в клан", NamedTextColor.GRAY)));
-        Component deny = Component.text("[Отказаться]", NamedTextColor.RED)
+                .hoverEvent(HoverEvent.showText(ColorUtil.parse("<white>Вступить в клан</white>")));
+        Component deny = ColorUtil.parse("<" + DG + ">[</" + DG + "><#FF2B2B>✗ Отклонить</#FF2B2B><" + DG + ">]</" + DG + ">")
                 .clickEvent(ClickEvent.runCommand("/clan deny"))
-                .hoverEvent(HoverEvent.showText(Component.text("Отклонить приглашение", NamedTextColor.GRAY)));
-        msg(target, "<aqua><inviter></aqua> <white>приглашает тебя в клан</white> <clan><white>. "
-                        + "Приглашение действует <yellow><sec></yellow> сек.</white>",
-                ph("inviter", player.getName()),
-                Placeholder.component("clan", ClanText.chatTag(clan, manager)),
-                ph("sec", String.valueOf(settings.inviteSeconds())));
-        target.sendMessage(accept.append(Component.text("  ")).append(deny));
+                .hoverEvent(HoverEvent.showText(ColorUtil.parse("<white>Отклонить приглашение</white>")));
+        target.sendMessage(Component.text(" ").append(accept).append(Component.text(" ")).append(deny));
     }
 
     public void accept(Player player) {
@@ -203,6 +223,7 @@ public class ClanActions {
             return;
         }
         if (addTo(player, clan)) {
+            msg(player, "Вы приняли приглашение и вступили в клан <clan>!", Placeholder.component("clan", ClanText.name(clan)));
             ClanMember inviter = clan.member(invite.inviter());
             if (inviter != null) {
                 inviter.invited(inviter.invited() + 1);
@@ -218,12 +239,12 @@ public class ClanActions {
             return;
         }
         manager.removeInvite(player.getUniqueId());
-        msg(player, "<gray>Приглашение отклонено.</gray>");
+        msg(player, "Вы отклонили приглашение в клан.");
         Player inviter = Bukkit.getPlayer(invite.inviter());
-        if (inviter != null) msg(inviter, "<aqua><name></aqua> <white>отклонил приглашение в клан.</white>", ph("name", player.getName()));
+        if (inviter != null) msg(inviter, "Игрок <" + A + "><name></" + A + "> отклонил приглашение.", ph("name", player.getName()));
     }
 
-    /** Вступить без пароля: только по приглашению. */
+    /** Вступить из меню: открытый - сразу, по приглашению - только с приглашением, по паролю - пароль в чат (в меню). */
     public void join(Player player, Clan clan) {
         if (clan == null) {
             error(player, "Такого клана нет.");
@@ -234,10 +255,12 @@ public class ClanActions {
             accept(player);
             return;
         }
-        if (clan.joinType() == Clan.JoinType.PASSWORD) {
-            error(player, "Для вступления нужен пароль клана: /c join " + clan.id() + " <пароль>");
-        } else {
-            error(player, "В этот клан можно вступить только по приглашению.");
+        switch (clan.joinType()) {
+            case OPEN -> {
+                if (addTo(player, clan)) msg(player, "Вы вступили в клан <clan>!", Placeholder.component("clan", ClanText.name(clan)));
+            }
+            case PASSWORD -> error(player, "Для вступления нужен пароль клана: /c join " + clan.id() + " <пароль>");
+            default -> error(player, "В этот клан можно вступить только по приглашению.");
         }
     }
 
@@ -245,6 +268,10 @@ public class ClanActions {
     public void joinWithPassword(Player player, Clan clan, String password) {
         if (clan == null) {
             error(player, "Такого клана нет.");
+            return;
+        }
+        if (clan.joinType() == Clan.JoinType.OPEN) {
+            join(player, clan);
             return;
         }
         if (clan.joinType() != Clan.JoinType.PASSWORD || clan.password() == null) {
@@ -255,7 +282,7 @@ public class ClanActions {
             error(player, "Неверный пароль клана.");
             return;
         }
-        addTo(player, clan);
+        if (addTo(player, clan)) msg(player, "Вы вступили в клан <clan>!", Placeholder.component("clan", ClanText.name(clan)));
     }
 
     private boolean addTo(Player player, Clan clan) {
@@ -263,12 +290,14 @@ public class ClanActions {
             error(player, "Ты уже состоишь в клане.");
             return false;
         }
-        if (clan.size() >= settings.maxMembers()) {
-            error(player, "В клане уже максимум игроков.");
+        if (clan.size() >= clan.slots()) {
+            error(player, "В клане нет свободных слотов.");
             return false;
         }
         manager.addMember(clan, player.getUniqueId(), player.getName());
-        broadcast(clan, "<aqua><name></aqua> <white>вступил в клан!</white>", ph("name", player.getName()));
+        for (Player p : clan.onlineMembers()) {
+            if (!p.equals(player)) msg(p, "Игрок <" + A + "><name></" + A + "> вступил в клан!", ph("name", player.getName()));
+        }
         return true;
     }
 
@@ -279,13 +308,13 @@ public class ClanActions {
             return;
         }
         if (clan.owner().equals(player.getUniqueId())) {
-            error(player, "Владелец не может выйти из клана. Передай владение (/c owner <ник>) или удали клан.");
+            error(player, "Владелец не может выйти из клана. Передай владение или удали клан.");
             return;
         }
         manager.removeMember(clan, player.getUniqueId());
         clan.log(HistoryEntry.Type.LEAVE, player.getName(), null, settings.historySize());
-        msg(player, "<white>Ты вышел из клана</white> <clan><white>.</white>", Placeholder.component("clan", ClanText.name(clan)));
-        broadcast(clan, "<aqua><name></aqua> <white>вышел из клана.</white>", ph("name", player.getName()));
+        msg(player, "Ты вышел из клана <clan>.", Placeholder.component("clan", ClanText.name(clan)));
+        broadcast(clan, "Игрок <" + A + "><name></" + A + "> вышел из клана.", ph("name", player.getName()));
     }
 
     // ---------------- участники ----------------
@@ -299,18 +328,17 @@ public class ClanActions {
             return;
         }
         if (!clan.canManage(player.getUniqueId(), target)) {
-            error(player, "Можно исключать только тех, у кого роль младше твоей.");
+            error(player, "Можно исключать только тех, у кого роль ниже твоей.");
             return;
         }
         manager.removeMember(clan, targetId);
         ClanMember me = clan.member(player.getUniqueId());
         if (me != null) me.kicked(me.kicked() + 1);
         clan.log(HistoryEntry.Type.KICK, player.getName(), target.name(), settings.historySize());
-        broadcast(clan, "<aqua><name></aqua> <white>исключён из клана.</white>", ph("name", target.name()));
+        broadcast(clan, "Игрок <" + A + "><a></" + A + "> выгнал из клана <" + A + "><t></" + A + ">.",
+                ph("a", player.getName()), ph("t", target.name()));
         Player online = Bukkit.getPlayer(targetId);
-        if (online != null) {
-            msg(online, "<white>Тебя исключили из клана</white> <clan><white>.</white>", Placeholder.component("clan", ClanText.name(clan)));
-        }
+        if (online != null) msg(online, "Тебя выгнали из клана <clan>.", Placeholder.component("clan", ClanText.name(clan)));
     }
 
     public void setRole(Player player, UUID targetId, String roleId) {
@@ -323,22 +351,24 @@ public class ClanActions {
             return;
         }
         if (role.leader()) {
-            error(player, "Роль лидера есть только у владельца. Передать клан: /c owner <ник>");
+            error(player, "Роль лидера есть только у владельца. Передай клан кнопкой «Сделать игрока создателем».");
             return;
         }
         if (!clan.canManage(player.getUniqueId(), target)) {
-            error(player, "Можно менять роль только тем, у кого роль младше твоей.");
+            error(player, "Можно менять роль только тем, у кого роль ниже твоей.");
             return;
         }
         ClanRole mine = clan.roleOf(clan.member(player.getUniqueId()));
         if (!player.getUniqueId().equals(clan.owner()) && !mine.above(role)) {
-            error(player, "Можно выдавать только роли младше своей.");
+            error(player, "Можно выдавать только роли ниже своей.");
             return;
         }
         target.roleId(role.id());
+        clan.log(HistoryEntry.Type.ROLE, player.getName(), target.name() + "|" + ColorUtil.plain(ColorUtil.rich(role.name())),
+                settings.historySize());
         manager.markDirty();
-        broadcast(clan, "<aqua><name></aqua> <white>получил роль</white> <role><white>.</white>",
-                ph("name", target.name()), Placeholder.component("role", ClanText.rolePrefix(role)));
+        broadcast(clan, "Игрок <" + A + "><a></" + A + "> изменил роль игроку <" + A + "><t></" + A + "> на <" + A + "><r></" + A + ">.",
+                ph("a", player.getName()), ph("t", target.name()), ph("r", ColorUtil.plain(ColorUtil.rich(role.name()))));
     }
 
     public void transfer(Player player, UUID targetId) {
@@ -350,7 +380,44 @@ public class ClanActions {
             return;
         }
         manager.transfer(clan, targetId);
-        broadcast(clan, "<gold>Новый владелец клана: <white><name></white>!</gold>", ph("name", target.name()));
+        broadcast(clan, "Игрок <" + A + "><a></" + A + "> делает <" + A + "><t></" + A + "> владельцем клана.",
+                ph("a", player.getName()), ph("t", target.name()));
+    }
+
+    /** Телепорт к участнику клана из меню. */
+    public void teleport(Player player, UUID targetId) {
+        Player target = Bukkit.getPlayer(targetId);
+        if (target == null) {
+            error(player, "Игрок не в сети.");
+            return;
+        }
+        if (target.equals(player)) return;
+        player.closeInventory();
+        player.teleport(target);
+        msg(player, "Ты телепортировался к игроку <" + A + "><name></" + A + ">.", ph("name", target.getName()));
+    }
+
+    /** Сообщения о входе/выходе участников: включить/выключить для себя. */
+    public boolean toggleNotify(Player player) {
+        Clan clan = manager.getClan(player);
+        ClanMember me = clan == null ? null : clan.member(player.getUniqueId());
+        if (me == null) return true;
+        me.notifyJoins(!me.notifyJoins());
+        manager.markDirty();
+        return me.notifyJoins();
+    }
+
+    /** Купить слот участника (коины - пока только надпись, слот открывается сразу). */
+    public void buySlot(Player player) {
+        Clan clan = require(player, Perm.BUY_SLOTS);
+        if (clan == null) return;
+        if (clan.slots() >= settings.maxSlots()) {
+            error(player, "Все слоты уже куплены.");
+            return;
+        }
+        clan.slots(clan.slots() + 1);
+        manager.markDirty();
+        msg(player, "Слот куплен! Теперь в клане <" + A + "><n></" + A + "> мест.", ph("n", String.valueOf(clan.slots())));
     }
 
     /** UUID участника клана по нику. */
@@ -365,35 +432,46 @@ public class ClanActions {
 
     // ---------------- настройки ----------------
 
+    /** Описание целиком одной строкой (команда /c desc). */
     public void setDescription(Player player, String text) {
-        Clan clan = require(player, Perm.DESCRIPTION);
-        if (clan == null) return;
-        if (text != null) {
-            text = text.trim().replaceAll("\\s+", " ");
-            if (text.isEmpty() || text.equalsIgnoreCase("reset")) text = null;
-        }
-        if (text != null && text.length() > settings.descriptionMax()) {
-            error(player, "Слишком длинное описание (максимум " + settings.descriptionMax() + " символов).");
-            return;
-        }
-        clan.description(text);
-        manager.markDirty();
-        msg(player, text == null ? "<gray>Описание клана убрано.</gray>" : "<white>Описание клана обновлено.</white>");
+        setDescriptionLine(player, 0, text == null ? "" : text);
     }
 
-    public void toggleJoinType(Player player) {
+    /** Строка описания (0..6), можно с цветами: &a, &#RRGGBB, градиенты. Пусто / "-" - убрать строку. */
+    public void setDescriptionLine(Player player, int index, String text) {
+        Clan clan = require(player, Perm.DESCRIPTION);
+        if (clan == null || index < 0 || index >= ClanText.DESC_LINES) return;
+        text = text == null ? "" : text.trim().replace("\n", " ");
+        if (text.equals("-") || text.equalsIgnoreCase("reset")) text = "";
+        if (ColorUtil.plain(ColorUtil.rich(text)).length() > settings.descriptionMax()) {
+            error(player, "Слишком длинная строка (максимум " + settings.descriptionMax() + " символов).");
+            return;
+        }
+        String[] lines = ClanText.descLines(clan);
+        lines[index] = text;
+        int last = -1;
+        for (int i = 0; i < lines.length; i++) if (!lines[i].isBlank()) last = i;
+        clan.description(last < 0 ? null : String.join("\n", java.util.Arrays.copyOf(lines, last + 1)));
+        manager.markDirty();
+        msg(player, "Строка описания сохранена!");
+    }
+
+    /** Вход: по приглашению -> по паролю -> открытый -> по приглашению. */
+    public void cycleJoinType(Player player) {
         Clan clan = require(player, Perm.JOIN_TYPE);
         if (clan == null) return;
-        if (clan.joinType() == Clan.JoinType.INVITE) {
-            if (clan.password() == null) clan.password(String.valueOf(ThreadLocalRandom.current().nextInt(1000, 10000)));
-            clan.joinType(Clan.JoinType.PASSWORD);
-        } else {
-            clan.joinType(Clan.JoinType.INVITE);
+        Clan.JoinType next = switch (clan.joinType()) {
+            case INVITE -> Clan.JoinType.PASSWORD;
+            case PASSWORD -> Clan.JoinType.OPEN;
+            default -> Clan.JoinType.INVITE;
+        };
+        if (next == Clan.JoinType.PASSWORD && clan.password() == null) {
+            clan.password(String.valueOf(ThreadLocalRandom.current().nextInt(1000, 10000)));
         }
+        clan.joinType(next);
         manager.markDirty();
-        broadcast(clan, clan.joinType() == Clan.JoinType.PASSWORD
-                ? "<white>Тип вступления: <gold>по паролю</gold>.</white>"
-                : "<white>Тип вступления: <red>по приглашению</red>.</white>");
+        broadcast(clan, "Игрок <actor><" + A + "><name></" + A + "> поменял статус: " + ClanText.joinType(clan),
+                actor(clan, player), ph("name", player.getName()));
     }
 
     public void setPassword(Player player, String password) {
@@ -406,7 +484,7 @@ public class ClanActions {
         }
         clan.password(password);
         manager.markDirty();
-        msg(player, "<white>Новый пароль клана: <#B884FF><pw></#B884FF></white>", ph("pw", password));
+        msg(player, "Новый пароль клана: <" + P + "><pw></" + P + ">", ph("pw", password));
     }
 
     public void togglePvp(Player player) {
@@ -414,23 +492,20 @@ public class ClanActions {
         if (clan == null) return;
         clan.pvp(!clan.pvp());
         manager.markDirty();
-        broadcast(clan, clan.pvp()
-                ? "<white>Огонь по своим: <green>включён</green>.</white>"
-                : "<white>Огонь по своим: <red>выключен</red>.</white>");
+        broadcast(clan, "Игрок <" + A + "><name></" + A + "> " + (clan.pvp() ? "включил" : "выключил") + " PvP.",
+                ph("name", player.getName()));
     }
 
     public void setIcon(Player player, ItemStack item) {
         Clan clan = require(player, Perm.ICON);
         if (clan == null) return;
-        if (item == null || item.getType().isAir()) {
-            error(player, "Нажми по предмету в своём инвентаре, чтобы сделать его иконкой клана.");
-            return;
-        }
+        if (item == null || item.getType().isAir()) return;
         clan.icon(item);
         manager.markDirty();
-        msg(player, "<white>Иконка клана изменена.</white>");
+        msg(player, "Иконка клана изменена.");
     }
 
+    /** Обращение к клану: всем участникам в сети. */
     public void announce(Player player, String text) {
         Clan clan = require(player, Perm.ANNOUNCE);
         if (clan == null) return;
@@ -442,17 +517,18 @@ public class ClanActions {
         }
         clan.announcement(text);
         manager.markDirty();
-        Component block = ColorUtil.parse("<#FF9F43><b>Объявление клана</b></#FF9F43> <dark_gray>•</dark_gray> <gray>от <aqua><name></aqua></gray>\n<white><text></white>",
+        Component head = ColorUtil.parse("<#479CFF>Обращение к клану!</#479CFF>");
+        Component body = ColorUtil.parse("<" + DG + ">[</" + DG + "><role><" + DG + ">]</" + DG + "> <" + A + "><name></" + A + "><" + DG + ">:</" + DG + "> <white><text></white>",
+                Placeholder.component("role", ClanText.rolePrefix(clan.roleOf(clan.member(player.getUniqueId())))),
                 ph("name", player.getName()), ph("text", text));
         for (Player p : clan.onlineMembers()) {
-            p.sendMessage(Component.empty());
-            p.sendMessage(block);
-            p.sendMessage(Component.empty());
+            p.sendMessage(head);
+            p.sendMessage(body);
         }
     }
 
     public void pin(Player player, String text) {
-        Clan clan = require(player, Perm.PIN);
+        Clan clan = require(player, Perm.ANNOUNCE);
         if (clan == null) return;
         text = text.trim();
         if (text.isEmpty()) return;
@@ -466,16 +542,16 @@ public class ClanActions {
         }
         clan.pins().add(new Pin(player.getName(), text, System.currentTimeMillis()));
         manager.markDirty();
-        broadcast(clan, "<aqua><name></aqua> <white>закрепил сообщение: <gray><text></gray></white>",
+        broadcast(clan, "Игрок <" + A + "><name></" + A + "> закрепил сообщение: <gray><text></gray>",
                 ph("name", player.getName()), ph("text", text));
     }
 
     public void unpin(Player player, int index) {
-        Clan clan = require(player, Perm.PIN);
+        Clan clan = require(player, Perm.ANNOUNCE);
         if (clan == null || index < 0 || index >= clan.pins().size()) return;
         clan.pins().remove(index);
         manager.markDirty();
-        msg(player, "<white>Сообщение откреплено.</white>");
+        msg(player, "Сообщение откреплено.");
     }
 
     /** Клановый чат (из асинхронного чата). */
@@ -491,52 +567,42 @@ public class ClanActions {
 
     // ---------------- роли ----------------
 
-    public ClanRole createRole(Player player, String id) {
+    /** "Создать новую!": роль "Новая роль" с ID roleNNNNN, префиксом "Префикс" и правами #4, #16. */
+    public ClanRole createRole(Player player) {
         Clan clan = require(player, Perm.EDIT_ROLES);
         if (clan == null) return null;
-        id = id.trim().toLowerCase(Locale.ROOT);
-        if (!ClanManager.validRoleId(id) || id.startsWith("!")) {
-            error(player, "ID роли - латинские буквы, цифры и _, до 16 символов. Например: moderator");
-            return null;
-        }
-        if (clan.role(id) != null) {
-            error(player, "Роль с таким ID уже есть.");
-            return null;
-        }
         if (clan.roles().size() >= settings.maxRoles()) {
             error(player, "У клана уже максимум ролей (" + settings.maxRoles() + ").");
             return null;
         }
-        ClanRole mine = clan.roleOf(clan.member(player.getUniqueId()));
-        if (!player.getUniqueId().equals(clan.owner()) && mine != null && id.compareTo(mine.id()) <= 0) {
-            error(player, "ID новой роли должен идти по алфавиту после ID твоей роли (" + mine.id() + "), чтобы она была младше.");
-            return null;
-        }
-        ClanRole role = new ClanRole(id, id, "&7" + id, Material.PAPER);
+        String id;
+        do {
+            id = "role" + ThreadLocalRandom.current().nextInt(10000, 100000);
+        } while (clan.role(id) != null);
+        ClanRole role = new ClanRole(id, "Новая роль", "&#8B26FFПрефикс", Material.RABBIT_HIDE);
+        role.set(EnumSet.of(Perm.CHAT, Perm.HISTORY));
         clan.putRole(role);
         manager.markDirty();
-        msg(player, "<white>Роль <yellow><id></yellow> создана. Настрой её права в меню.</white>", ph("id", id));
         return role;
     }
 
     public void deleteRole(Player player, String roleId) {
         Clan clan = manager.getClan(player);
         ClanRole role = clan == null ? null : clan.role(roleId);
-        if (clan == null || !canEditRole(clan, player.getUniqueId(), role)) {
+        if (clan == null || role == null || role.leader() || role.id().equals(clan.defaultRoleId())
+                || !canEditRole(clan, player.getUniqueId(), role)) {
             error(player, "Эту роль удалить нельзя.");
             return;
         }
-        if (clan.roles().size() <= 2) {
-            error(player, "В клане должно остаться хотя бы две роли.");
-            return;
-        }
+        TagResolver who = actor(clan, player);
         clan.removeRole(roleId);
         String fallback = clan.defaultRoleId();
         for (ClanMember m : clan.membersMap().values()) {
             if (roleId.equals(m.roleId())) m.roleId(fallback);
         }
         manager.markDirty();
-        msg(player, "<white>Роль <yellow><id></yellow> удалена, её участники получили начальную роль.</white>", ph("id", roleId));
+        broadcast(clan, "Игрок <actor><" + A + "><name></" + A + "> удалил роль: <" + A + "><id></" + A + ">",
+                who, ph("name", player.getName()), ph("id", roleId));
     }
 
     public void renameRole(Player player, String roleId, String name) {
@@ -547,13 +613,14 @@ public class ClanActions {
             return;
         }
         name = name.trim();
-        if (name.isEmpty() || name.length() > 24) {
+        if (name.isEmpty() || ColorUtil.plain(ColorUtil.rich(name)).length() > 24) {
             error(player, "Название роли - до 24 символов.");
             return;
         }
         role.name(name);
         manager.markDirty();
-        msg(player, "<white>Название роли: <yellow><name></yellow></white>", ph("name", name));
+        broadcast(clan, "Игрок <actor><" + P + "><name></" + P + "> поменял название роли: <" + P + "><id></" + P + ">",
+                actor(clan, player), ph("name", player.getName()), ph("id", role.id()));
     }
 
     public void setRolePrefix(Player player, String roleId, String prefix) {
@@ -569,13 +636,39 @@ public class ClanActions {
             error(player, "Префикс роли - от 1 до " + settings.rolePrefixMax() + " символов (без цветов).");
             return;
         }
-        if (!player.hasPermission(FORMAT_PERMISSION) && ColorUtil.hasDecorations(ColorUtil.rich(prefix))) {
-            error(player, "Жирный, курсив и другие стили доступны с привилегии Ultra.");
-            return;
-        }
         role.prefix(prefix);
         manager.markDirty();
-        msg(player, "<white>Префикс роли:</white> <prefix>", Placeholder.component("prefix", ClanText.rolePrefix(role)));
+        broadcast(clan, "Игрок <actor><" + P + "><name></" + P + "> поменял префикс роли: <" + P + "><id></" + P + ">",
+                actor(clan, player), ph("name", player.getName()), ph("id", role.id()));
+    }
+
+    /** Новый ID роли (у лидера ID менять нельзя). ID определяет порядок ролей. */
+    public boolean changeRoleId(Player player, String roleId, String newId) {
+        Clan clan = manager.getClan(player);
+        ClanRole role = clan == null ? null : clan.role(roleId);
+        if (clan == null || role == null || role.leader() || !canEditRole(clan, player.getUniqueId(), role)) {
+            error(player, "Айди этой роли нельзя изменить.");
+            return false;
+        }
+        newId = newId.trim().toLowerCase(Locale.ROOT);
+        if (!ClanManager.validRoleId(newId) || newId.startsWith("!")) {
+            error(player, "ID роли - латинские буквы, цифры и _, до 16 символов.");
+            return false;
+        }
+        if (clan.role(newId) != null) {
+            error(player, "Роль с таким ID уже есть.");
+            return false;
+        }
+        ClanRole mine = clan.roleOf(clan.member(player.getUniqueId()));
+        if (!player.getUniqueId().equals(clan.owner()) && mine != null && newId.compareTo(mine.id()) <= 0) {
+            error(player, "ID должен идти по алфавиту после ID твоей роли (" + mine.id() + "), чтобы роль была ниже.");
+            return false;
+        }
+        clan.changeRoleId(roleId, newId);
+        manager.markDirty();
+        broadcast(clan, "Игрок <actor><" + P + "><name></" + P + "> поменял ID роли: <" + P + "><id></" + P + ">",
+                actor(clan, player), ph("name", player.getName()), ph("id", newId));
+        return true;
     }
 
     public void setRoleIcon(Player player, String roleId, ItemStack item) {
@@ -590,28 +683,39 @@ public class ClanActions {
         manager.markDirty();
     }
 
+    /** Переключить право роли; #1 "Все возможности" включает/выключает сразу все. */
     public void toggleRolePerm(Player player, String roleId, Perm perm) {
         Clan clan = manager.getClan(player);
         ClanRole role = clan == null ? null : clan.role(roleId);
-        if (clan == null || !canEditRole(clan, player.getUniqueId(), role)) {
-            error(player, role != null && role.leader() ? "У роли лидера всегда все права." : "Эту роль менять нельзя.");
+        if (clan == null || role == null || role.leader() || !canEditRole(clan, player.getUniqueId(), role)) {
+            error(player, role != null && role.leader() ? "Нельзя поменять права лидера." : "Эту роль менять нельзя.");
             return;
         }
-        if (!player.getUniqueId().equals(clan.owner()) && !role.hasOwn(perm) && !clan.has(player.getUniqueId(), perm)) {
-            error(player, "Нельзя выдать право, которого нет у тебя самого.");
-            return;
+        boolean owner = player.getUniqueId().equals(clan.owner());
+        if (perm == Perm.ALL) {
+            if (!owner) {
+                error(player, "Право «Все возможности клана» может выдать только владелец.");
+                return;
+            }
+            role.set(role.hasOwn(Perm.ALL) ? EnumSet.noneOf(Perm.class) : EnumSet.allOf(Perm.class));
+        } else {
+            if (!owner && !role.hasOwn(perm) && !clan.has(player.getUniqueId(), perm)) {
+                error(player, "Нельзя выдать право, которого нет у тебя самого.");
+                return;
+            }
+            role.toggle(perm);
+            if (!role.hasOwn(perm)) {
+                java.util.Set<Perm> set = role.perms();
+                set.remove(Perm.ALL);
+                role.set(set);
+            }
         }
-        if (perm == Perm.ALL && !player.getUniqueId().equals(clan.owner())) {
-            error(player, "Право «Все возможности клана» может выдать только владелец.");
-            return;
-        }
-        role.toggle(perm);
         manager.markDirty();
     }
 
     /** Следующая роль (не лидер) по кругу становится начальной. */
     public void cycleDefaultRole(Player player) {
-        Clan clan = require(player, Perm.DEFAULT_ROLE);
+        Clan clan = require(player, Perm.EDIT_ROLES);
         if (clan == null) return;
         java.util.List<ClanRole> roles = clan.roles().stream().filter(r -> !r.leader()).toList();
         if (roles.isEmpty()) return;

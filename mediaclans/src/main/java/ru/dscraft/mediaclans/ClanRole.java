@@ -15,7 +15,7 @@ public class ClanRole {
     public static final String LEADER_ID = "!leader";
     public static final String DEFAULT_ID = "wdefault";
 
-    private final String id;
+    private volatile String id;
     private volatile String name;
     /** Префикс роли (&-коды, hex, градиенты), показывается как звание: [Лидер]. */
     private volatile String prefix;
@@ -31,6 +31,11 @@ public class ClanRole {
 
     public String id() {
         return id;
+    }
+
+    /** Смена ID роли (только через Clan.changeRoleId - там перестраивается порядок ролей). */
+    void id(String id) {
+        this.id = id.toLowerCase(Locale.ROOT);
     }
 
     public String name() {

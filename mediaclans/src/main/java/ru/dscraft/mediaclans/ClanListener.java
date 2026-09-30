@@ -19,6 +19,8 @@ public final class ClanListener implements Listener {
     private final ClanManager manager;
     private final ClanActions actions;
     private final ChatInput input;
+    /** Когда игроку последний раз писали "PvP между своими выключено!" - чтобы не спамить при каждом ударе. */
+    private final java.util.Map<java.util.UUID, Long> pvpWarned = new java.util.concurrent.ConcurrentHashMap<>();
 
     public ClanListener(ClanActions actions, ChatInput input) {
         this.actions = actions;
@@ -63,7 +65,15 @@ public final class ClanListener implements Listener {
         else if (event.getDamager() instanceof Tameable t && t.getOwner() instanceof Player p) attacker = p;
         if (attacker == null || attacker.equals(victim)) return;
         Clan clan = manager.getClan(attacker);
-        if (clan != null && !clan.pvp() && clan == manager.getClan(victim)) event.setCancelled(true);
+        if (clan != null && !clan.pvp() && clan == manager.getClan(victim)) {
+            event.setCancelled(true);
+            long now = System.currentTimeMillis();
+            Long last = pvpWarned.get(attacker.getUniqueId());
+            if (last == null || now - last > 2000L) {
+                pvpWarned.put(attacker.getUniqueId(), now);
+                actions.msg(attacker, "PvP между своими выключено!");
+            }
+        }
     }
 
     // ---------------- рейтинг за убийства ----------------
@@ -117,11 +127,25 @@ public final class ClanListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         touch(event.getPlayer());
+        notifyClan(event.getPlayer(), "Игрок <#59FF3B><name></#59FF3B> вошел на сервер.");
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         touch(event.getPlayer());
+        pvpWarned.remove(event.getPlayer().getUniqueId());
+        notifyClan(event.getPlayer(), "Игрок <#FF3B3B><name></#FF3B3B> покинул сервер.");
+    }
+
+    /** Сообщение о входе/выходе участникам клана онлайн, у которых включены такие сообщения. */
+    private void notifyClan(Player player, String text) {
+        Clan clan = manager.getClan(player);
+        if (clan == null) return;
+        for (ClanMember m : clan.membersMap().values()) {
+            if (m.uuid().equals(player.getUniqueId()) || !m.notifyJoins()) continue;
+            Player online = org.bukkit.Bukkit.getPlayer(m.uuid());
+            if (online != null) actions.msg(online, text, Placeholder.unparsed("name", player.getName()));
+        }
     }
 
     private void touch(Player player) {
