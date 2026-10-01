@@ -15,7 +15,7 @@
 #  Опы и команда проекта (staff-groups) не ограничиваются: у них всё, на что есть права в LuckPerms.
 # =====================================================================
 # не трогать: по нему плагин обновляет старый commands.yml
-version: 2
+version: 3
 
 enabled: true
 
@@ -46,18 +46,19 @@ always:
   - changepass
   - cp
 
-# права команде проекта (у неё все команды, остальные права - в LuckPerms)
-staff-permissions:
-  - ranks.use
-  - mediaclans.create
+# Команда проекта получает права ВСЕХ привилегий ниже (default ... elitesp) - как самый старший донат.
+# Свои права персонала добавляй в LuckPerms или сюда:
+staff-permissions: []
 
 ranks:
   # "rank top" - только эта подкоманда (/rank top можно, /rank и /rank info - нет)
   default:
     commands:
+      - spawn
+      - hub
       - stat
       - mystat
-      - nick
+      - skin
       - menu
       - warps
       - donate
@@ -67,7 +68,7 @@ ranks:
       - tpaccept
       - tpdeny
     permissions:
-      - essentials.nick
+      - essentials.spawn
       - essentials.tpaccept
       - essentials.tpdeny
 

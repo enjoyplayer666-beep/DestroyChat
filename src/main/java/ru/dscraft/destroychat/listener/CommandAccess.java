@@ -37,7 +37,7 @@ import java.util.UUID;
 public class CommandAccess implements Listener {
 
     /** Версия commands.yml в плагине: старый файл с меньшей версией заменяется. */
-    private static final int CONFIG_VERSION = 2;
+    private static final int CONFIG_VERSION = 3;
 
     public static final String DEFAULT_MESSAGE = "<#C9C9FB>Нет такой команды :/</#C9C9FB>";
     public static final String DEFAULT_SPAM_MESSAGE = "<#E53232>◆</#E53232> <#C7C4B7>Не используйте так часто!</#C7C4B7>";
@@ -188,7 +188,7 @@ public class CommandAccess implements Listener {
 
     /** Выдать права привилегии (и младших), если привилегия сменилась или force. */
     private void refresh(Player player, boolean force) {
-        // опам (-1) права отсюда не нужны; команде проекта (-2) - только staff-permissions
+        // опам (-1) права отсюда не нужны; команде проекта (-2) - права всех привилегий
         int index = player.isOp() ? -1 : (unrestricted(player) ? -2 : rankIndex(player));
         if (!force && appliedRank.getOrDefault(player.getUniqueId(), Integer.MIN_VALUE) == index) return;
         PermissionAttachment old = attachments.remove(player.getUniqueId());
@@ -201,8 +201,10 @@ public class CommandAccess implements Listener {
         appliedRank.put(player.getUniqueId(), index);
         if (index >= 0 || index == -2) {
             Set<String> perms = new LinkedHashSet<>();
+            // команда проекта - права всех привилегий (как старший донат) + staff-permissions
+            int top = index == -2 ? ranks.size() - 1 : index;
             if (index == -2) perms.addAll(staffPermissions);
-            for (int i = 0; i <= index && i < ranks.size(); i++) perms.addAll(ranks.get(i).permissions());
+            for (int i = 0; i <= top && i < ranks.size(); i++) perms.addAll(ranks.get(i).permissions());
             if (!perms.isEmpty()) {
                 PermissionAttachment attachment = player.addAttachment(plugin);
                 for (String perm : perms) {
