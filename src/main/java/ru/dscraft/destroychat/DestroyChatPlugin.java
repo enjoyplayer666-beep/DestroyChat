@@ -18,6 +18,7 @@ import ru.dscraft.destroychat.listener.CommandAccess;
 import ru.dscraft.destroychat.listener.CommandHideListener;
 import ru.dscraft.destroychat.listener.CommandLogListener;
 import ru.dscraft.destroychat.listener.PrefixResetListener;
+import ru.dscraft.destroychat.module.Modules;
 import ru.dscraft.destroychat.util.NameStyler;
 
 /**
@@ -33,6 +34,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
     private Announcer announcer;
     private ContactCommand contactCommand;
     private CommandAccess commandAccess;
+    private Modules modules;
 
     @Override
     public void onEnable() {
@@ -109,6 +111,12 @@ public final class DestroyChatPlugin extends JavaPlugin {
         announcer.start();
 
         getLogger().info("DestroyChat включен.");
+
+        // модули в этом же jar: наказания и ваниш (папки plugins/DestroyChat/MediaBans, /VanishEffects)
+        modules = new Modules(this);
+        modules.enable(ru.dscraft.mediabans.MediaBansPlugin::new, "MediaBans",
+                "ban", "tempban", "mute", "tempmute", "kick", "unban", "unmute", "checkban", "checkmute", "banlist", "mediabans");
+        modules.enable(ru.example.vanisheffects.VanishEffectsPlugin::new, "VanishEffects", "v");
     }
 
     /**
@@ -141,6 +149,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (modules != null) modules.disableAll();
         if (announcer != null) announcer.stop();
     }
 

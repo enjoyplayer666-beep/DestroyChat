@@ -1,0 +1,20 @@
+name: VanishEffects
+version: '1.2'
+main: ru.example.vanisheffects.VanishEffectsPlugin
+api-version: '1.20'
+description: Ваниш с визуальными эффектами и меню выбора стиля.
+authors: [ your-name ]
+
+commands:
+  v:
+    description: Включить/выключить ваниш.
+    usage: |
+      /v — включить/выключить ваниш (у групп - их эффектом, у опов - последним выбранным)
+      /v <fire|bats|lightning|starfall|frost|soul|ascension> [игрок] — только опы
+      /v menu — меню эффектов, только опы
+      /v reload — перезагрузить config.yml, только опы
+
+permissions:
+  vanisheffects.see:
+    description: Позволяет видеть игроков в ваниш-режиме.
+    default: op

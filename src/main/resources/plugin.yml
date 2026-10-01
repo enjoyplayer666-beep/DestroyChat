@@ -1,11 +1,19 @@
 name: DestroyChat
-version: '${project.version}'
+version: ${project.version}
 main: ru.dscraft.destroychat.DestroyChatPlugin
 api-version: '1.21'
 author: DestroyCraft
-description: Чат DestroyCraft, работает в паре с DestroyLobby
-softdepend: [LuckPerms, DestroyLobby, MediaClans]
-
+description: Чат DestroyCraft + модули MediaBans (наказания) и VanishEffects (ваниш)
+softdepend:
+- LuckPerms
+- DestroyLobby
+- MediaClans
+- DestroyPvP
+- Essentials
+- LiteBans
+- AdvancedBan
+- BanManager
+- CMI
 commands:
   destroychat:
     description: Перезагрузка конфига чата
@@ -20,9 +28,10 @@ commands:
   contact:
     description: Контакты команды проекта
     usage: /contact
-    aliases: [contacts, kontakt]
+    aliases:
+    - contacts
+    - kontakt
     permission: destroychat.contact
-
   back:
     description: На место последней смерти
     usage: /back
@@ -38,6 +47,58 @@ commands:
   spec:
     description: Режим наблюдателя / творческий (команда проекта)
     usage: /spec
+  ban:
+    description: Забанить навсегда (команда проекта)
+    usage: /ban <ник> [причина]
+  tempban:
+    description: Забанить на время
+    usage: /tempban <ник> <время> [причина]
+    aliases:
+    - tban
+  mute:
+    description: Замутить навсегда (команда проекта)
+    usage: /mute <ник> [причина]
+  tempmute:
+    description: Замутить на время
+    usage: /tempmute <ник> <время> [причина]
+    aliases:
+    - tmute
+  kick:
+    description: Кикнуть игрока (команда проекта)
+    usage: /kick <ник> [причина]
+  unban:
+    description: Разбанить
+    usage: /unban <ник>
+    aliases:
+    - pardon
+  unmute:
+    description: Снять мут
+    usage: /unmute <ник>
+  checkban:
+    description: Информация о бане
+    usage: /checkban <ник>
+  checkmute:
+    description: Информация о муте
+    usage: /checkmute <ник>
+  banlist:
+    description: Список забаненных
+    usage: /banlist [страница]
+    aliases:
+    - bans
+  mediabans:
+    description: Перезагрузка конфига MediaBans
+    usage: /mediabans reload
+  v:
+    description: Включить/выключить ваниш.
+    usage: '/v — включить/выключить ваниш (у групп - их эффектом, у опов - последним выбранным)
+
+      /v <fire|bats|lightning|starfall|frost|soul|ascension> [игрок] — только опы
+
+      /v menu — меню эффектов, только опы
+
+      /v reload — перезагрузить config.yml, только опы
+
+      '
 permissions:
   destroychat.admin-warp:
     default: op
@@ -60,3 +121,9 @@ permissions:
     default: false
   destroylobby.chat.spy:
     default: false
+  mediabans.staff:
+    description: Наказывать без ограничений и не получать наказаний, как команда проекта
+    default: false
+  vanisheffects.see:
+    description: Позволяет видеть игроков в ваниш-режиме.
+    default: op

@@ -21,7 +21,7 @@ import java.util.Set;
  * Донатеры (ultra и выше) - только временные муты/баны в пределах своей группы,
  * команда проекта - без ограничений, наказать команду проекта нельзя.
  */
-public final class MediaBansPlugin extends JavaPlugin {
+public final class MediaBansPlugin extends ru.dscraft.destroychat.module.Module {
 
     static final List<String> COMMANDS = List.of(
             "ban", "tempban", "mute", "tempmute", "kick", "unban", "unmute", "checkban", "checkmute", "banlist", "mediabans");
