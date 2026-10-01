@@ -38,7 +38,7 @@ import java.util.UUID;
 public class CommandAccess implements Listener {
 
     /** Версия commands.yml в плагине: старый файл с меньшей версией заменяется. */
-    private static final int CONFIG_VERSION = 8;
+    private static final int CONFIG_VERSION = 9;
 
     public static final String DEFAULT_MESSAGE = "<#C9C9FB>Нет такой команды :/</#C9C9FB>";
     public static final String DEFAULT_SPAM_MESSAGE = "<#E53232>◆</#E53232> <#C7C4B7>Не используйте так часто!</#C7C4B7>";

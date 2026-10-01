@@ -15,7 +15,7 @@
 #  Не ограничиваются только опы. Команда проекта - как elitesp плюс блок staff ниже.
 # =====================================================================
 # не трогать: по нему плагин обновляет старый commands.yml
-version: 8
+version: 9
 
 enabled: true
 
@@ -111,6 +111,9 @@ ranks:
       # чтобы работали /tpa и /tpahere от привилегий
       - tpaccept
       - tpdeny
+      # на место смерти - у всех групп
+      - back
+      - dback
     permissions:
       - essentials.spawn
       - essentials.tpaccept

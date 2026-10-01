@@ -36,15 +36,16 @@ public class CommandLogListener implements Listener {
         if (!cfg.getBoolean("command-log.enabled", true)) return;
         String message = event.getMessage();
         Player player = event.getPlayer();
-        // команда проекта и опы - все их команды (кроме паролей), остальные - только из списка
-        boolean all = cfg.getBoolean("command-log.all-from-staff", true) && staff(player, cfg);
-        if (all ? isAuth(message) : !logged(cfg.getStringList("command-log.commands"), message)) return;
+        // пароли - никогда
+        if (isAuth(message)) return;
+        // опы видят все команды всех игроков, команда проекта - только команды из staff-visible
+        boolean forStaff = logged(cfg.getStringList("command-log.staff-visible"), message);
 
         Component line = ColorUtil.parse(cfg.getString("command-log.format", DEFAULT_FORMAT),
                 Placeholder.unparsed("player", player.getName()),
                 Placeholder.unparsed("command", message));
         for (Player viewer : Bukkit.getOnlinePlayers()) {
-            if (staff(viewer, cfg)) viewer.sendMessage(line);
+            if (viewer.isOp() || (forStaff && staff(viewer, cfg))) viewer.sendMessage(line);
         }
         if (cfg.getBoolean("command-log.console", false)) Bukkit.getConsoleSender().sendMessage(line);
     }

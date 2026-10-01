@@ -8,6 +8,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import ru.dscraft.destroychat.announce.Announcer;
 import ru.dscraft.destroychat.command.ChatPrefixCommand;
 import ru.dscraft.destroychat.command.ColorCommand;
+import ru.dscraft.destroychat.command.BackCommand;
 import ru.dscraft.destroychat.command.ContactCommand;
 import ru.dscraft.destroychat.command.StaffCommands;
 import ru.dscraft.destroychat.config.ChatConfig;
@@ -87,6 +88,9 @@ public final class DestroyChatPlugin extends JavaPlugin {
             getCommand("chatprefix").setExecutor(chatPrefixCommand);
             getCommand("chatprefix").setTabCompleter(chatPrefixCommand);
         }
+
+        // /back и /dback - на место смерти, у всех
+        getServer().getPluginManager().registerEvents(new BackCommand(this), this);
 
         // /admin и /espeed - команды персонала
         StaffCommands staffCommands = new StaffCommands();

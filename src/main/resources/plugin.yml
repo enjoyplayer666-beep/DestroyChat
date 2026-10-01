@@ -23,6 +23,12 @@ commands:
     aliases: [contacts, kontakt]
     permission: destroychat.contact
 
+  back:
+    description: На место последней смерти
+    usage: /back
+  dback:
+    description: На место последней смерти
+    usage: /dback
   admin:
     description: Телепорт на варп admin (команда проекта)
     usage: /admin
