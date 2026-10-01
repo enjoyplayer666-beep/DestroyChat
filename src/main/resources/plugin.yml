@@ -29,10 +29,15 @@ commands:
   espeed:
     description: Скорость полёта и ходьбы (команда проекта)
     usage: /espeed fly|walk 1-10
+  spec:
+    description: Режим наблюдателя / творческий (команда проекта)
+    usage: /spec
 permissions:
   destroychat.admin-warp:
     default: op
   destroychat.espeed:
+    default: op
+  destroychat.spec:
     default: op
   destroychat.contact:
     default: true

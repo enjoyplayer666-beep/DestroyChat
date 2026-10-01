@@ -35,9 +35,11 @@ public class CommandLogListener implements Listener {
         FileConfiguration cfg = plugin.getConfig();
         if (!cfg.getBoolean("command-log.enabled", true)) return;
         String message = event.getMessage();
-        if (!logged(cfg.getStringList("command-log.commands"), message)) return;
-
         Player player = event.getPlayer();
+        // команда проекта и опы - все их команды (кроме паролей), остальные - только из списка
+        boolean all = cfg.getBoolean("command-log.all-from-staff", true) && staff(player, cfg);
+        if (all ? isAuth(message) : !logged(cfg.getStringList("command-log.commands"), message)) return;
+
         Component line = ColorUtil.parse(cfg.getString("command-log.format", DEFAULT_FORMAT),
                 Placeholder.unparsed("player", player.getName()),
                 Placeholder.unparsed("command", message));
@@ -69,6 +71,14 @@ public class CommandLogListener implements Listener {
             if (body.equals(name) || body.startsWith(name + " ")) return true;
         }
         return false;
+    }
+
+    /** Вход/регистрация/смена пароля - в логи никогда (там пароль). */
+    private static boolean isAuth(String message) {
+        String label = message.length() < 2 ? "" : message.substring(1).split(" ", 2)[0].toLowerCase(Locale.ROOT);
+        int colon = label.indexOf(':');
+        if (colon >= 0) label = label.substring(colon + 1);
+        return List.of("l", "login", "log", "reg", "register", "changepassword", "changepass", "cp").contains(label);
     }
 
     /** Команда проекта: оп, право destroychat.logs или группа из group-formats. */

@@ -15,12 +15,14 @@ import java.util.Locale;
 /**
  * Команды персонала:
  * /admin                 - телепорт на /warp admin;
- * /espeed fly|walk 1-10  - скорость полёта/ходьбы (1 - обычная, 10 - максимальная).
+ * /espeed fly|walk 1-10  - скорость полёта/ходьбы (1 - обычная, 10 - максимальная);
+ * /spec                  - режим наблюдателя, повторно - творческий.
  */
 public class StaffCommands implements CommandExecutor, TabCompleter {
 
     public static final String ADMIN_WARP = "destroychat.admin-warp";
     public static final String ESPEED = "destroychat.espeed";
+    public static final String SPEC = "destroychat.spec";
 
     private static final String ERROR = "<#C9C9FB>Нет такой команды :/</#C9C9FB>";
 
@@ -37,6 +39,19 @@ public class StaffCommands implements CommandExecutor, TabCompleter {
             }
             // от имени консоли: у персонала может не быть права на /warp
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "warp admin " + player.getName());
+            return true;
+        }
+        if (command.getName().equalsIgnoreCase("spec")) {
+            if (!player.hasPermission(SPEC)) {
+                player.sendMessage(ColorUtil.parse(ERROR));
+                return true;
+            }
+            // гм3, при повторном вводе - гм1
+            boolean toSpectator = player.getGameMode() != org.bukkit.GameMode.SPECTATOR;
+            player.setGameMode(toSpectator ? org.bukkit.GameMode.SPECTATOR : org.bukkit.GameMode.CREATIVE);
+            player.sendMessage(ColorUtil.parse(toSpectator
+                    ? "<gray>Режим наблюдателя <white>включён</white>.</gray>"
+                    : "<gray>Режим наблюдателя <white>выключен</white> - творческий режим.</gray>"));
             return true;
         }
         if (!player.hasPermission(ESPEED)) {

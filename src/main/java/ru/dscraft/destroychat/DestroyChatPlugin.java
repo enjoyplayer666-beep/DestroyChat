@@ -90,7 +90,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
 
         // /admin и /espeed - команды персонала
         StaffCommands staffCommands = new StaffCommands();
-        for (String name : new String[]{"admin", "espeed"}) {
+        for (String name : new String[]{"admin", "espeed", "spec"}) {
             if (getCommand(name) != null) {
                 getCommand(name).setExecutor(staffCommands);
                 getCommand(name).setTabCompleter(staffCommands);

@@ -15,7 +15,7 @@
 #  Не ограничиваются только опы. Команда проекта - как elitesp плюс блок staff ниже.
 # =====================================================================
 # не трогать: по нему плагин обновляет старый commands.yml
-version: 5
+version: 6
 
 enabled: true
 
@@ -52,6 +52,7 @@ staff:
   commands:
     - admin       # на /warp admin
     - espeed      # /espeed fly|walk 1-10
+    - spec        # гм3, повторно - гм1
     - prefix      # в т.ч. /prefix reset ник
     # наказания: у команды проекта без ограничений (MediaBans)
     - ban
@@ -67,6 +68,7 @@ staff:
   permissions:
     - destroychat.admin-warp
     - destroychat.espeed
+    - destroychat.spec
     - destroylobby.prefix.reset.others
     - destroylobby.customprefix
     - destroychat.logs
