@@ -15,7 +15,7 @@
 #  Не ограничиваются только опы. Команда проекта - как elitesp плюс блок staff ниже.
 # =====================================================================
 # не трогать: по нему плагин обновляет старый commands.yml
-version: 9
+version: 10
 
 enabled: true
 
@@ -114,6 +114,9 @@ ranks:
       # на место смерти - у всех групп
       - back
       - dback
+      # хранилища (MediaVaults) - у всех
+      - ec
+      - coins
     permissions:
       - essentials.spawn
       - essentials.tpaccept
