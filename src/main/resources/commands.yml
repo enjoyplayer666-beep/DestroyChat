@@ -15,7 +15,7 @@
 #  Не ограничиваются только опы. Команда проекта - как elitesp плюс блок staff ниже.
 # =====================================================================
 # не трогать: по нему плагин обновляет старый commands.yml
-version: 7
+version: 8
 
 enabled: true
 
@@ -94,7 +94,7 @@ staff:
         - essentials.gamemode.spectator
 
 ranks:
-  # "rank top" - только эта подкоманда (/rank top можно, /rank и /rank info - нет)
+  # можно и подкоманду: "rank top" - только /rank top, без /rank и /rank info
   default:
     commands:
       - spawn
@@ -106,7 +106,8 @@ ranks:
       - warps
       - donate
       - c
-      - rank top
+      # /rank целиком: без VIP DsRanks сам ответит "Вас нет в базе данных!", /rank top работает
+      - rank
       # чтобы работали /tpa и /tpahere от привилегий
       - tpaccept
       - tpdeny
