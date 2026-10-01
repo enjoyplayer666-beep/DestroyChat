@@ -36,7 +36,11 @@ public class NameStyler {
     }
 
     public ChatConfig.GroupFormat group(Player player) {
-        return config.groupFormat(luckPermsHook.getPrimaryGroup(player), g -> player.hasPermission("group." + g));
+        ChatConfig.GroupFormat staff = config.groupFormat(luckPermsHook.getPrimaryGroup(player), g -> player.hasPermission("group." + g));
+        if (staff != null) return staff;
+        // привилегия (donor-formats), если игрок не поставил свой префикс через /prefix set
+        if (luckPermsHook.hasOwnPrefix(player)) return null;
+        return config.donorFormat(g -> player.hasPermission("group." + g));
     }
 
     /** Отделяет от префикса хвост с цветом ника. Пробел перед ником остаётся в префиксе. */

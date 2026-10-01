@@ -86,6 +86,21 @@ public class ChatConfig {
         return new GroupFormat(s.getString(found + ".chat-prefix", ""), s.getString(found + ".name-style", ""));
     }
 
+    /**
+     * Оформление привилегий в чате (donor-formats): первая группа сверху вниз, которая есть у игрока.
+     * В отличие от group-formats это не команда проекта. null - нет.
+     */
+    public GroupFormat donorFormat(Predicate<String> hasGroup) {
+        ConfigurationSection s = cfg.getConfigurationSection("donor-formats");
+        if (s == null) return null;
+        for (String group : s.getKeys(false)) {
+            if (hasGroup.test(group)) {
+                return new GroupFormat(s.getString(group + ".chat-prefix", ""), s.getString(group + ".name-style", ""));
+            }
+        }
+        return null;
+    }
+
     /** Звёзды персонала: первая подходящая группа из staff-stars, null - нет. */
     public String staffStars(Predicate<String> hasGroup) {
         ConfigurationSection s = cfg.getConfigurationSection("staff-stars");

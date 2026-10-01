@@ -39,6 +39,12 @@ public class LuckPermsHook {
         return prefix == null ? "" : prefix;
     }
 
+    /** Есть ли у игрока свой префикс (/prefix set) - он главнее оформления привилегии. */
+    public boolean hasOwnPrefix(Player player) {
+        User user = getUser(player);
+        return user != null && !user.getNodes(NodeType.PREFIX).isEmpty();
+    }
+
     /** Суффикс (например " &a&l✔" у персонала), пустая строка если нет. */
     public String getSuffix(Player player) {
         User user = getUser(player);

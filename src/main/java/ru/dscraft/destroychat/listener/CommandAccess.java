@@ -37,6 +37,7 @@ import java.util.UUID;
 public class CommandAccess implements Listener {
 
     public static final String DEFAULT_MESSAGE = "<#C9C9FB>Нет такой команды :/</#C9C9FB>";
+    public static final String DEFAULT_SPAM_MESSAGE = "<#E53232>◆</#E53232> <#C7C4B7>Не используйте так часто!</#C7C4B7>";
 
     private record Rank(String group, List<String> commands, List<String> permissions) {
     }
@@ -48,6 +49,10 @@ public class CommandAccess implements Listener {
     private final List<String> staffGroups = new ArrayList<>();
     private boolean enabled = true;
     private String message = DEFAULT_MESSAGE;
+    private long spamInterval = 1000;
+    private String spamMessage = DEFAULT_SPAM_MESSAGE;
+    /** Когда игрок последний раз ввёл команду. */
+    private final Map<UUID, Long> lastCommand = new HashMap<>();
 
     /** Выданные нами права и на какой привилегии они посчитаны. */
     private final Map<UUID, PermissionAttachment> attachments = new HashMap<>();
@@ -68,6 +73,8 @@ public class CommandAccess implements Listener {
         YamlConfiguration cfg = YamlConfiguration.loadConfiguration(file);
         enabled = cfg.getBoolean("enabled", true);
         message = cfg.getString("message", DEFAULT_MESSAGE);
+        spamInterval = Math.max(0, cfg.getLong("anti-spam.interval-ms", 1000));
+        spamMessage = cfg.getString("anti-spam.message", DEFAULT_SPAM_MESSAGE);
         always.clear();
         for (String c : cfg.getStringList("always")) always.add(normalize(c));
         staffGroups.clear();
@@ -172,6 +179,7 @@ public class CommandAccess implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         attachments.remove(event.getPlayer().getUniqueId());
+        lastCommand.remove(event.getPlayer().getUniqueId());
         appliedRank.remove(event.getPlayer().getUniqueId());
     }
 
@@ -193,8 +201,21 @@ public class CommandAccess implements Listener {
         String text = event.getMessage();
         if (text.length() < 2) return;
         String label = text.substring(1).split(" ", 2)[0].toLowerCase(Locale.ROOT);
-        if (label.indexOf(':') < 0 && canRun(allowed(player), label)) return;
-        event.setCancelled(true);
-        player.sendMessage(message());
+        if (label.indexOf(':') >= 0 || !canRun(allowed(player), label)) {
+            event.setCancelled(true);
+            player.sendMessage(message());
+            return;
+        }
+        // антиспам: команды чаще раза в interval-ms (авторизацию не трогаем)
+        if (spamInterval > 0 && !always.contains(label)) {
+            long now = System.currentTimeMillis();
+            Long last = lastCommand.get(player.getUniqueId());
+            if (last != null && now - last < spamInterval) {
+                event.setCancelled(true);
+                player.sendMessage(ColorUtil.parse(spamMessage));
+                return;
+            }
+            lastCommand.put(player.getUniqueId(), now);
+        }
     }
 }
