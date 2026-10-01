@@ -37,7 +37,8 @@ public final class Settings {
     }
 
     public String createPermission() {
-        return cfg().getString("create-permission", "");
+        // новый ключ: старый create-permission: "" во всех конфигах пускал всех
+        return cfg().getString("create-clan-permission", "mediaclans.create");
     }
 
     public int killRating() {

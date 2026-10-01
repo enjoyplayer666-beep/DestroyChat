@@ -117,12 +117,18 @@ public class ClanActions {
 
     // ---------------- создание / роспуск / название ----------------
 
-    public void create(Player player, String rawName) {
+    /** Можно ли игроку создавать кланы (с VIP), иначе пишет почему. */
+    public boolean checkCanCreate(Player player) {
         String perm = settings.createPermission();
         if (perm != null && !perm.isBlank() && !player.hasPermission(perm)) {
             error(player, "Создавать кланы можно с привилегии VIP. Купить: ds-craft.ru");
-            return;
+            return false;
         }
+        return true;
+    }
+
+    public void create(Player player, String rawName) {
+        if (!checkCanCreate(player)) return;
         if (manager.getClan(player) != null) {
             error(player, "Ты уже состоишь в клане. Сначала выйди из него: /c leave");
             return;

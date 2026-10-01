@@ -16,8 +16,8 @@ clan-chat:
   # <role> - префикс роли, <name> - ник, <message> - сообщение
   style: "<#F6993C>Клан</#F6993C> <#666666>»</#666666> <#666666>[</#666666><role><#666666>]</#666666> <#00FFE3><name></#00FFE3><#666666>:</#666666> <white><message></white>"
 
-# создание клана: право ("" - могут все, например "mediaclans.create" - только у кого есть право)
-create-permission: ""
+# создание клана: право (с VIP - выдаётся в DestroyChat commands.yml); "" - могут все
+create-clan-permission: "mediaclans.create"
 
 # клановый рейтинг (КР) за убийство игрока
 kill-rating: 15

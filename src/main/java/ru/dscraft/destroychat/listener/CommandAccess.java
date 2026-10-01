@@ -36,6 +36,9 @@ import java.util.UUID;
  */
 public class CommandAccess implements Listener {
 
+    /** Версия commands.yml в плагине: старый файл с меньшей версией заменяется. */
+    private static final int CONFIG_VERSION = 2;
+
     public static final String DEFAULT_MESSAGE = "<#C9C9FB>Нет такой команды :/</#C9C9FB>";
     public static final String DEFAULT_SPAM_MESSAGE = "<#E53232>◆</#E53232> <#C7C4B7>Не используйте так часто!</#C7C4B7>";
 
@@ -47,6 +50,8 @@ public class CommandAccess implements Listener {
     private final List<Rank> ranks = new ArrayList<>();
     private final Set<String> always = new HashSet<>();
     private final List<String> staffGroups = new ArrayList<>();
+    /** Права, которые выдаются команде проекта (ранги, кланы и т.п.). */
+    private final List<String> staffPermissions = new ArrayList<>();
     private boolean enabled = true;
     private String message = DEFAULT_MESSAGE;
     private long spamInterval = 1000;
@@ -71,6 +76,16 @@ public class CommandAccess implements Listener {
     public void reload() {
         if (!file.exists()) plugin.saveResource("commands.yml", false);
         YamlConfiguration cfg = YamlConfiguration.loadConfiguration(file);
+        // старый commands.yml из прошлой версии плагина - заменить на новый (старый остаётся рядом)
+        if (cfg.getInt("version", 1) < CONFIG_VERSION) {
+            File old = new File(plugin.getDataFolder(), "commands-old.yml");
+            if (old.exists()) old.delete();
+            if (file.renameTo(old)) {
+                plugin.saveResource("commands.yml", true);
+                cfg = YamlConfiguration.loadConfiguration(file);
+                plugin.getLogger().info("commands.yml обновлён до версии " + CONFIG_VERSION + ", старый - commands-old.yml.");
+            }
+        }
         enabled = cfg.getBoolean("enabled", true);
         message = cfg.getString("message", DEFAULT_MESSAGE);
         spamInterval = Math.max(0, cfg.getLong("anti-spam.interval-ms", 1000));
@@ -79,6 +94,8 @@ public class CommandAccess implements Listener {
         for (String c : cfg.getStringList("always")) always.add(normalize(c));
         staffGroups.clear();
         for (String g : cfg.getStringList("staff-groups")) staffGroups.add(g.toLowerCase(Locale.ROOT));
+        staffPermissions.clear();
+        staffPermissions.addAll(cfg.getStringList("staff-permissions"));
         ranks.clear();
         ConfigurationSection section = cfg.getConfigurationSection("ranks");
         if (section != null) {
@@ -127,14 +144,42 @@ public class CommandAccess implements Listener {
         return out;
     }
 
-    /** Можно ли ввести: по имени или по алиасу той же команды. */
-    private boolean canRun(Set<String> allowed, String label) {
-        if (allowed.contains(label)) return true;
+    /** Имя, под которым ввели команду, её главное имя и все алиасы. */
+    private static Set<String> names(String label) {
+        Set<String> out = new HashSet<>();
+        out.add(label);
         Command command = Bukkit.getCommandMap().getCommand(label);
-        if (command == null) return false;
-        if (allowed.contains(command.getName().toLowerCase(Locale.ROOT))) return true;
-        for (String alias : command.getAliases()) {
-            if (allowed.contains(alias.toLowerCase(Locale.ROOT))) return true;
+        if (command != null) {
+            out.add(command.getName().toLowerCase(Locale.ROOT));
+            for (String alias : command.getAliases()) out.add(alias.toLowerCase(Locale.ROOT));
+        }
+        return out;
+    }
+
+    /**
+     * Можно ли ввести: команда целиком ("c") - по имени или алиасу,
+     * или только подкоманда ("rank top" - можно /rank top, но не /rank).
+     */
+    private boolean canRun(Set<String> allowed, String label, String args) {
+        Set<String> names = names(label);
+        for (String name : names) {
+            if (allowed.contains(name)) return true;
+        }
+        String rest = args.trim().toLowerCase(Locale.ROOT);
+        for (String entry : allowed) {
+            int space = entry.indexOf(' ');
+            if (space < 0 || !names.contains(entry.substring(0, space))) continue;
+            String sub = entry.substring(space + 1).trim();
+            if (rest.equals(sub) || rest.startsWith(sub + " ")) return true;
+        }
+        return false;
+    }
+
+    /** В Tab: команда есть целиком или хотя бы её подкоманда ("rank top" -> показать rank). */
+    private static boolean visible(Set<String> allowed, String command) {
+        if (allowed.contains(command)) return true;
+        for (String entry : allowed) {
+            if (entry.startsWith(command + " ")) return true;
         }
         return false;
     }
@@ -143,7 +188,7 @@ public class CommandAccess implements Listener {
 
     /** Выдать права привилегии (и младших), если привилегия сменилась или force. */
     private void refresh(Player player, boolean force) {
-        // опам (-1) и команде проекта (-2) права отсюда не нужны - у них свои в LuckPerms
+        // опам (-1) права отсюда не нужны; команде проекта (-2) - только staff-permissions
         int index = player.isOp() ? -1 : (unrestricted(player) ? -2 : rankIndex(player));
         if (!force && appliedRank.getOrDefault(player.getUniqueId(), Integer.MIN_VALUE) == index) return;
         PermissionAttachment old = attachments.remove(player.getUniqueId());
@@ -154,8 +199,9 @@ public class CommandAccess implements Listener {
             }
         }
         appliedRank.put(player.getUniqueId(), index);
-        if (index >= 0) {
+        if (index >= 0 || index == -2) {
             Set<String> perms = new LinkedHashSet<>();
+            if (index == -2) perms.addAll(staffPermissions);
             for (int i = 0; i <= index && i < ranks.size(); i++) perms.addAll(ranks.get(i).permissions());
             if (!perms.isEmpty()) {
                 PermissionAttachment attachment = player.addAttachment(plugin);
@@ -191,7 +237,7 @@ public class CommandAccess implements Listener {
         Player player = event.getPlayer();
         if (unrestricted(player)) return;
         Set<String> allowed = allowed(player);
-        event.getCommands().removeIf(c -> !allowed.contains(c.toLowerCase(Locale.ROOT)));
+        event.getCommands().removeIf(c -> !visible(allowed, c.toLowerCase(Locale.ROOT)));
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -200,8 +246,9 @@ public class CommandAccess implements Listener {
         if (unrestricted(player)) return;
         String text = event.getMessage();
         if (text.length() < 2) return;
-        String label = text.substring(1).split(" ", 2)[0].toLowerCase(Locale.ROOT);
-        if (label.indexOf(':') >= 0 || !canRun(allowed(player), label)) {
+        String[] parts = text.substring(1).split(" ", 2);
+        String label = parts[0].toLowerCase(Locale.ROOT);
+        if (label.indexOf(':') >= 0 || !canRun(allowed(player), label, parts.length > 1 ? parts[1] : "")) {
             event.setCancelled(true);
             player.sendMessage(message());
             return;

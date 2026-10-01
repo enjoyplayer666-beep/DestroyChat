@@ -197,6 +197,10 @@ public final class ClanMenus {
     }
 
     public void askCreate(Player player) {
+        if (!actions.checkCanCreate(player)) {
+            player.closeInventory();
+            return;
+        }
         input.ask(player, "Напиши в чат название для нового клана.", text -> {
             actions.create(player, text.split("\\s+")[0]);
             Clan created = manager.getClan(player);

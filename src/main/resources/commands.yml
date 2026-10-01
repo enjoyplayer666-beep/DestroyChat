@@ -14,6 +14,9 @@
 #
 #  Опы и команда проекта (staff-groups) не ограничиваются: у них всё, на что есть права в LuckPerms.
 # =====================================================================
+# не трогать: по нему плагин обновляет старый commands.yml
+version: 2
+
 enabled: true
 
 message: "<#C9C9FB>Нет такой команды :/</#C9C9FB>"
@@ -43,38 +46,30 @@ always:
   - changepass
   - cp
 
+# права команде проекта (у неё все команды, остальные права - в LuckPerms)
+staff-permissions:
+  - ranks.use
+  - mediaclans.create
+
 ranks:
+  # "rank top" - только эта подкоманда (/rank top можно, /rank и /rank info - нет)
   default:
     commands:
-      - spawn
-      - hub
-      - lobby
-      - menu
-      - donate
-      - warps
-      - msg
-      - m
-      - tell
-      - w
-      - r
-      - reply
-      - tpaccept
-      - tpdeny
-      - clan
-      - c
       - stat
       - mystat
-      - rank
-      - tops
-      - kit
-      - contact
+      - nick
+      - menu
+      - warps
+      - donate
+      - c
+      - rank top
+      # чтобы работали /tpa и /tpahere от привилегий
+      - tpaccept
+      - tpdeny
     permissions:
-      - essentials.spawn
-      - essentials.msg
-      - essentials.reply
+      - essentials.nick
       - essentials.tpaccept
       - essentials.tpdeny
-      - essentials.kit
 
   vip:
     commands:
@@ -83,6 +78,7 @@ ranks:
       - tpahere
       - ptime
       - ec
+      - rank
     permissions:
       - essentials.hat
       - essentials.feed
@@ -90,7 +86,9 @@ ranks:
       - essentials.ptime
       - essentials.enderchest
       - essentials.kits.vip
+      # создавать кланы и ранги - с VIP
       - mediaclans.create
+      - ranks.use
 
   luxe:
     commands:
