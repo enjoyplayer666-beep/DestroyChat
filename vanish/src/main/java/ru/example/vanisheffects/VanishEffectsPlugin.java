@@ -680,7 +680,7 @@ public class VanishEffectsPlugin extends ru.dscraft.destroychat.module.Module im
                 world.spawnParticle(Particle.FLAME, current, 2, 0.05, 0.05, 0.05, 0.01);
 
                 if (tick == totalTicks) {
-                    world.spawnParticle(Particle.FIREWORKS_SPARK, target, 90, 0.6, 0.8, 0.6, 0.18);
+                    world.spawnParticle(Particle.FIREWORK, target, 90, 0.6, 0.8, 0.6, 0.18);
                     world.spawnParticle(Particle.END_ROD, target, 40, 0.5, 0.6, 0.5, 0.05);
                     world.playSound(target, Sound.ENTITY_FIREWORK_ROCKET_BLAST, 1.0f, 1.1f);
                     world.playSound(target, Sound.ENTITY_ENDERMAN_TELEPORT, 0.6f, 1.4f);
@@ -706,7 +706,7 @@ public class VanishEffectsPlugin extends ru.dscraft.destroychat.module.Module im
                 if (tick > totalTicks) {
                     world.playSound(center, Sound.BLOCK_GLASS_BREAK, 1.0f, 0.9f);
                     world.spawnParticle(Particle.SNOWFLAKE, center, 100, 0.6, 1.0, 0.6, 0.15);
-                    world.spawnParticle(Particle.SNOWBALL, center, 30, 0.5, 0.9, 0.5, 0.08);
+                    world.spawnParticle(Particle.ITEM_SNOWBALL, center, 30, 0.5, 0.9, 0.5, 0.08);
                     cancel();
                     return;
                 }
@@ -781,14 +781,14 @@ public class VanishEffectsPlugin extends ru.dscraft.destroychat.module.Module im
                         double angle = 2 * Math.PI * i / 36;
                         double x = base.getX() + 3.0 * Math.cos(angle);
                         double z = base.getZ() + 3.0 * Math.sin(angle);
-                        world.spawnParticle(Particle.CRIT_MAGIC, new Location(world, x, base.getY() - 1, z), 3, 0.1, 0.1, 0.1, 0.02);
+                        world.spawnParticle(Particle.ENCHANTED_HIT, new Location(world, x, base.getY() - 1, z), 3, 0.1, 0.1, 0.1, 0.02);
                     }
 
                     for (int h = 0; h < 12; h++) {
                         world.spawnParticle(Particle.END_ROD, base.clone().add(0, h * 0.6, 0), 4, 0.1, 0.1, 0.1, 0.01);
                     }
 
-                    world.spawnParticle(Particle.FIREWORKS_SPARK, base, 120, 0.7, 1.0, 0.7, 0.25);
+                    world.spawnParticle(Particle.FIREWORK, base, 120, 0.7, 1.0, 0.7, 0.25);
                     world.playSound(base, Sound.ENTITY_FIREWORK_ROCKET_BLAST, 1.0f, 1.0f);
                     cancel();
                     return;
