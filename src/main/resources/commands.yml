@@ -1,0 +1,161 @@
+# =====================================================================
+#  Команды по привилегиям. После правки: /destroychat reload
+#
+#  Игрок видит в Tab и может вводить ТОЛЬКО команды своей привилегии и всех младших
+#  (привилегии идут снизу вверх: default -> vip -> ... -> elitesp).
+#  На любую другую команду пишется сообщение ниже.
+#
+#  commands    - команды без "/". Алиасы писать не нужно: /enderchest сработает, если есть ec,
+#                но в Tab покажется только то, что написано здесь.
+#  permissions - права, которые плагин сам выдаёт привилегии (и всем старшим).
+#                Их можно удалить из групп в LuckPerms - выдаются отсюда.
+#                "-право" - запретить. Права подобраны под EssentialsX - если команда
+#                от другого плагина, впиши его право.
+#
+#  Опы и команда проекта (staff-groups) не ограничиваются: у них всё, на что есть права в LuckPerms.
+# =====================================================================
+enabled: true
+
+message: "<#C9C9FB>Нет такой команды :/</#C9C9FB>"
+
+staff-groups:
+  - admin
+  - manager
+  - curator
+  - moderator
+  - media
+  - mediajr
+
+# доступны всегда, даже до входа в аккаунт (авторизация)
+always:
+  - l
+  - login
+  - log
+  - reg
+  - register
+  - changepassword
+  - changepass
+  - cp
+
+ranks:
+  default:
+    commands:
+      - spawn
+      - hub
+      - lobby
+      - menu
+      - donate
+      - warps
+      - msg
+      - m
+      - tell
+      - w
+      - r
+      - reply
+      - tpaccept
+      - tpdeny
+      - clan
+      - c
+      - stat
+      - mystat
+      - rank
+      - tops
+      - kit
+      - contact
+    permissions:
+      - essentials.spawn
+      - essentials.msg
+      - essentials.reply
+      - essentials.tpaccept
+      - essentials.tpdeny
+      - essentials.kit
+
+  vip:
+    commands:
+      - hat
+      - feed
+      - tpahere
+      - ptime
+      - ec
+    permissions:
+      - essentials.hat
+      - essentials.feed
+      - essentials.tpahere
+      - essentials.ptime
+      - essentials.enderchest
+      - essentials.kits.vip
+      - mediaclans.create
+
+  luxe:
+    commands:
+      - afk
+      - dback
+      - anvil
+      - clear
+      - pweather
+    permissions:
+      - essentials.afk
+      - essentials.back
+      - essentials.back.ondeath
+      - essentials.anvil
+      - essentials.clearinventory
+      - essentials.pweather
+      - essentials.kits.luxe
+
+  deluxe:
+    commands:
+      - near
+      - heal
+      - prefix
+      - invsee
+      - checkban
+      - checkmute
+    permissions:
+      - essentials.near
+      - essentials.heal
+      - essentials.invsee
+      - destroylobby.customprefix
+      - essentials.kits.deluxe
+
+  ultra:
+    commands:
+      - tempmute
+      - unmute
+      - chatprefix
+    permissions:
+      - destroylobby.prefix.chat
+      - destroylobby.prefix.format
+      - ranks.give
+      - mediaclans.booster.2
+      - essentials.kits.ultra
+
+  legend:
+    commands:
+      - fly
+      - banlist
+      - beezooka
+      - v
+      - glow
+    permissions:
+      - essentials.fly
+      - essentials.beezooka
+      - destroylobby.chat.colors
+      - essentials.kits.legend
+
+  elitesp:
+    commands:
+      - tpa
+      - msgtoggle
+      - tptoggle
+      - socialspy
+      - color
+      - tempban
+      - unban
+    permissions:
+      - essentials.tpa
+      - essentials.msgtoggle
+      - essentials.tptoggle
+      - essentials.socialspy
+      - destroylobby.chat.color
+      - destroylobby.chat.spy
+      - essentials.kits.elite

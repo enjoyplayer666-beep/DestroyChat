@@ -268,7 +268,7 @@ command-log:
 # ---------------------------------------------------------------------
 hidden-commands:
   enabled: true
-  message: "<white>Нет такой команды :/</white>"
+  # сообщение "Нет такой команды :/" - в commands.yml
   commands:
     - plugins
     - pl

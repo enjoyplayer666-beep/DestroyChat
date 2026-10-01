@@ -8,7 +8,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerCommandSendEvent;
 import ru.dscraft.destroychat.DestroyChatPlugin;
-import ru.dscraft.destroychat.util.ColorUtil;
 
 import java.util.List;
 import java.util.Locale;
@@ -48,10 +47,8 @@ public class CommandHideListener implements Listener {
         String label = message.substring(1).split(" ", 2)[0].toLowerCase(Locale.ROOT);
         if (label.indexOf(':') < 0 && !hiddenList(cfg).contains(label)) return;
         event.setCancelled(true);
-        player.sendMessage(ColorUtil.parse(cfg.getString("hidden-commands.message", DEFAULT_MESSAGE)));
+        player.sendMessage(plugin.commandAccess().message()); // одно сообщение на все недоступные команды (commands.yml)
     }
-
-    public static final String DEFAULT_MESSAGE = "<white>Нет такой команды :/</white>";
 
     private static List<String> hiddenList(FileConfiguration cfg) {
         return cfg.getStringList("hidden-commands.commands").stream()

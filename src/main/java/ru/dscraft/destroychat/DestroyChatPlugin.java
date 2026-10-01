@@ -12,6 +12,7 @@ import ru.dscraft.destroychat.command.ContactCommand;
 import ru.dscraft.destroychat.config.ChatConfig;
 import ru.dscraft.destroychat.hook.LuckPermsHook;
 import ru.dscraft.destroychat.listener.ChatFormatListener;
+import ru.dscraft.destroychat.listener.CommandAccess;
 import ru.dscraft.destroychat.listener.CommandHideListener;
 import ru.dscraft.destroychat.listener.CommandLogListener;
 import ru.dscraft.destroychat.listener.PrefixResetListener;
@@ -29,6 +30,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
     private ChatConfig chatConfig;
     private Announcer announcer;
     private ContactCommand contactCommand;
+    private CommandAccess commandAccess;
 
     @Override
     public void onEnable() {
@@ -68,6 +70,9 @@ public final class DestroyChatPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CommandLogListener(this), this);
         // команды с ":" и /plugins видят только опы, остальным - "Нет такой команды :/"
         getServer().getPluginManager().registerEvents(new CommandHideListener(this), this);
+        // команды по привилегиям (commands.yml): в Tab и в чате только свои, плюс их права
+        commandAccess = new CommandAccess(this);
+        getServer().getPluginManager().registerEvents(commandAccess, this);
 
         // таб (строки игроков, цвет ника, ✔) - в отдельном плагине MediaTab
 
@@ -132,6 +137,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
                 chatConfig.reload();
                 if (announcer != null) announcer.start();
                 if (contactCommand != null) contactCommand.reload();
+                if (commandAccess != null) commandAccess.reload();
                 sender.sendMessage("§a[DestroyChat] Конфиг перезагружен.");
                 return true;
             }
@@ -157,5 +163,9 @@ public final class DestroyChatPlugin extends JavaPlugin {
             return true;
         }
         return false;
+    }
+
+    public CommandAccess commandAccess() {
+        return commandAccess;
     }
 }
