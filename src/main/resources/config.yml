@@ -259,6 +259,22 @@ command-log:
     - c forcedelete
     - c setrating
 
+# ---------------------------------------------------------------------
+#  Скрытые команды: для всех, кроме опов (и игроков, и команды проекта),
+#  команды с ":" (destroychat:color, minecraft:tp ...) и команды из списка
+#  не видны в подсказках, а при вводе пишется сообщение ниже.
+# ---------------------------------------------------------------------
+hidden-commands:
+  enabled: true
+  message: "<white>Нет такой команды :/</white>"
+  commands:
+    - plugins
+    - pl
+    - version
+    - ver
+    - about
+    - icanhasbukkit
+
 announcements:
   enabled: true
   interval-minutes: 15
