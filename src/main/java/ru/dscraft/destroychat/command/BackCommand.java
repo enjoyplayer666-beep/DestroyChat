@@ -44,8 +44,10 @@ public class BackCommand implements Listener {
         int colon = label.indexOf(':');
         if (colon >= 0) label = label.substring(colon + 1);
         if (!label.equals("back") && !label.equals("dback")) return;
-        event.setCancelled(true);
         Player player = event.getPlayer();
+        // у опа ничего не перехватываем - его /back от Essentials
+        if (player.isOp() && label.equals("back")) return;
+        event.setCancelled(true);
         Location death = deaths.get(player.getUniqueId());
         if (death == null || death.getWorld() == null) {
             player.sendMessage(ColorUtil.parse(plugin.getConfig().getString("back.no-death",
