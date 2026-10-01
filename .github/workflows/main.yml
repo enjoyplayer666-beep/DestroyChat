@@ -25,6 +25,9 @@ jobs:
       - name: Собрать MediaClans (кланы)
         run: mvn -B -f mediaclans/pom.xml clean package
 
+      - name: Собрать MediaBans (баны, муты, кики)
+        run: mvn -B -f mediabans/pom.xml clean package
+
       - name: Выложить jar
         uses: actions/upload-artifact@v4
         with:
@@ -36,3 +39,9 @@ jobs:
         with:
           name: MediaClans
           path: mediaclans/target/MediaClans.jar
+
+      - name: Выложить MediaBans
+        uses: actions/upload-artifact@v4
+        with:
+          name: MediaBans
+          path: mediabans/target/MediaBans.jar
