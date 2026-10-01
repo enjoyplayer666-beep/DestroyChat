@@ -128,6 +128,137 @@ clans:
 #  <click:suggest_command:/tpa >..</click> - вставить в чат, <click:open_url:https://..>..</click> - ссылка.
 #  Цвета сняты со скринов: стрелка 1 - #E0E4FF, стрелка 2 и выделение - #4682E4, текст - #E0E4FF.
 # ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+#  [DestroyLog] - команды игроков в чате. Видят только команда проекта
+#  (группы из group-formats, право destroychat.logs) и опы.
+#  <player> - ник, <command> - команда целиком. Команды можно писать с / и без.
+# ---------------------------------------------------------------------
+command-log:
+  enabled: true
+  # дублировать в консоль
+  console: false
+  format: "<gray>[</gray><gradient:#FF4B4B:#FFD24B>DestroyLog</gradient><gray>]</gray> <#55FFFF>Игрок</#55FFFF> <#00AAAA><player></#00AAAA> <#55FFFF>ввёл команду:</#55FFFF> <gold><command></gold>"
+  commands:
+    # наказания
+    - ban
+    - tempban
+    - ipban
+    - banip
+    - tempbanip
+    - unban
+    - pardon
+    - unbanip
+    - pardon-ip
+    - kick
+    - mute
+    - tempmute
+    - unmute
+    - warn
+    - unwarn
+    - jail
+    - unjail
+    - freeze
+    # права, привилегии, ранги
+    - op
+    - deop
+    - lp
+    - luckperms
+    - perm
+    - perms
+    - rank
+    - prefix
+    # режимы и способности
+    - gamemode
+    - gm
+    - gmc
+    - gms
+    - gma
+    - gmsp
+    - creative
+    - survival
+    - adventure
+    - spectator
+    - fly
+    - god
+    - vanish
+    - v
+    - speed
+    - heal
+    - feed
+    - sudo
+    # телепорты
+    - tp
+    - teleport
+    - tphere
+    - s
+    - tpall
+    - tppos
+    - tpo
+    - tpohere
+    # выдача вещей и ресурсов
+    - give
+    - i
+    - item
+    - menu
+    - eco
+    - economy
+    - xp
+    - exp
+    - experience
+    - enchant
+    - effect
+    - summon
+    - kill
+    - clear
+    - ci
+    - clearinventory
+    # чужие инвентари
+    - invsee
+    - openinv
+    - enderchest
+    - ec
+    - echest
+    # мир и сервер
+    - time
+    - weather
+    - gamerule
+    - difficulty
+    - setblock
+    - fill
+    - clone
+    - setworldspawn
+    - setspawn
+    - worldborder
+    - whitelist
+    - stop
+    - restart
+    - reload
+    - rl
+    - plugman
+    - broadcast
+    - bc
+    - say
+    # WorldEdit
+    - //set
+    - //replace
+    - //paste
+    - //copy
+    - //cut
+    - //undo
+    - //redo
+    - //fill
+    - //drain
+    - //walls
+    - //stack
+    # плагины DestroyCraft
+    - destroychat
+    - destroylobby
+    - mediaclear
+    - clan forcedelete
+    - clan setrating
+    - c forcedelete
+    - c setrating
+
 announcements:
   enabled: true
   interval-minutes: 15

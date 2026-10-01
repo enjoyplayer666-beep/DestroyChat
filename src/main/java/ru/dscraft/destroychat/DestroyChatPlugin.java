@@ -12,6 +12,7 @@ import ru.dscraft.destroychat.command.ContactCommand;
 import ru.dscraft.destroychat.config.ChatConfig;
 import ru.dscraft.destroychat.hook.LuckPermsHook;
 import ru.dscraft.destroychat.listener.ChatFormatListener;
+import ru.dscraft.destroychat.listener.CommandLogListener;
 import ru.dscraft.destroychat.listener.PrefixResetListener;
 import ru.dscraft.destroychat.util.NameStyler;
 
@@ -61,6 +62,9 @@ public final class DestroyChatPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PrefixResetListener(luckPermsHook), this);
         getServer().getPluginManager().registerEvents(
                 new ChatFormatListener(chatConfig, luckPermsHook, nameStyler), this);
+
+        // [DestroyLog] - команды игроков видят только команда проекта и опы
+        getServer().getPluginManager().registerEvents(new CommandLogListener(this), this);
 
         // таб (строки игроков, цвет ника, ✔) - в отдельном плагине MediaTab
 
