@@ -89,6 +89,23 @@ public final class Modules {
         Bukkit.getScheduler().cancelTasks(module);
     }
 
+    /**
+     * Плагин переименован: при первом запуске его папка plugins/&lt;старое имя&gt;/ копируется в новую
+     * (старая остаётся как резервная копия - её можно удалить).
+     */
+    public static void adoptOldFolder(JavaPlugin host, String oldName) {
+        File folder = host.getDataFolder();
+        File old = new File(folder.getParentFile(), oldName);
+        if (folder.exists() || !old.isDirectory()) return;
+        try {
+            copy(old.toPath(), folder.toPath());
+            host.getLogger().info("Настройки и данные перенесены из plugins/" + oldName + " в plugins/" + host.getName()
+                    + " (старую папку можно удалить).");
+        } catch (IOException e) {
+            host.getLogger().log(Level.SEVERE, "Не удалось перенести plugins/" + oldName, e);
+        }
+    }
+
     private static void copy(Path from, Path to) throws IOException {
         try (Stream<Path> paths = Files.walk(from)) {
             for (Path p : (Iterable<Path>) paths::iterator) {

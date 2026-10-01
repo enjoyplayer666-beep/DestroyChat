@@ -1,14 +1,14 @@
-name: DestroyChat
+name: MediaDestroyChat
 version: ${project.version}
 main: ru.dscraft.destroychat.DestroyChatPlugin
 api-version: '1.21'
-author: DestroyCraft
+author: loserwrld
 description: Чат DestroyCraft + модули MediaBans (наказания) и VanishEffects (ваниш)
 softdepend:
 - LuckPerms
-- DestroyLobby
+- MediaDestroyLobby
 - MediaClans
-- DestroyPvP
+- MediaDestroyPvP
 - Essentials
 - LiteBans
 - AdvancedBan

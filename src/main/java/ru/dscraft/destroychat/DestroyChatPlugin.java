@@ -37,6 +37,12 @@ public final class DestroyChatPlugin extends JavaPlugin {
     private Modules modules;
 
     @Override
+    public void onLoad() {
+        // раньше плагин назывался DestroyChat
+        Modules.adoptOldFolder(this, "DestroyChat");
+    }
+
+    @Override
     public void onEnable() {
         saveDefaultConfig();
         getConfig().options().copyDefaults(true);
@@ -54,7 +60,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
             getLogger().warning("LuckPerms не найден! Префиксы привилегий, /prefix chat и /color работать не будут.");
         }
 
-        if (getServer().getPluginManager().getPlugin("DestroyLobby") != null) {
+        if (getServer().getPluginManager().getPlugin("MediaDestroyLobby") != null) {
             getLogger().info("DestroyLobby найден: чат в лобби выключен, лобби и игровые миры разделены.");
         } else {
             getLogger().warning("DestroyLobby не найден: чат будет работать и в лобби, миры не разделены.");

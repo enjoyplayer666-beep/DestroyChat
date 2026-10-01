@@ -32,7 +32,7 @@ public final class StatHook {
 
     /** Карточка ранга для наведения (DsRanks RanksApi.rankHover), null - нет. */
     public static String rankHover(Player player) {
-        Plugin plugin = Bukkit.getPluginManager().getPlugin("DestroyPvP");
+        Plugin plugin = Bukkit.getPluginManager().getPlugin("MediaDestroyPvP");
         if (plugin == null || !plugin.isEnabled()) return null;
         try {
             Class<?> api = Class.forName("ru.dscraft.ranks.RanksApi", true, plugin.getClass().getClassLoader());
@@ -43,8 +43,8 @@ public final class StatHook {
     }
 
     private static synchronized Method resolve() {
-        Method m = find("DestroyPvP", "ru.dscraft.ranks.RanksApi");
-        return m != null ? m : find("DestroyPvP", "ru.stat.StatApi");
+        Method m = find("MediaDestroyPvP", "ru.dscraft.ranks.RanksApi");
+        return m != null ? m : find("MediaDestroyPvP", "ru.stat.StatApi");
     }
 
     /** Метод chatRank(Player) из плагина; после перезагрузки плагина (новый загрузчик классов) ищет заново. */
