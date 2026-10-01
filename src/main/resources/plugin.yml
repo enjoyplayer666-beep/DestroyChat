@@ -23,7 +23,17 @@ commands:
     aliases: [contacts, kontakt]
     permission: destroychat.contact
 
+  admin:
+    description: Телепорт на варп admin (команда проекта)
+    usage: /admin
+  espeed:
+    description: Скорость полёта и ходьбы (команда проекта)
+    usage: /espeed fly|walk 1-10
 permissions:
+  destroychat.admin-warp:
+    default: op
+  destroychat.espeed:
+    default: op
   destroychat.contact:
     default: true
   destroychat.admin:

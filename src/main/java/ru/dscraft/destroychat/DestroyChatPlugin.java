@@ -9,6 +9,7 @@ import ru.dscraft.destroychat.announce.Announcer;
 import ru.dscraft.destroychat.command.ChatPrefixCommand;
 import ru.dscraft.destroychat.command.ColorCommand;
 import ru.dscraft.destroychat.command.ContactCommand;
+import ru.dscraft.destroychat.command.StaffCommands;
 import ru.dscraft.destroychat.config.ChatConfig;
 import ru.dscraft.destroychat.hook.LuckPermsHook;
 import ru.dscraft.destroychat.listener.ChatFormatListener;
@@ -85,6 +86,15 @@ public final class DestroyChatPlugin extends JavaPlugin {
         if (getCommand("chatprefix") != null) {
             getCommand("chatprefix").setExecutor(chatPrefixCommand);
             getCommand("chatprefix").setTabCompleter(chatPrefixCommand);
+        }
+
+        // /admin и /espeed - команды персонала
+        StaffCommands staffCommands = new StaffCommands();
+        for (String name : new String[]{"admin", "espeed"}) {
+            if (getCommand(name) != null) {
+                getCommand(name).setExecutor(staffCommands);
+                getCommand(name).setTabCompleter(staffCommands);
+            }
         }
 
         // /contact - контакты команды проекта (contacts.yml), доступна всем

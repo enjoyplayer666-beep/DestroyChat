@@ -15,7 +15,7 @@
 #  Опы и команда проекта (staff-groups) не ограничиваются: у них всё, на что есть права в LuckPerms.
 # =====================================================================
 # не трогать: по нему плагин обновляет старый commands.yml
-version: 3
+version: 4
 
 enabled: true
 
@@ -48,7 +48,63 @@ always:
 
 # Команда проекта получает права ВСЕХ привилегий ниже (default ... elitesp) - как самый старший донат.
 # Свои права персонала добавляй в LuckPerms или сюда:
-staff-permissions: []
+staff-permissions:
+  - destroychat.admin-warp          # /admin - на /warp admin
+  - destroychat.espeed              # /espeed fly|walk 1-10
+  - destroylobby.prefix.reset.others  # /prefix reset ник
+  - destroychat.logs                # логи [DestroyLog]
+
+# Права отдельных групп команды проекта: первая подходящая сверху вниз.
+# "-право" - запрет (сильнее прав из LuckPerms). Гм - только у куратора.
+staff-group-permissions:
+  curator:
+    - essentials.gamemode
+    - essentials.gamemode.all
+    - essentials.gamemode.creative
+    - essentials.gamemode.survival
+    - essentials.gamemode.adventure
+    - essentials.gamemode.spectator
+    - minecraft.command.gamemode
+  admin:
+    - "-essentials.gamemode"
+    - "-essentials.gamemode.all"
+    - "-essentials.gamemode.creative"
+    - "-essentials.gamemode.survival"
+    - "-essentials.gamemode.adventure"
+    - "-essentials.gamemode.spectator"
+    - "-minecraft.command.gamemode"
+  manager:
+    - "-essentials.gamemode"
+    - "-essentials.gamemode.all"
+    - "-essentials.gamemode.creative"
+    - "-essentials.gamemode.survival"
+    - "-essentials.gamemode.adventure"
+    - "-essentials.gamemode.spectator"
+    - "-minecraft.command.gamemode"
+  moderator:
+    - "-essentials.gamemode"
+    - "-essentials.gamemode.all"
+    - "-essentials.gamemode.creative"
+    - "-essentials.gamemode.survival"
+    - "-essentials.gamemode.adventure"
+    - "-essentials.gamemode.spectator"
+    - "-minecraft.command.gamemode"
+  media:
+    - "-essentials.gamemode"
+    - "-essentials.gamemode.all"
+    - "-essentials.gamemode.creative"
+    - "-essentials.gamemode.survival"
+    - "-essentials.gamemode.adventure"
+    - "-essentials.gamemode.spectator"
+    - "-minecraft.command.gamemode"
+  mediajr:
+    - "-essentials.gamemode"
+    - "-essentials.gamemode.all"
+    - "-essentials.gamemode.creative"
+    - "-essentials.gamemode.survival"
+    - "-essentials.gamemode.adventure"
+    - "-essentials.gamemode.spectator"
+    - "-minecraft.command.gamemode"
 
 ranks:
   # "rank top" - только эта подкоманда (/rank top можно, /rank и /rank info - нет)

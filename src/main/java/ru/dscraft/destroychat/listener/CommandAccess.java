@@ -37,7 +37,7 @@ import java.util.UUID;
 public class CommandAccess implements Listener {
 
     /** Версия commands.yml в плагине: старый файл с меньшей версией заменяется. */
-    private static final int CONFIG_VERSION = 3;
+    private static final int CONFIG_VERSION = 4;
 
     public static final String DEFAULT_MESSAGE = "<#C9C9FB>Нет такой команды :/</#C9C9FB>";
     public static final String DEFAULT_SPAM_MESSAGE = "<#E53232>◆</#E53232> <#C7C4B7>Не используйте так часто!</#C7C4B7>";
@@ -52,6 +52,8 @@ public class CommandAccess implements Listener {
     private final List<String> staffGroups = new ArrayList<>();
     /** Права, которые выдаются команде проекта (ранги, кланы и т.п.). */
     private final List<String> staffPermissions = new ArrayList<>();
+    /** Права отдельных групп команды проекта (гм куратору и т.п.), первая подходящая сверху вниз. */
+    private final Map<String, List<String>> staffGroupPermissions = new java.util.LinkedHashMap<>();
     private boolean enabled = true;
     private String message = DEFAULT_MESSAGE;
     private long spamInterval = 1000;
@@ -96,6 +98,11 @@ public class CommandAccess implements Listener {
         for (String g : cfg.getStringList("staff-groups")) staffGroups.add(g.toLowerCase(Locale.ROOT));
         staffPermissions.clear();
         staffPermissions.addAll(cfg.getStringList("staff-permissions"));
+        staffGroupPermissions.clear();
+        ConfigurationSection sgp = cfg.getConfigurationSection("staff-group-permissions");
+        if (sgp != null) {
+            for (String g : sgp.getKeys(false)) staffGroupPermissions.put(g.toLowerCase(Locale.ROOT), sgp.getStringList(g));
+        }
         ranks.clear();
         ConfigurationSection section = cfg.getConfigurationSection("ranks");
         if (section != null) {
@@ -203,7 +210,15 @@ public class CommandAccess implements Listener {
             Set<String> perms = new LinkedHashSet<>();
             // команда проекта - права всех привилегий (как старший донат) + staff-permissions
             int top = index == -2 ? ranks.size() - 1 : index;
-            if (index == -2) perms.addAll(staffPermissions);
+            if (index == -2) {
+                perms.addAll(staffPermissions);
+                for (Map.Entry<String, List<String>> e : staffGroupPermissions.entrySet()) {
+                    if (player.hasPermission("group." + e.getKey())) {
+                        perms.addAll(e.getValue());
+                        break;
+                    }
+                }
+            }
             for (int i = 0; i <= top && i < ranks.size(); i++) perms.addAll(ranks.get(i).permissions());
             if (!perms.isEmpty()) {
                 PermissionAttachment attachment = player.addAttachment(plugin);
