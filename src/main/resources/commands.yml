@@ -15,7 +15,7 @@
 #  Не ограничиваются только опы. Команда проекта - как elitesp плюс блок staff ниже.
 # =====================================================================
 # не трогать: по нему плагин обновляет старый commands.yml
-version: 6
+version: 7
 
 enabled: true
 
@@ -72,6 +72,9 @@ staff:
     - destroylobby.prefix.reset.others
     - destroylobby.customprefix
     - destroychat.logs
+    # в лобби команда проекта как все: без чата и без лишних команд (сильнее прав из LuckPerms)
+    - "-destroylobby.lobby.bypass"
+    - "-destroylobby.chat.bypass"
   # отдельно группам персонала (первая подходящая сверху вниз)
   groups:
     curator:
