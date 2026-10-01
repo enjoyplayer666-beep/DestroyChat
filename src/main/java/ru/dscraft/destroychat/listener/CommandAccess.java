@@ -32,12 +32,13 @@ import java.util.UUID;
  * Команды по привилегиям (commands.yml).
  * Игрок видит в Tab и может вводить только команды своей привилегии и всех младших,
  * им же выдаются права из списка. Остальное - "Нет такой команды :/".
- * Опы и команда проекта (staff-groups) не ограничиваются.
+ * Команда проекта (staff-groups) - как старшая привилегия (elitesp) плюс свои команды и права из staff.
+ * Не ограничиваются только опы.
  */
 public class CommandAccess implements Listener {
 
     /** Версия commands.yml в плагине: старый файл с меньшей версией заменяется. */
-    private static final int CONFIG_VERSION = 4;
+    private static final int CONFIG_VERSION = 5;
 
     public static final String DEFAULT_MESSAGE = "<#C9C9FB>Нет такой команды :/</#C9C9FB>";
     public static final String DEFAULT_SPAM_MESSAGE = "<#E53232>◆</#E53232> <#C7C4B7>Не используйте так часто!</#C7C4B7>";
@@ -50,10 +51,10 @@ public class CommandAccess implements Listener {
     private final List<Rank> ranks = new ArrayList<>();
     private final Set<String> always = new HashSet<>();
     private final List<String> staffGroups = new ArrayList<>();
-    /** Права, которые выдаются команде проекта (ранги, кланы и т.п.). */
-    private final List<String> staffPermissions = new ArrayList<>();
-    /** Права отдельных групп команды проекта (гм куратору и т.п.), первая подходящая сверху вниз. */
-    private final Map<String, List<String>> staffGroupPermissions = new java.util.LinkedHashMap<>();
+    /** Команды и права всей команды проекта сверх старшей привилегии (/admin, /espeed ...). */
+    private Rank staffExtra = new Rank("staff", List.of(), List.of());
+    /** Сверх этого - отдельным группам персонала (гм куратору), первая подходящая сверху вниз. */
+    private final Map<String, Rank> staffGroupExtras = new java.util.LinkedHashMap<>();
     private boolean enabled = true;
     private String message = DEFAULT_MESSAGE;
     private long spamInterval = 1000;
@@ -63,7 +64,7 @@ public class CommandAccess implements Listener {
 
     /** Выданные нами права и на какой привилегии они посчитаны. */
     private final Map<UUID, PermissionAttachment> attachments = new HashMap<>();
-    private final Map<UUID, Integer> appliedRank = new HashMap<>();
+    private final Map<UUID, String> appliedRank = new HashMap<>();
 
     public CommandAccess(DestroyChatPlugin plugin) {
         this.plugin = plugin;
@@ -96,12 +97,13 @@ public class CommandAccess implements Listener {
         for (String c : cfg.getStringList("always")) always.add(normalize(c));
         staffGroups.clear();
         for (String g : cfg.getStringList("staff-groups")) staffGroups.add(g.toLowerCase(Locale.ROOT));
-        staffPermissions.clear();
-        staffPermissions.addAll(cfg.getStringList("staff-permissions"));
-        staffGroupPermissions.clear();
-        ConfigurationSection sgp = cfg.getConfigurationSection("staff-group-permissions");
-        if (sgp != null) {
-            for (String g : sgp.getKeys(false)) staffGroupPermissions.put(g.toLowerCase(Locale.ROOT), sgp.getStringList(g));
+        staffExtra = readRank("staff", cfg.getConfigurationSection("staff"));
+        staffGroupExtras.clear();
+        ConfigurationSection groups = cfg.getConfigurationSection("staff.groups");
+        if (groups != null) {
+            for (String g : groups.getKeys(false)) {
+                staffGroupExtras.put(g.toLowerCase(Locale.ROOT), readRank(g, groups.getConfigurationSection(g)));
+            }
         }
         ranks.clear();
         ConfigurationSection section = cfg.getConfigurationSection("ranks");
@@ -115,6 +117,13 @@ public class CommandAccess implements Listener {
         for (Player p : Bukkit.getOnlinePlayers()) refresh(p, true);
     }
 
+    private static Rank readRank(String name, ConfigurationSection s) {
+        if (s == null) return new Rank(name, List.of(), List.of());
+        List<String> commands = new ArrayList<>();
+        for (String c : s.getStringList("commands")) commands.add(normalize(c));
+        return new Rank(name, commands, s.getStringList("permissions"));
+    }
+
     private static String normalize(String command) {
         String c = command.trim().toLowerCase(Locale.ROOT);
         return c.startsWith("/") ? c.substring(1) : c;
@@ -126,17 +135,29 @@ public class CommandAccess implements Listener {
 
     // ---------------- кто кто ----------------
 
-    /** Опы и команда проекта - без ограничений по командам. */
+    /** Без ограничений по командам - только опы (или если всё выключено). */
     private boolean unrestricted(Player player) {
-        if (!enabled || player.isOp()) return true;
+        return !enabled || player.isOp();
+    }
+
+    private boolean isStaff(Player player) {
         for (String g : staffGroups) {
             if (player.hasPermission("group." + g)) return true;
         }
         return false;
     }
 
-    /** Номер старшей привилегии игрока; первая (default) есть у всех. */
+    /** Отдельные команды/права группы персонала (curator ...), null - нет. */
+    private Rank staffGroupExtra(Player player) {
+        for (Map.Entry<String, Rank> e : staffGroupExtras.entrySet()) {
+            if (player.hasPermission("group." + e.getKey())) return e.getValue();
+        }
+        return null;
+    }
+
+    /** Номер старшей привилегии игрока; первая (default) есть у всех, у команды проекта - самая старшая. */
     private int rankIndex(Player player) {
+        if (isStaff(player)) return ranks.size() - 1;
         int index = 0;
         for (int i = 1; i < ranks.size(); i++) {
             if (player.hasPermission("group." + ranks.get(i).group())) index = i;
@@ -148,6 +169,11 @@ public class CommandAccess implements Listener {
         Set<String> out = new HashSet<>(always);
         int top = rankIndex(player);
         for (int i = 0; i <= top && i < ranks.size(); i++) out.addAll(ranks.get(i).commands());
+        if (isStaff(player)) {
+            out.addAll(staffExtra.commands());
+            Rank extra = staffGroupExtra(player);
+            if (extra != null) out.addAll(extra.commands());
+        }
         return out;
     }
 
@@ -195,9 +221,12 @@ public class CommandAccess implements Listener {
 
     /** Выдать права привилегии (и младших), если привилегия сменилась или force. */
     private void refresh(Player player, boolean force) {
-        // опам (-1) права отсюда не нужны; команде проекта (-2) - права всех привилегий
-        int index = player.isOp() ? -1 : (unrestricted(player) ? -2 : rankIndex(player));
-        if (!force && appliedRank.getOrDefault(player.getUniqueId(), Integer.MIN_VALUE) == index) return;
+        // опам права отсюда не нужны; ключ - чтобы не пересобирать права без изменений
+        boolean staff = !player.isOp() && isStaff(player);
+        Rank extra = staff ? staffGroupExtra(player) : null;
+        int index = player.isOp() ? -1 : rankIndex(player);
+        String key = index + "|" + (staff ? "staff" : "") + "|" + (extra == null ? "" : extra.group());
+        if (!force && key.equals(appliedRank.get(player.getUniqueId()))) return;
         PermissionAttachment old = attachments.remove(player.getUniqueId());
         if (old != null) {
             try {
@@ -205,21 +234,12 @@ public class CommandAccess implements Listener {
             } catch (IllegalArgumentException ignored) {
             }
         }
-        appliedRank.put(player.getUniqueId(), index);
-        if (index >= 0 || index == -2) {
+        appliedRank.put(player.getUniqueId(), key);
+        if (index >= 0) {
             Set<String> perms = new LinkedHashSet<>();
-            // команда проекта - права всех привилегий (как старший донат) + staff-permissions
-            int top = index == -2 ? ranks.size() - 1 : index;
-            if (index == -2) {
-                perms.addAll(staffPermissions);
-                for (Map.Entry<String, List<String>> e : staffGroupPermissions.entrySet()) {
-                    if (player.hasPermission("group." + e.getKey())) {
-                        perms.addAll(e.getValue());
-                        break;
-                    }
-                }
-            }
-            for (int i = 0; i <= top && i < ranks.size(); i++) perms.addAll(ranks.get(i).permissions());
+            for (int i = 0; i <= index && i < ranks.size(); i++) perms.addAll(ranks.get(i).permissions());
+            if (staff) perms.addAll(staffExtra.permissions());
+            if (extra != null) perms.addAll(extra.permissions());
             if (!perms.isEmpty()) {
                 PermissionAttachment attachment = player.addAttachment(plugin);
                 for (String perm : perms) {

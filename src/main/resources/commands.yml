@@ -12,10 +12,10 @@
 #                "-право" - запретить. Права подобраны под EssentialsX - если команда
 #                от другого плагина, впиши его право.
 #
-#  Опы и команда проекта (staff-groups) не ограничиваются: у них всё, на что есть права в LuckPerms.
+#  Не ограничиваются только опы. Команда проекта - как elitesp плюс блок staff ниже.
 # =====================================================================
 # не трогать: по нему плагин обновляет старый commands.yml
-version: 4
+version: 5
 
 enabled: true
 
@@ -46,65 +46,47 @@ always:
   - changepass
   - cp
 
-# Команда проекта получает права ВСЕХ привилегий ниже (default ... elitesp) - как самый старший донат.
-# Свои права персонала добавляй в LuckPerms или сюда:
-staff-permissions:
-  - destroychat.admin-warp          # /admin - на /warp admin
-  - destroychat.espeed              # /espeed fly|walk 1-10
-  - destroylobby.prefix.reset.others  # /prefix reset ник
-  - destroychat.logs                # логи [DestroyLog]
-
-# Права отдельных групп команды проекта: первая подходящая сверху вниз.
-# "-право" - запрет (сильнее прав из LuckPerms). Гм - только у куратора.
-staff-group-permissions:
-  curator:
-    - essentials.gamemode
-    - essentials.gamemode.all
-    - essentials.gamemode.creative
-    - essentials.gamemode.survival
-    - essentials.gamemode.adventure
-    - essentials.gamemode.spectator
-    - minecraft.command.gamemode
-  admin:
-    - "-essentials.gamemode"
-    - "-essentials.gamemode.all"
-    - "-essentials.gamemode.creative"
-    - "-essentials.gamemode.survival"
-    - "-essentials.gamemode.adventure"
-    - "-essentials.gamemode.spectator"
-    - "-minecraft.command.gamemode"
-  manager:
-    - "-essentials.gamemode"
-    - "-essentials.gamemode.all"
-    - "-essentials.gamemode.creative"
-    - "-essentials.gamemode.survival"
-    - "-essentials.gamemode.adventure"
-    - "-essentials.gamemode.spectator"
-    - "-minecraft.command.gamemode"
-  moderator:
-    - "-essentials.gamemode"
-    - "-essentials.gamemode.all"
-    - "-essentials.gamemode.creative"
-    - "-essentials.gamemode.survival"
-    - "-essentials.gamemode.adventure"
-    - "-essentials.gamemode.spectator"
-    - "-minecraft.command.gamemode"
-  media:
-    - "-essentials.gamemode"
-    - "-essentials.gamemode.all"
-    - "-essentials.gamemode.creative"
-    - "-essentials.gamemode.survival"
-    - "-essentials.gamemode.adventure"
-    - "-essentials.gamemode.spectator"
-    - "-minecraft.command.gamemode"
-  mediajr:
-    - "-essentials.gamemode"
-    - "-essentials.gamemode.all"
-    - "-essentials.gamemode.creative"
-    - "-essentials.gamemode.survival"
-    - "-essentials.gamemode.adventure"
-    - "-essentials.gamemode.spectator"
-    - "-minecraft.command.gamemode"
+# Команда проекта (staff-groups) = права и команды старшей привилегии (elitesp) + то, что ниже.
+# Без ограничений - только опы.
+staff:
+  commands:
+    - admin       # на /warp admin
+    - espeed      # /espeed fly|walk 1-10
+    - prefix      # в т.ч. /prefix reset ник
+    # наказания: у команды проекта без ограничений (MediaBans)
+    - ban
+    - tempban
+    - mute
+    - tempmute
+    - kick
+    - unban
+    - unmute
+    - checkban
+    - checkmute
+    - banlist
+  permissions:
+    - destroychat.admin-warp
+    - destroychat.espeed
+    - destroylobby.prefix.reset.others
+    - destroylobby.customprefix
+    - destroychat.logs
+  # отдельно группам персонала (первая подходящая сверху вниз)
+  groups:
+    curator:
+      commands:
+        - gamemode
+        - gm
+        - gmc
+        - gms
+        - gma
+        - gmsp
+      permissions:
+        - essentials.gamemode
+        - essentials.gamemode.all
+        - essentials.gamemode.creative
+        - essentials.gamemode.survival
+        - essentials.gamemode.adventure
+        - essentials.gamemode.spectator
 
 ranks:
   # "rank top" - только эта подкоманда (/rank top можно, /rank и /rank info - нет)
