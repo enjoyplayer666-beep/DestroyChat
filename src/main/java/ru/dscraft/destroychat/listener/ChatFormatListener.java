@@ -140,7 +140,12 @@ public class ChatFormatListener implements Listener {
     /** Ранг из DsRanks (например "☠ Лич "), пусто - нет плагина или /rank off. */
     private Component resolveRank(Player sender) {
         String rank = StatHook.chatRank(sender);
-        return rank == null || rank.isBlank() ? Component.empty() : ColorUtil.rich(rank);
+        if (rank == null || rank.isBlank()) return Component.empty();
+        Component c = ColorUtil.rich(rank);
+        // наведение на ранг - карточка ранга (ник, ранг, бустер, убийства, умения)
+        String hover = StatHook.rankHover(sender);
+        if (hover != null && !hover.isBlank()) c = c.hoverEvent(HoverEvent.showText(ColorUtil.rich(hover)));
+        return c;
     }
 
     /** [Клан] из MediaClans с карточкой клана при наведении, пусто - если игрок не в клане. */

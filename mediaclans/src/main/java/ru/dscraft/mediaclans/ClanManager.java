@@ -223,6 +223,23 @@ public class ClanManager {
     // ---------------- убийства ----------------
 
     /** Можно ли засчитать убийство этой жертвы этим убийцей (не чаще раза в kill-cooldown-seconds). */
+    /** "убийца:жертва" -> {время последнего убийства, сколько раз подряд убил в пределах кулдауна}. */
+    private final Map<String, long[]> repeatKills = new ConcurrentHashMap<>();
+
+    /**
+     * Повторные убийства: 0 - первое (или после кулдауна), 1 - второе подряд в пределах kill-cooldown-seconds и т.д.
+     */
+    public int registerKill(UUID killer, UUID victim) {
+        long cooldown = settings.killCooldownSeconds() * 1000L;
+        String key = killer + ":" + victim;
+        long now = System.currentTimeMillis();
+        long[] prev = repeatKills.get(key);
+        int repeat = prev != null && cooldown > 0 && now - prev[0] < cooldown ? (int) prev[1] + 1 : 0;
+        repeatKills.put(key, new long[]{now, repeat});
+        if (cooldown > 0) repeatKills.entrySet().removeIf(e -> now - e.getValue()[0] >= cooldown);
+        return repeat;
+    }
+
     public boolean tryCountKill(UUID killer, UUID victim) {
         long cooldown = settings.killCooldownSeconds() * 1000L;
         String key = killer + ":" + victim;

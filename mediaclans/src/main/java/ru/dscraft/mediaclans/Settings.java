@@ -57,6 +57,16 @@ public final class Settings {
         return cfg().getInt("kill-cooldown-seconds", 300);
     }
 
+    /** Меньше стольких ударов по жертве - "Бой был слишком легким" (1 рейтинга). */
+    public int easyFightHits() {
+        return cfg().getInt("easy-fight-hits", 3);
+    }
+
+    /** На сколько меньше рейтинга за каждое повторное убийство того же игрока. */
+    public int repeatKillPenalty() {
+        return cfg().getInt("repeat-kill-penalty", 2);
+    }
+
     public String killMessage() {
         return cfg().getString("kill-message", "");
     }

@@ -30,6 +30,18 @@ public final class StatHook {
         }
     }
 
+    /** Карточка ранга для наведения (DsRanks RanksApi.rankHover), null - нет. */
+    public static String rankHover(Player player) {
+        Plugin plugin = Bukkit.getPluginManager().getPlugin("DsRanks");
+        if (plugin == null || !plugin.isEnabled()) return null;
+        try {
+            Class<?> api = Class.forName("ru.dscraft.ranks.RanksApi", true, plugin.getClass().getClassLoader());
+            return (String) api.getMethod("rankHover", Player.class).invoke(null, player);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private static synchronized Method resolve() {
         Method m = find("DsRanks", "ru.dscraft.ranks.RanksApi");
         return m != null ? m : find("StatPlugin", "ru.stat.StatApi");

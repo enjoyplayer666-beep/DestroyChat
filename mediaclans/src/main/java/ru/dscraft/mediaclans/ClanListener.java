@@ -78,35 +78,70 @@ public final class ClanListener implements Listener {
 
     // ---------------- рейтинг за убийства ----------------
 
+    /** "атакующий:жертва" -> {удары, время последнего удара}: сколько раз бил перед убийством. */
+    private final java.util.Map<String, long[]> hits = new java.util.concurrent.ConcurrentHashMap<>();
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onHit(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof Player victim)) return;
+        Player attacker = null;
+        if (event.getDamager() instanceof Player p) attacker = p;
+        else if (event.getDamager() instanceof Projectile pr && pr.getShooter() instanceof Player p) attacker = p;
+        if (attacker == null || attacker.equals(victim)) return;
+        String key = attacker.getUniqueId() + ":" + victim.getUniqueId();
+        long now = System.currentTimeMillis();
+        long[] h = hits.get(key);
+        // новый бой, если не бил 30 секунд
+        hits.put(key, h == null || now - h[1] > 30_000L ? new long[]{1, now} : new long[]{h[0] + 1, now});
+    }
+
+    private static final String TEXT = "#C7C4B7";
+    private static final String NUM = "#2BE8B0";
+
     @EventHandler(priority = EventPriority.MONITOR)
     public void onDeath(PlayerDeathEvent event) {
         Player victim = event.getEntity();
         Player killer = victim.getKiller();
         if (killer == null || killer.equals(victim)) return;
+        String key = killer.getUniqueId() + ":" + victim.getUniqueId();
+        long[] h = hits.remove(key);
+        int hitCount = h == null ? 0 : (int) h[0];
 
         Clan killerClan = manager.getClan(killer);
         Clan victimClan = manager.getClan(victim);
         if (killerClan != null && killerClan == victimClan) return; // свои - не считается
-        if (!manager.tryCountKill(killer.getUniqueId(), victim.getUniqueId())) return;
+        int repeat = manager.registerKill(killer.getUniqueId(), victim.getUniqueId());
         Settings s = actions.settings();
 
         if (killerClan != null) {
             int amount = s.killRating();
             String booster = s.boosterPermission();
             if (booster != null && !booster.isBlank() && killer.hasPermission(booster)) amount *= 2;
+            String text;
+            if (hitCount < s.easyFightHits()) {
+                // жертва умерла за пару ударов
+                amount = 1;
+                text = "<" + TEXT + ">Бой был слишком легким. Получено </" + TEXT + "><" + NUM + ">" + amount + "</" + NUM + "> <"
+                        + TEXT + ">рейтинга.</" + TEXT + ">";
+            } else if (repeat > 0) {
+                amount = Math.max(1, amount - s.repeatKillPenalty() * repeat);
+                text = "<#E53232>Повторное убийство!</#E53232> <" + TEXT + ">Вы принесли клану </" + TEXT + "><" + NUM + ">" + amount
+                        + "</" + NUM + "> <" + TEXT + ">рейтинга.</" + TEXT + ">";
+            } else {
+                text = "<" + TEXT + ">Вы принесли клану </" + TEXT + "><" + NUM + ">" + amount + "</" + NUM + "> <" + TEXT + ">рейтинга.</"
+                        + TEXT + ">";
+            }
             killerClan.rating(killerClan.rating() + amount);
-            killerClan.kills(killerClan.kills() + 1);
+            if (repeat == 0) {
+                killerClan.kills(killerClan.kills() + 1);
+                ClanMember m = killerClan.member(killer.getUniqueId());
+                if (m != null) m.kills(m.kills() + 1);
+            }
             ClanMember m = killerClan.member(killer.getUniqueId());
-            if (m != null) {
-                m.kills(m.kills() + 1);
-                m.rating(m.rating() + amount);
-            }
-            String text = s.killMessage();
-            if (text != null && !text.isEmpty() && amount > 0) {
-                killer.sendMessage(ColorUtil.parse(text, Placeholder.unparsed("amount", String.valueOf(amount))));
-            }
+            if (m != null) m.rating(m.rating() + amount);
+            killer.sendMessage(ColorUtil.parse(s.prefix() + text));
         }
-        if (victimClan != null) {
+        if (victimClan != null && repeat == 0) {
             victimClan.deaths(victimClan.deaths() + 1);
             ClanMember m = victimClan.member(victim.getUniqueId());
             if (m != null) m.deaths(m.deaths() + 1);
