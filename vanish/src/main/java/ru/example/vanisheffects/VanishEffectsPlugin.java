@@ -597,6 +597,32 @@ public class VanishEffectsPlugin extends ru.dscraft.destroychat.module.Module im
                 i++;
             }
         }.runTaskTimer(plugin, 3L, 3L);
+
+        // Волна молний расходится кольцами от игрока до края радиуса.
+        int step = 10;
+        int rings = range / step;
+        new BukkitRunnable() {
+            int ring = 1;
+
+            @Override
+            public void run() {
+                if (ring > rings) {
+                    cancel();
+                    return;
+                }
+                double radius = ring * step;
+                int count = 6 + (int) (radius / 10);
+                double shift = RANDOM.nextDouble() * Math.PI * 2;
+                for (int k = 0; k < count; k++) {
+                    double angle = shift + 2 * Math.PI * k / count;
+                    double r = radius + (RANDOM.nextDouble() - 0.5) * step * 0.6;
+                    Location strikeLoc = new Location(world,
+                            loc.getX() + r * Math.cos(angle), loc.getY(), loc.getZ() + r * Math.sin(angle));
+                    world.strikeLightningEffect(strikeLoc);
+                }
+                ring++;
+            }
+        }.runTaskTimer(plugin, 6L, 2L);
     }
 
     /** Стая летучих мышей поднимается вокруг игрока, кружит, а затем красиво разлетается в разные стороны. */
