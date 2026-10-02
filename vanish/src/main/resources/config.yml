@@ -11,3 +11,6 @@ groups:
   elitesp: none
 
 no-command-message: "§fНет такой команды :/"
+
+# На каком расстоянии (в блоках) видно и слышно ваниш-эффект молнии.
+lightning-radius: 100

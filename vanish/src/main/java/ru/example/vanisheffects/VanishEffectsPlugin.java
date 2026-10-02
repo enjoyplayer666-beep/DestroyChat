@@ -562,9 +562,18 @@ public class VanishEffectsPlugin extends ru.dscraft.destroychat.module.Module im
     private void playLightningEffect(Player player) {
         World world = player.getWorld();
         Location loc = player.getLocation();
+        int range = Math.max(16, getConfig().getInt("lightning-radius", 100));
         world.strikeLightningEffect(loc);
-        world.spawnParticle(Particle.ELECTRIC_SPARK, loc.clone().add(0, 1, 0), 200, 1.2, 1.7, 1.2, 0.12);
-        world.playSound(loc, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.0f, 1.0f);
+        Particle.ELECTRIC_SPARK.builder().location(loc.clone().add(0, 1, 0)).count(200)
+                .offset(1.2, 1.7, 1.2).extra(0.12).receivers(range).force(true).spawn();
+        Particle.FLASH.builder().location(loc.clone().add(0, 1, 0)).count(3)
+                .receivers(range).force(true).spawn();
+        double rangeSq = (double) range * range;
+        for (Player p : world.getPlayers()) {
+            if (p.getLocation().distanceSquared(loc) > rangeSq) continue;
+            p.playSound(loc, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, range / 16f, 1.0f);
+            p.playSound(loc, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, range / 16f, 1.0f);
+        }
 
         int extraStrikes = 8;
         org.bukkit.plugin.Plugin plugin = this;
@@ -583,7 +592,8 @@ public class VanishEffectsPlugin extends ru.dscraft.destroychat.module.Module im
                 double z = loc.getZ() + radius * Math.sin(angle);
                 Location strikeLoc = new Location(world, x, loc.getY(), z);
                 world.strikeLightningEffect(strikeLoc);
-                world.spawnParticle(Particle.ELECTRIC_SPARK, strikeLoc.clone().add(0, 1, 0), 50, 0.5, 0.7, 0.5, 0.05);
+                Particle.ELECTRIC_SPARK.builder().location(strikeLoc.clone().add(0, 1, 0)).count(50)
+                        .offset(0.5, 0.7, 0.5).extra(0.05).receivers(range).force(true).spawn();
                 i++;
             }
         }.runTaskTimer(plugin, 3L, 3L);
