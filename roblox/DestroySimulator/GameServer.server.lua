@@ -14,6 +14,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DataStoreService = game:GetService("DataStoreService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
 local Debris = game:GetService("Debris")
@@ -94,216 +95,220 @@ local RARITIES = {
 }
 
 local BLACK = C(25, 25, 25)
+local EYE_WHITE = C(240, 240, 240)
+
+-- Собирает мини-моба из кубиков.
+-- box — один кубик, pair — два зеркальных кубика (слева и справа).
+-- Первый кубик — «тело», вокруг него питомец и двигается.
+local function mob(rarity, bonus, fly, build)
+	local parts = {}
+	local function box(size, position, color, material)
+		table.insert(parts, { size, position, color, material })
+	end
+	local function pair(size, position, color, material)
+		box(size, position, color, material)
+		box(size, V(-position.X, position.Y, position.Z), color, material)
+	end
+	build(box, pair)
+	return { rarity = rarity, bonus = bonus, fly = fly, parts = parts }
+end
 
 local PETS = {
-	["Курица"] = {
-		rarity = "Обычный",
-		bonus = 0.1,
-		parts = {
-			{ V(1.2, 1.0, 1.4), V(0, 0, 0), C(245, 245, 245) },
-			{ V(0.8, 1.0, 0.6), V(0, 0.75, -0.75), C(245, 245, 245) },
-			{ V(0.8, 0.3, 0.4), V(0, 0.75, -1.2), C(230, 150, 40) },
-			{ V(0.4, 0.35, 0.2), V(0, 0.45, -1.15), C(200, 40, 40) },
-			{ V(0.2, 0.2, 0.05), V(0.25, 1.0, -1.06), BLACK },
-			{ V(0.2, 0.2, 0.05), V(-0.25, 1.0, -1.06), BLACK },
-			{ V(0.15, 0.7, 1.0), V(0.68, 0.05, 0), C(225, 225, 225) },
-			{ V(0.15, 0.7, 1.0), V(-0.68, 0.05, 0), C(225, 225, 225) },
-			{ V(0.2, 0.6, 0.2), V(0.3, -0.8, 0), C(230, 150, 40) },
-			{ V(0.2, 0.6, 0.2), V(-0.3, -0.8, 0), C(230, 150, 40) },
-		},
-	},
-	["Свинка"] = {
-		rarity = "Обычный",
-		bonus = 0.15,
-		parts = {
-			{ V(1.4, 1.1, 2.0), V(0, 0, 0), C(240, 160, 160) },
-			{ V(1.2, 1.1, 1.0), V(0, 0.25, -1.45), C(240, 160, 160) },
-			{ V(0.6, 0.45, 0.15), V(0, 0.05, -2.02), C(225, 125, 140) },
-			{ V(0.22, 0.22, 0.05), V(0.4, 0.45, -1.97), BLACK },
-			{ V(0.22, 0.22, 0.05), V(-0.4, 0.45, -1.97), BLACK },
-			{ V(0.4, 0.6, 0.4), V(0.45, -0.8, 0.6), C(230, 150, 150) },
-			{ V(0.4, 0.6, 0.4), V(-0.45, -0.8, 0.6), C(230, 150, 150) },
-			{ V(0.4, 0.6, 0.4), V(0.45, -0.8, -0.6), C(230, 150, 150) },
-			{ V(0.4, 0.6, 0.4), V(-0.45, -0.8, -0.6), C(230, 150, 150) },
-		},
-	},
-	["Овечка"] = {
-		rarity = "Редкий",
-		bonus = 0.3,
-		parts = {
-			{ V(1.5, 1.3, 2.0), V(0, 0, 0), C(235, 235, 235), Enum.Material.Fabric },
-			{ V(0.9, 0.9, 0.9), V(0, 0.4, -1.35), C(215, 180, 160) },
-			{ V(1.0, 0.35, 0.95), V(0, 0.9, -1.35), C(235, 235, 235), Enum.Material.Fabric },
-			{ V(0.18, 0.18, 0.05), V(0.25, 0.45, -1.82), BLACK },
-			{ V(0.18, 0.18, 0.05), V(-0.25, 0.45, -1.82), BLACK },
-			{ V(0.35, 0.7, 0.35), V(0.45, -0.95, 0.65), C(215, 180, 160) },
-			{ V(0.35, 0.7, 0.35), V(-0.45, -0.95, 0.65), C(215, 180, 160) },
-			{ V(0.35, 0.7, 0.35), V(0.45, -0.95, -0.65), C(215, 180, 160) },
-			{ V(0.35, 0.7, 0.35), V(-0.45, -0.95, -0.65), C(215, 180, 160) },
-		},
-	},
-	["Волк"] = {
-		rarity = "Эпический",
-		bonus = 0.6,
-		parts = {
-			{ V(1.0, 1.0, 1.8), V(0, 0, 0), C(210, 210, 210) },
-			{ V(1.35, 1.3, 0.9), V(0, 0.1, -0.65), C(200, 200, 200) },
-			{ V(1.0, 0.9, 0.8), V(0, 0.35, -1.4), C(210, 210, 210) },
-			{ V(0.5, 0.4, 0.45), V(0, 0.15, -1.95), C(180, 170, 160) },
-			{ V(0.2, 0.15, 0.05), V(0, 0.3, -2.18), BLACK },
-			{ V(0.25, 0.35, 0.15), V(0.3, 0.95, -1.3), C(200, 200, 200) },
-			{ V(0.25, 0.35, 0.15), V(-0.3, 0.95, -1.3), C(200, 200, 200) },
-			{ V(0.18, 0.15, 0.05), V(0.25, 0.5, -1.81), BLACK },
-			{ V(0.18, 0.15, 0.05), V(-0.25, 0.5, -1.81), BLACK },
-			{ V(1.4, 0.22, 0.3), V(0, -0.35, -0.95), C(200, 40, 40) },
-			{ V(0.3, 0.3, 0.9), V(0, 0.25, 1.3), C(200, 200, 200) },
-			{ V(0.3, 0.7, 0.3), V(0.3, -0.85, 0.6), C(200, 200, 200) },
-			{ V(0.3, 0.7, 0.3), V(-0.3, -0.85, 0.6), C(200, 200, 200) },
-			{ V(0.3, 0.7, 0.3), V(0.3, -0.85, -0.6), C(200, 200, 200) },
-			{ V(0.3, 0.7, 0.3), V(-0.3, -0.85, -0.6), C(200, 200, 200) },
-		},
-	},
-	["Аксолотль"] = {
-		rarity = "Легендарный",
-		bonus = 1.5,
-		parts = {
-			{ V(0.9, 0.6, 1.6), V(0, 0, 0), C(250, 170, 200) },
-			{ V(1.1, 0.8, 0.9), V(0, 0.1, -1.15), C(250, 170, 200) },
-			{ V(0.5, 0.12, 0.12), V(0.75, 0.45, -1.0), C(220, 60, 140) },
-			{ V(0.5, 0.12, 0.12), V(0.75, 0.2, -1.0), C(220, 60, 140) },
-			{ V(0.5, 0.12, 0.12), V(0.75, -0.05, -1.0), C(220, 60, 140) },
-			{ V(0.5, 0.12, 0.12), V(-0.75, 0.45, -1.0), C(220, 60, 140) },
-			{ V(0.5, 0.12, 0.12), V(-0.75, 0.2, -1.0), C(220, 60, 140) },
-			{ V(0.5, 0.12, 0.12), V(-0.75, -0.05, -1.0), C(220, 60, 140) },
-			{ V(0.15, 0.15, 0.05), V(0.35, 0.2, -1.61), BLACK },
-			{ V(0.15, 0.15, 0.05), V(-0.35, 0.2, -1.61), BLACK },
-			{ V(0.4, 0.06, 0.05), V(0, -0.05, -1.61), C(200, 90, 130) },
-			{ V(0.12, 0.5, 1.0), V(0, 0.05, 1.3), C(240, 150, 190) },
-			{ V(0.25, 0.3, 0.25), V(0.45, -0.4, 0.5), C(240, 150, 190) },
-			{ V(0.25, 0.3, 0.25), V(-0.45, -0.4, 0.5), C(240, 150, 190) },
-			{ V(0.25, 0.3, 0.25), V(0.45, -0.4, -0.5), C(240, 150, 190) },
-			{ V(0.25, 0.3, 0.25), V(-0.45, -0.4, -0.5), C(240, 150, 190) },
-		},
-	},
-	["Магмовый куб"] = {
-		rarity = "Обычный",
-		bonus = 0.8,
-		parts = {
-			{ V(1.6, 1.6, 1.6), V(0, 0, 0), C(60, 25, 20) },
-			{ V(1.66, 0.22, 1.66), V(0, 0.0, 0), C(255, 110, 20), NEON },
-			{ V(1.66, 0.22, 1.66), V(0, -0.5, 0), C(255, 110, 20), NEON },
-			{ V(0.4, 0.2, 0.05), V(0.4, 0.45, -0.83), C(255, 200, 40), NEON },
-			{ V(0.4, 0.2, 0.05), V(-0.4, 0.45, -0.83), C(255, 200, 40), NEON },
-		},
-	},
-	["Страйдер"] = {
-		rarity = "Редкий",
-		bonus = 1.2,
-		parts = {
-			{ V(1.6, 1.4, 1.6), V(0, 0.5, 0), C(170, 50, 55) },
-			{ V(0.12, 0.6, 0.12), V(-0.5, 1.5, 0), C(70, 35, 45) },
-			{ V(0.12, 0.6, 0.12), V(0, 1.55, 0.3), C(70, 35, 45) },
-			{ V(0.12, 0.6, 0.12), V(0.45, 1.45, -0.3), C(70, 35, 45) },
-			{ V(0.12, 0.6, 0.12), V(0.2, 1.5, 0.5), C(70, 35, 45) },
-			{ V(0.3, 0.15, 0.05), V(0.4, 0.75, -0.81), BLACK },
-			{ V(0.3, 0.15, 0.05), V(-0.4, 0.75, -0.81), BLACK },
-			{ V(0.9, 0.1, 0.05), V(0, 0.3, -0.81), C(60, 20, 25) },
-			{ V(0.35, 1.2, 0.35), V(0.45, -0.8, 0), C(100, 80, 90) },
-			{ V(0.35, 1.2, 0.35), V(-0.45, -0.8, 0), C(100, 80, 90) },
-		},
-	},
-	["Ифрит"] = {
-		rarity = "Эпический",
-		bonus = 2,
-		fly = true,
-		parts = {
-			{ V(1.0, 1.0, 1.0), V(0, 0, 0), C(255, 190, 50) },
-			{ V(0.25, 0.15, 0.05), V(0.25, 0.05, -0.51), C(60, 30, 10) },
-			{ V(0.25, 0.15, 0.05), V(-0.25, 0.05, -0.51), C(60, 30, 10) },
-			{ V(0.22, 0.8, 0.22), V(0.85, -0.5, 0), C(255, 140, 30), NEON },
-			{ V(0.22, 0.8, 0.22), V(-0.85, -0.5, 0), C(255, 140, 30), NEON },
-			{ V(0.22, 0.8, 0.22), V(0, -0.5, 0.85), C(255, 140, 30), NEON },
-			{ V(0.22, 0.8, 0.22), V(0, -0.5, -0.85), C(255, 140, 30), NEON },
-			{ V(0.22, 0.8, 0.22), V(0.5, -1.3, 0.5), C(255, 140, 30), NEON },
-			{ V(0.22, 0.8, 0.22), V(-0.5, -1.3, -0.5), C(255, 140, 30), NEON },
-		},
-	},
-	["Гаст"] = {
-		rarity = "Легендарный",
-		bonus = 5,
-		fly = true,
-		parts = {
-			{ V(2.4, 2.4, 2.4), V(0, 0, 0), C(240, 240, 240) },
-			{ V(0.5, 0.2, 0.05), V(0.55, 0.35, -1.21), C(60, 60, 60) },
-			{ V(0.5, 0.2, 0.05), V(-0.55, 0.35, -1.21), C(60, 60, 60) },
-			{ V(0.15, 0.4, 0.05), V(0.7, 0.0, -1.21), C(170, 170, 170) },
-			{ V(0.15, 0.4, 0.05), V(-0.7, 0.0, -1.21), C(170, 170, 170) },
-			{ V(0.6, 0.35, 0.05), V(0, -0.45, -1.21), C(60, 60, 60) },
-			{ V(0.3, 1.2, 0.3), V(-0.8, -1.8, -0.6), C(230, 230, 230) },
-			{ V(0.3, 1.2, 0.3), V(0, -1.9, -0.7), C(230, 230, 230) },
-			{ V(0.3, 1.2, 0.3), V(0.8, -1.75, -0.5), C(230, 230, 230) },
-			{ V(0.3, 1.2, 0.3), V(-0.6, -1.85, 0.5), C(230, 230, 230) },
-			{ V(0.3, 1.2, 0.3), V(0.3, -1.8, 0.6), C(230, 230, 230) },
-			{ V(0.3, 1.2, 0.3), V(0.9, -1.9, 0.4), C(230, 230, 230) },
-		},
-	},
-	["Эндермит"] = {
-		rarity = "Обычный",
-		bonus = 4,
-		parts = {
-			{ V(0.7, 0.55, 0.6), V(0, 0, 0), C(45, 35, 55) },
-			{ V(0.6, 0.5, 0.6), V(0, -0.02, -0.6), C(45, 35, 55) },
-			{ V(0.6, 0.5, 0.6), V(0, -0.02, 0.6), C(45, 35, 55) },
-			{ V(0.4, 0.35, 0.4), V(0, -0.08, 1.1), C(45, 35, 55) },
-			{ V(0.12, 0.12, 0.05), V(0.18, 0.08, -0.91), C(220, 120, 255), NEON },
-			{ V(0.12, 0.12, 0.05), V(-0.18, 0.08, -0.91), C(220, 120, 255), NEON },
-		},
-	},
-	["Шалкер"] = {
-		rarity = "Редкий",
-		bonus = 6,
-		parts = {
-			{ V(0.9, 0.9, 0.9), V(0, 0, 0), C(220, 230, 120) },
-			{ V(1.6, 0.8, 1.6), V(0, 0.65, 0.2), C(150, 100, 160) },
-			{ V(1.6, 0.55, 1.6), V(0, -0.6, 0.2), C(150, 100, 160) },
-			{ V(0.15, 0.15, 0.05), V(0.2, 0.05, -0.46), BLACK },
-			{ V(0.15, 0.15, 0.05), V(-0.2, 0.05, -0.46), BLACK },
-		},
-	},
-	["Эндермен"] = {
-		rarity = "Эпический",
-		bonus = 10,
-		parts = {
-			{ V(0.9, 1.3, 0.5), V(0, 0, 0), C(20, 20, 25) },
-			{ V(1.0, 1.0, 1.0), V(0, 1.15, 0), C(20, 20, 25) },
-			{ V(0.35, 0.12, 0.05), V(0.25, 1.05, -0.51), C(220, 120, 255), NEON },
-			{ V(0.35, 0.12, 0.05), V(-0.25, 1.05, -0.51), C(220, 120, 255), NEON },
-			{ V(0.2, 2.0, 0.2), V(0.55, -0.35, 0), C(20, 20, 25) },
-			{ V(0.2, 2.0, 0.2), V(-0.55, -0.35, 0), C(20, 20, 25) },
-			{ V(0.22, 1.8, 0.22), V(0.22, -1.55, 0), C(20, 20, 25) },
-			{ V(0.22, 1.8, 0.22), V(-0.22, -1.55, 0), C(20, 20, 25) },
-		},
-	},
-	["Дракон Края"] = {
-		rarity = "Мифический",
-		bonus = 30,
-		fly = true,
-		parts = {
-			{ V(1.2, 1.0, 2.4), V(0, 0, 0), C(25, 20, 30) },
-			{ V(0.6, 0.6, 0.8), V(0, 0.3, -1.5), C(25, 20, 30) },
-			{ V(0.9, 0.75, 1.0), V(0, 0.45, -2.3), C(25, 20, 30) },
-			{ V(0.6, 0.4, 0.5), V(0, 0.3, -3.0), C(35, 30, 40) },
-			{ V(0.2, 0.1, 0.05), V(0.3, 0.65, -2.81), C(220, 120, 255), NEON },
-			{ V(0.2, 0.1, 0.05), V(-0.3, 0.65, -2.81), C(220, 120, 255), NEON },
-			{ V(2.6, 0.1, 1.4), V(1.9, 0.45, -0.1), C(60, 55, 70) },
-			{ V(2.6, 0.1, 1.4), V(-1.9, 0.45, -0.1), C(60, 55, 70) },
-			{ V(0.4, 0.4, 1.8), V(0, 0.1, 2.1), C(25, 20, 30) },
-			{ V(0.3, 0.3, 0.8), V(0, 0.05, 3.3), C(25, 20, 30) },
-			{ V(0.15, 0.3, 0.3), V(0, 0.65, -0.7), C(120, 115, 130) },
-			{ V(0.15, 0.3, 0.3), V(0, 0.65, 0), C(120, 115, 130) },
-			{ V(0.15, 0.3, 0.3), V(0, 0.65, 0.7), C(120, 115, 130) },
-		},
-	},
+	["Курица"] = mob("Обычный", 0.1, false, function(box, pair)
+		local white, orange = C(245, 245, 245), C(235, 165, 40)
+		box(V(1.2, 1.0, 1.5), V(0, 0, 0), white)
+		box(V(0.9, 0.6, 0.3), V(0, 0.25, 0.85), C(230, 230, 230))
+		box(V(0.8, 1.0, 0.6), V(0, 0.8, -0.85), white)
+		box(V(0.8, 0.3, 0.3), V(0, 0.8, -1.3), orange)
+		box(V(0.6, 0.15, 0.3), V(0, 0.6, -1.28), C(205, 135, 30))
+		box(V(0.4, 0.35, 0.15), V(0, 0.42, -1.22), C(200, 35, 35))
+		pair(V(0.15, 0.15, 0.05), V(0.28, 1.05, -1.175), BLACK)
+		pair(V(0.15, 0.7, 1.0), V(0.68, 0.05, 0.05), C(230, 230, 230))
+		pair(V(0.16, 0.25, 0.4), V(0.68, -0.2, 0.4), C(210, 210, 210))
+		pair(V(0.15, 0.6, 0.15), V(0.3, -0.8, 0.1), orange)
+		pair(V(0.4, 0.1, 0.5), V(0.3, -1.1, -0.05), orange)
+	end),
+	["Свинка"] = mob("Обычный", 0.15, false, function(box, pair)
+		local pink, dark = C(240, 165, 165), C(225, 140, 145)
+		box(V(1.4, 1.1, 2.0), V(0, 0, 0), pink)
+		box(V(0.5, 0.05, 0.4), V(0.2, 0.555, 0.3), dark)
+		box(V(0.05, 0.4, 0.5), V(0.705, 0.1, -0.3), dark)
+		box(V(1.2, 1.1, 1.0), V(0, 0.25, -1.45), pink)
+		box(V(0.6, 0.45, 0.15), V(0, 0.05, -2.02), C(230, 135, 150))
+		pair(V(0.12, 0.15, 0.05), V(0.15, 0.05, -2.1), C(150, 70, 80))
+		pair(V(0.28, 0.18, 0.05), V(0.38, 0.42, -1.975), EYE_WHITE)
+		pair(V(0.14, 0.18, 0.06), V(0.31, 0.42, -1.98), BLACK)
+		pair(V(0.3, 0.25, 0.15), V(0.45, 0.85, -1.3), dark)
+		pair(V(0.4, 0.6, 0.4), V(0.45, -0.8, 0.6), pink)
+		pair(V(0.4, 0.6, 0.4), V(0.45, -0.8, -0.6), pink)
+		pair(V(0.42, 0.15, 0.42), V(0.45, -1.05, 0.6), C(200, 120, 125))
+		pair(V(0.42, 0.15, 0.42), V(0.45, -1.05, -0.6), C(200, 120, 125))
+		box(V(0.15, 0.15, 0.3), V(0, 0.3, 1.1), dark)
+	end),
+	["Овечка"] = mob("Редкий", 0.3, false, function(box, pair)
+		local wool, face, fabric = C(240, 240, 240), C(215, 180, 160), Enum.Material.Fabric
+		box(V(1.6, 1.4, 2.1), V(0, 0, 0), wool, fabric)
+		box(V(1.3, 0.2, 1.7), V(0, 0.75, 0), C(250, 250, 250), fabric)
+		pair(V(0.15, 1.0, 1.6), V(0.85, 0, 0), C(228, 228, 228), fabric)
+		box(V(0.9, 0.9, 0.9), V(0, 0.45, -1.4), face)
+		box(V(1.0, 0.35, 0.95), V(0, 0.95, -1.38), wool, fabric)
+		pair(V(0.25, 0.15, 0.05), V(0.26, 0.5, -1.875), EYE_WHITE)
+		pair(V(0.12, 0.15, 0.06), V(0.2, 0.5, -1.88), BLACK)
+		box(V(0.3, 0.15, 0.05), V(0, 0.25, -1.875), C(240, 180, 180))
+		pair(V(0.35, 0.18, 0.25), V(0.55, 0.6, -1.35), face)
+		pair(V(0.35, 0.75, 0.35), V(0.45, -0.95, 0.65), face)
+		pair(V(0.35, 0.75, 0.35), V(0.45, -0.95, -0.65), face)
+		pair(V(0.37, 0.15, 0.37), V(0.45, -1.27, 0.65), C(160, 130, 115))
+		pair(V(0.37, 0.15, 0.37), V(0.45, -1.27, -0.65), C(160, 130, 115))
+	end),
+	["Волк"] = mob("Эпический", 0.6, false, function(box, pair)
+		local fur, muzzle, paw = C(215, 215, 215), C(185, 178, 170), C(245, 245, 245)
+		box(V(1.0, 1.0, 1.8), V(0, 0, 0.1), fur)
+		box(V(1.35, 1.3, 1.0), V(0, 0.15, -0.65), fur)
+		box(V(1.0, 0.9, 0.8), V(0, 0.4, -1.45), fur)
+		box(V(0.5, 0.4, 0.45), V(0, 0.2, -2.05), muzzle)
+		box(V(0.22, 0.15, 0.05), V(0, 0.35, -2.28), BLACK)
+		pair(V(0.2, 0.12, 0.05), V(0.28, 0.55, -1.875), EYE_WHITE)
+		pair(V(0.1, 0.12, 0.06), V(0.23, 0.55, -1.88), BLACK)
+		pair(V(0.25, 0.35, 0.15), V(0.3, 1.0, -1.35), fur)
+		pair(V(0.12, 0.2, 0.05), V(0.3, 0.98, -1.43), C(200, 150, 150))
+		box(V(1.38, 0.22, 1.02), V(0, -0.3, -0.65), C(200, 40, 40))
+		box(V(0.18, 0.22, 0.05), V(0, -0.5, -1.17), C(230, 200, 60))
+		box(V(0.3, 0.3, 0.9), V(0, 0.3, 1.35), fur)
+		box(V(0.32, 0.32, 0.25), V(0, 0.3, 1.82), paw)
+		pair(V(0.3, 0.75, 0.3), V(0.3, -0.85, 0.65), fur)
+		pair(V(0.3, 0.75, 0.3), V(0.3, -0.85, -0.45), fur)
+		pair(V(0.32, 0.12, 0.36), V(0.3, -1.2, 0.63), paw)
+		pair(V(0.32, 0.12, 0.36), V(0.3, -1.2, -0.47), paw)
+	end),
+	["Аксолотль"] = mob("Легендарный", 1.5, false, function(box, pair)
+		local pink, gill = C(250, 170, 200), C(220, 60, 140)
+		box(V(0.9, 0.6, 1.6), V(0, 0, 0), pink)
+		box(V(1.1, 0.8, 0.9), V(0, 0.1, -1.15), pink)
+		pair(V(0.5, 0.12, 0.12), V(0.75, 0.45, -1.0), gill)
+		pair(V(0.5, 0.12, 0.12), V(0.75, 0.2, -1.0), gill)
+		pair(V(0.5, 0.12, 0.12), V(0.75, -0.05, -1.0), gill)
+		pair(V(0.12, 0.4, 0.12), V(0.35, 0.65, -1.0), gill)
+		pair(V(0.15, 0.15, 0.05), V(0.38, 0.2, -1.625), BLACK)
+		box(V(0.45, 0.06, 0.05), V(0, -0.05, -1.625), C(200, 90, 130))
+		pair(V(0.2, 0.05, 0.2), V(0.2, 0.305, 0.2), C(230, 140, 175))
+		box(V(0.12, 0.5, 1.0), V(0, 0.05, 1.3), C(240, 150, 190))
+		box(V(0.08, 0.2, 0.8), V(0, 0.35, 1.3), gill)
+		pair(V(0.25, 0.3, 0.25), V(0.45, -0.4, 0.5), C(240, 150, 190))
+		pair(V(0.25, 0.3, 0.25), V(0.45, -0.4, -0.5), C(240, 150, 190))
+	end),
+	["Магмовый куб"] = mob("Обычный", 0.8, false, function(box, pair)
+		local crust, glow = C(70, 25, 20), C(255, 120, 20)
+		box(V(1.4, 1.4, 1.4), V(0, 0, 0), glow, NEON)
+		for _, y in { 0.65, 0.22, -0.22, -0.65 } do
+			box(V(1.7, 0.32, 1.7), V(0, y, 0), crust)
+		end
+		pair(V(0.25, 0.05, 0.25), V(0.4, 0.815, 0.3), C(120, 40, 30))
+		pair(V(0.35, 0.18, 0.05), V(0.4, 0.45, -0.875), C(255, 220, 60), NEON)
+		pair(V(0.15, 0.18, 0.06), V(0.33, 0.45, -0.88), C(255, 80, 20), NEON)
+	end),
+	["Страйдер"] = mob("Редкий", 1.2, false, function(box, pair)
+		local hair = C(80, 35, 45)
+		box(V(1.6, 1.4, 1.6), V(0, 0.5, 0), C(175, 50, 55))
+		box(V(1.62, 0.3, 1.62), V(0, 0.05, 0), C(140, 35, 45))
+		for _, p in { V(-0.55, 1.55, 0.2), V(-0.2, 1.6, -0.3), V(0.15, 1.5, 0.4), V(0.5, 1.55, -0.1), V(0, 1.6, 0.1), V(-0.4, 1.5, -0.6) } do
+			box(V(0.12, 0.7, 0.12), p, hair)
+		end
+		pair(V(0.32, 0.16, 0.05), V(0.38, 0.75, -0.825), C(240, 230, 200))
+		pair(V(0.16, 0.16, 0.06), V(0.3, 0.75, -0.83), BLACK)
+		box(V(1.0, 0.1, 0.05), V(0, 0.35, -0.825), C(60, 20, 25))
+		pair(V(0.35, 1.3, 0.35), V(0.45, -0.85, 0), C(110, 85, 95))
+		pair(V(0.42, 0.15, 0.5), V(0.45, -1.5, -0.05), C(80, 60, 70))
+	end),
+	["Ифрит"] = mob("Эпический", 2, true, function(box, pair)
+		local rod = C(255, 150, 30)
+		box(V(1.0, 1.0, 1.0), V(0, 0, 0), C(255, 195, 60))
+		box(V(1.05, 0.15, 1.05), V(0, 0.45, 0), C(230, 160, 40))
+		pair(V(0.3, 0.1, 0.05), V(0.25, 0.22, -0.525), C(180, 110, 30))
+		pair(V(0.25, 0.15, 0.05), V(0.25, 0.05, -0.525), C(60, 30, 10))
+		box(V(0.4, 0.1, 0.05), V(0, -0.25, -0.525), C(150, 80, 20))
+		for _, p in { V(0.85, -0.5, 0), V(-0.85, -0.5, 0), V(0, -0.5, 0.85), V(0, -0.5, -0.85) } do
+			box(V(0.22, 0.8, 0.22), p, rod, NEON)
+		end
+		for _, p in { V(0.6, -1.35, 0.6), V(-0.6, -1.35, 0.6), V(0.6, -1.35, -0.6), V(-0.6, -1.35, -0.6) } do
+			box(V(0.22, 0.8, 0.22), p, rod, NEON)
+		end
+	end),
+	["Гаст"] = mob("Легендарный", 5, true, function(box, pair)
+		local white = C(240, 240, 240)
+		box(V(2.4, 2.4, 2.4), V(0, 0, 0), white)
+		box(V(2.42, 0.6, 2.42), V(0, -0.9, 0), C(225, 225, 225))
+		pair(V(0.5, 0.15, 0.05), V(0.55, 0.35, -1.225), C(70, 70, 70))
+		pair(V(0.15, 0.5, 0.05), V(0.7, -0.05, -1.225), C(160, 170, 190))
+		box(V(0.7, 0.4, 0.05), V(0, -0.5, -1.225), C(70, 70, 70))
+		local lengths = { 1.2, 1.6, 1.0, 1.4, 1.8, 1.3, 1.1, 1.5, 1.2 }
+		local index = 0
+		for _, x in { -0.8, 0, 0.8 } do
+			for _, z in { -0.7, 0, 0.7 } do
+				index += 1
+				local length = lengths[index]
+				box(V(0.3, length, 0.3), V(x, -1.2 - length / 2, z), white)
+			end
+		end
+	end),
+	["Эндермит"] = mob("Обычный", 4, false, function(box, pair)
+		local shell = C(50, 40, 60)
+		box(V(0.7, 0.55, 0.6), V(0, 0, 0), shell)
+		box(V(0.6, 0.5, 0.55), V(0, -0.02, -0.58), shell)
+		box(V(0.6, 0.5, 0.55), V(0, -0.02, 0.58), shell)
+		box(V(0.4, 0.35, 0.4), V(0, -0.08, 1.05), shell)
+		box(V(0.25, 0.2, 0.3), V(0, -0.12, 1.38), shell)
+		pair(V(0.15, 0.05, 0.15), V(0.15, 0.28, 0), C(80, 60, 95))
+		pair(V(0.12, 0.12, 0.05), V(0.18, 0.08, -0.88), C(220, 120, 255), NEON)
+		for _, z in { -0.4, 0, 0.4 } do
+			pair(V(0.4, 0.08, 0.08), V(0.45, -0.22, z), C(40, 30, 50))
+		end
+	end),
+	["Шалкер"] = mob("Редкий", 6, false, function(box, pair)
+		box(V(0.9, 0.9, 0.9), V(0, 0, 0), C(225, 235, 130))
+		pair(V(0.15, 0.15, 0.05), V(0.2, 0.05, -0.475), BLACK)
+		box(V(0.3, 0.08, 0.05), V(0, -0.2, -0.475), C(120, 130, 60))
+		box(V(1.7, 0.8, 1.7), V(0, 0.7, 0.2), C(155, 105, 165))
+		box(V(1.72, 0.08, 1.72), V(0, 0.3, 0.2), C(110, 70, 120))
+		box(V(1.7, 0.6, 1.7), V(0, -0.6, 0.2), C(140, 95, 150))
+		box(V(1.2, 0.05, 1.2), V(0, 1.105, 0.2), C(175, 125, 185))
+	end),
+	["Эндермен"] = mob("Эпический", 10, false, function(box, pair)
+		local black = C(20, 20, 25)
+		box(V(0.9, 1.3, 0.5), V(0, 0, 0), black)
+		box(V(1.0, 1.0, 1.0), V(0, 1.15, 0), black)
+		box(V(1.0, 0.25, 1.0), V(0, 0.52, -0.05), C(30, 30, 36))
+		pair(V(0.35, 0.12, 0.05), V(0.25, 1.05, -0.525), C(225, 130, 255), NEON)
+		pair(V(0.12, 0.12, 0.06), V(0.18, 1.05, -0.53), C(180, 60, 230), NEON)
+		pair(V(0.2, 2.0, 0.2), V(0.55, -0.35, 0), black)
+		pair(V(0.22, 1.8, 0.22), V(0.22, -1.55, 0), black)
+		-- держит блок травы
+		box(V(0.5, 0.5, 0.5), V(0, -0.9, -0.45), C(134, 96, 67))
+		box(V(0.52, 0.12, 0.52), V(0, -0.68, -0.45), C(95, 159, 53))
+	end),
+	["Дракон Края"] = mob("Мифический", 30, true, function(box, pair)
+		local dark, bone = C(28, 22, 34), C(130, 125, 140)
+		box(V(1.2, 1.0, 2.4), V(0, 0, 0), dark)
+		box(V(1.0, 0.1, 2.0), V(0, -0.52, 0), C(45, 38, 52))
+		box(V(0.6, 0.6, 0.9), V(0, 0.3, -1.55), dark)
+		box(V(1.0, 0.8, 1.0), V(0, 0.5, -2.35), dark)
+		box(V(0.7, 0.4, 0.7), V(0, 0.35, -3.1), dark)
+		box(V(0.65, 0.15, 0.65), V(0, 0.08, -3.05), C(40, 32, 48))
+		pair(V(0.1, 0.1, 0.05), V(0.2, 0.5, -3.475), C(70, 60, 80))
+		pair(V(0.22, 0.1, 0.05), V(0.3, 0.7, -2.875), C(220, 120, 255), NEON)
+		pair(V(0.12, 0.4, 0.12), V(0.3, 1.05, -2.1), bone)
+		for _, z in { -1.5, -0.8, 0, 0.8 } do
+			box(V(0.15, 0.3, 0.3), V(0, z == -1.5 and 0.7 or 0.65, z), bone)
+		end
+		pair(V(2.4, 0.15, 0.2), V(1.8, 0.5, -0.5), dark)
+		pair(V(2.4, 0.06, 1.4), V(1.8, 0.48, 0.25), C(70, 60, 85))
+		box(V(0.45, 0.45, 1.6), V(0, 0.1, 2.0), dark)
+		box(V(0.35, 0.35, 1.2), V(0, 0.05, 3.3), dark)
+		box(V(0.1, 0.25, 0.25), V(0, 0.4, 2.0), bone)
+		box(V(0.1, 0.25, 0.25), V(0, 0.32, 3.3), bone)
+		pair(V(0.3, 0.6, 0.3), V(0.45, -0.75, -0.6), dark)
+		pair(V(0.3, 0.6, 0.3), V(0.45, -0.75, 0.7), dark)
+	end),
 }
 
 ------------------------------------------------------------------
@@ -1166,6 +1171,9 @@ local function loadData(player)
 		equipped = {},
 		pickaxe = math.clamp(saved.pickaxe or 1, 1, #PICKAXES),
 		addons = {},
+		playtime = saved.playtime or 0, -- секунд в игре
+		earned = saved.earned or saved.coins or 0, -- монет заработано за всё время
+		robux = saved.robux or 0, -- потрачено Robux
 	}
 	for _, id in saved.worlds or {} do
 		if WORLDS[id] then
@@ -1213,6 +1221,9 @@ local function saveData(player)
 		equipped = profile.equipped,
 		pickaxe = profile.pickaxe,
 		addons = profile.addons,
+		playtime = profile.playtime,
+		earned = profile.earned,
+		robux = profile.robux,
 	}
 	local ok, err = pcall(function()
 		store:SetAsync("player_" .. player.UserId, data)
@@ -1551,7 +1562,7 @@ openEgg = function(player, worldId)
 		table.insert(profile.equipped, pet.id)
 	end
 	refreshPets(player)
-	eggResultRemote:FireClient(player, kind)
+	eggResultRemote:FireClient(player, kind, world.id)
 
 	local rarity = PETS[kind].rarity
 	if rarity == "Легендарный" or rarity == "Мифический" then
@@ -1935,6 +1946,7 @@ local function destroyBlock(data)
 			local coins = stat(player, COIN_STAT)
 			if coins then
 				coins.Value += reward
+				profiles[player].earned += reward
 			end
 			if reward > topReward then
 				topPlayer, topReward = player, reward
@@ -2165,6 +2177,41 @@ end
 petModels.Parent = ReplicatedStorage
 
 ------------------------------------------------------------------
+-- 3D-ИКОНКИ ДЛЯ ИНТЕРФЕЙСА (кирки, блоки миров, яйца)
+------------------------------------------------------------------
+local icons = Instance.new("Folder")
+icons.Name = "Icons"
+for tier in PICKAXES do
+	local tool = makePickaxeTool(tier)
+	local model = Instance.new("Model")
+	model.Name = "Pickaxe_" .. tier
+	for _, part in tool:GetChildren() do
+		if part:IsA("BasePart") then
+			part.Anchored = true
+			part.Parent = model
+		end
+	end
+	model.PrimaryPart = model:FindFirstChild("Handle") :: BasePart
+	tool:Destroy()
+	model.Parent = icons
+end
+for _, world in WORLDS do
+	local block = buildBlockModel(world.blocks[1], V(0, 0, 0))
+	block.Name = "Block_" .. world.id
+	block.Parent = icons
+
+	local egg = Instance.new("Model")
+	egg.Name = "Egg_" .. world.id
+	makePart({ Size = V(4, 2, 4), Position = V(0, -2.5, 0), Color = world.egg.color, Parent = egg })
+	local middle = makePart({ Size = V(5, 3, 5), Position = V(0, 0, 0), Color = world.egg.color, Parent = egg })
+	makePart({ Size = V(3.5, 2, 3.5), Position = V(0, 2.5, 0), Color = world.egg.color, Parent = egg })
+	addSpots(egg, middle, { world.egg.spot }, 3, { sidesOnly = true })
+	egg.PrimaryPart = middle
+	egg.Parent = icons
+end
+icons.Parent = ReplicatedStorage
+
+------------------------------------------------------------------
 -- ИНФОРМАЦИЯ ДЛЯ ИНТЕРФЕЙСА
 ------------------------------------------------------------------
 local GAME_INFO = {
@@ -2177,6 +2224,7 @@ local GAME_INFO = {
 	maxPets = CONFIG.MaxPets,
 	comboWindow = CONFIG.ComboWindow,
 	tradeCountdown = CONFIG.TradeCountdown,
+	rebirthBonus = CONFIG.RebirthBonus,
 }
 for _, world in WORLDS do
 	local total = 0
@@ -2257,6 +2305,294 @@ task.spawn(function()
 		task.wait(CONFIG.EventDuration)
 		eventActive = false
 		announce("Лихорадка закончилась. Копи силу до следующей!", WHITE)
+	end
+end)
+
+------------------------------------------------------------------
+-- ПОКУПКИ ЗА ROBUX
+-- Сюда можно добавить свои товары (Developer Products):
+-- [ID товара] = function(player) ... что выдать ... end
+------------------------------------------------------------------
+local PRODUCTS = {}
+
+MarketplaceService.ProcessReceipt = function(receipt)
+	local player = Players:GetPlayerByUserId(receipt.PlayerId)
+	local profile = player and profiles[player]
+	if not player or not profile then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+	local handler = PRODUCTS[receipt.ProductId]
+	if handler then
+		local ok, err = pcall(handler, player)
+		if not ok then
+			warn("[DestroySim] Ошибка выдачи товара: " .. tostring(err))
+			return Enum.ProductPurchaseDecision.NotProcessedYet
+		end
+	end
+	profile.robux += receipt.CurrencySpent
+	task.spawn(saveData, player)
+	return Enum.ProductPurchaseDecision.PurchaseGranted
+end
+
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
+	local profile = profiles[player]
+	if not purchased or not profile then
+		return
+	end
+	local ok, info = pcall(function()
+		return MarketplaceService:GetProductInfo(passId, Enum.InfoType.GamePass)
+	end)
+	if ok and info and info.PriceInRobux then
+		profile.robux += info.PriceInRobux
+	end
+end)
+
+------------------------------------------------------------------
+-- ТАБЛИЦЫ РЕКОРДОВ (стоят в мире «Луга» за спавном)
+------------------------------------------------------------------
+local function formatTime(seconds)
+	local minutes = math.floor(seconds / 60)
+	local hours = math.floor(minutes / 60)
+	local days = math.floor(hours / 24)
+	if days > 0 then
+		return days .. "д " .. hours % 24 .. "ч"
+	elseif hours > 0 then
+		return hours .. "ч " .. minutes % 60 .. "м"
+	end
+	return minutes .. "м"
+end
+
+local BOARDS = {
+	{
+		id = "time",
+		title = "⏰ Время в игре",
+		color = C(80, 160, 255),
+		value = function(_, profile)
+			return profile.playtime
+		end,
+		format = formatTime,
+	},
+	{
+		id = "coins",
+		title = "💰 Больше всего монет",
+		color = C(255, 190, 30),
+		value = function(_, profile)
+			return profile.earned
+		end,
+		format = abbreviate,
+	},
+	{
+		id = "rebirths",
+		title = "🔁 Ребёрты",
+		color = C(190, 100, 255),
+		value = function(player)
+			local rebirths = stat(player, REBIRTH_STAT)
+			return rebirths and rebirths.Value or 0
+		end,
+		format = abbreviate,
+	},
+	{
+		id = "robux",
+		title = "💎 Потрачено Robux",
+		color = C(70, 210, 90),
+		value = function(_, profile)
+			return profile.robux
+		end,
+		format = function(n)
+			return abbreviate(n) .. " R$"
+		end,
+	},
+}
+
+local RANK_COLORS = { C(255, 210, 50), C(210, 215, 225), C(220, 140, 70) }
+
+local function buildBoard(board, position)
+	local frame = makePart({
+		Name = "Leaderboard_" .. board.id,
+		Size = V(15, 18, 1.2),
+		Position = position,
+		Color = C(66, 43, 20),
+		Parent = worldsFolder,
+	})
+
+	local surface = Instance.new("SurfaceGui")
+	surface.Face = Enum.NormalId.Back
+	surface.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	surface.PixelsPerStud = 40
+	surface.LightInfluence = 0
+	surface.Parent = frame
+
+	local background = Instance.new("Frame")
+	background.Size = UDim2.fromScale(1, 1)
+	background.BackgroundColor3 = C(48, 32, 18)
+	background.BorderSizePixel = 0
+	background.Parent = surface
+	-- пиксельная текстура дерева
+	for _ = 1, 160 do
+		local pixel = Instance.new("Frame")
+		pixel.BorderSizePixel = 0
+		pixel.BackgroundColor3 = math.random() < 0.5 and C(0, 0, 0) or C(255, 220, 160)
+		pixel.BackgroundTransparency = 0.88
+		pixel.Size = UDim2.fromScale(1 / 20, 1 / 24)
+		pixel.Position = UDim2.fromScale(math.random(0, 19) / 20, math.random(0, 23) / 24)
+		pixel.Parent = background
+	end
+
+	local header = Instance.new("Frame")
+	header.Position = UDim2.fromOffset(16, 16)
+	header.Size = UDim2.new(1, -32, 0, 96)
+	header.BackgroundColor3 = board.color
+	header.BorderSizePixel = 0
+	header.Parent = surface
+	local headerStroke = Instance.new("UIStroke")
+	headerStroke.Thickness = 6
+	headerStroke.Color = C(15, 15, 20)
+	headerStroke.Parent = header
+
+	local title = Instance.new("TextLabel")
+	title.BackgroundTransparency = 1
+	title.Position = UDim2.fromOffset(12, 8)
+	title.Size = UDim2.new(1, -24, 1, -16)
+	title.Font = Enum.Font.GothamBlack
+	title.TextScaled = true
+	title.TextColor3 = WHITE
+	title.Text = board.title
+	title.Parent = header
+	local titleStroke = Instance.new("UIStroke")
+	titleStroke.Thickness = 4
+	titleStroke.Color = C(15, 15, 20)
+	titleStroke.Parent = title
+
+	board.rows = {}
+	for i = 1, 10 do
+		local row = Instance.new("Frame")
+		row.Position = UDim2.fromOffset(16, 124 + (i - 1) * 58)
+		row.Size = UDim2.new(1, -32, 0, 50)
+		row.BackgroundColor3 = i % 2 == 0 and C(70, 48, 28) or C(85, 58, 34)
+		row.BorderSizePixel = 0
+		row.Parent = surface
+
+		local function cell(x, width, align, color)
+			local text = Instance.new("TextLabel")
+			text.BackgroundTransparency = 1
+			text.Position = UDim2.new(x, 8, 0, 6)
+			text.Size = UDim2.new(width, -16, 1, -12)
+			text.Font = Enum.Font.GothamBlack
+			text.TextScaled = true
+			text.TextXAlignment = align
+			text.TextColor3 = color
+			text.Parent = row
+			local outline = Instance.new("UIStroke")
+			outline.Thickness = 2.5
+			outline.Color = C(15, 15, 20)
+			outline.Parent = text
+			return text
+		end
+		local rank = cell(0, 0.13, Enum.TextXAlignment.Center, RANK_COLORS[i] or WHITE)
+		rank.Text = tostring(i)
+		board.rows[i] = {
+			name = cell(0.13, 0.55, Enum.TextXAlignment.Left, WHITE),
+			value = cell(0.68, 0.32, Enum.TextXAlignment.Right, board.color:Lerp(WHITE, 0.3)),
+		}
+		board.rows[i].name.Text = "—"
+		board.rows[i].value.Text = ""
+	end
+
+	local ok, store = pcall(function()
+		return DataStoreService:GetOrderedDataStore("DestroySimTop_" .. board.id)
+	end)
+	board.store = ok and store or nil
+	board.written = {}
+end
+
+for index, board in BOARDS do
+	buildBoard(board, worldOrigin(1) + V(-51 + (index - 1) * 34, 19, -(CONFIG.WorldTiles / 2) * CONFIG.TileSize + 0.6))
+end
+
+local nameCache = {}
+local function nameOf(userId)
+	if nameCache[userId] then
+		return nameCache[userId]
+	end
+	local online = Players:GetPlayerByUserId(userId)
+	if online then
+		return online.DisplayName
+	end
+	local ok, name = pcall(function()
+		return Players:GetNameFromUserIdAsync(userId)
+	end)
+	nameCache[userId] = ok and name or ("Игрок " .. userId)
+	return nameCache[userId]
+end
+
+local function refreshBoards()
+	for _, board in BOARDS do
+		local entries = nil
+		if board.store then
+			-- записываем текущих игроков в общую таблицу
+			for _, player in Players:GetPlayers() do
+				local profile = profiles[player]
+				if profile and profile.loaded then
+					local value = math.floor(board.value(player, profile))
+					if board.written[player.UserId] ~= value then
+						local ok = pcall(function()
+							board.store:SetAsync(tostring(player.UserId), value)
+						end)
+						if ok then
+							board.written[player.UserId] = value
+						end
+					end
+				end
+			end
+			local ok, pages = pcall(function()
+				return board.store:GetSortedAsync(false, 10)
+			end)
+			if ok then
+				entries = {}
+				for _, item in pages:GetCurrentPage() do
+					table.insert(entries, { userId = tonumber(item.key), value = item.value })
+				end
+			end
+		end
+		-- если сохранения выключены (например, в Studio), показываем игроков сервера
+		if not entries then
+			entries = {}
+			for _, player in Players:GetPlayers() do
+				local profile = profiles[player]
+				if profile then
+					table.insert(entries, { userId = player.UserId, value = math.floor(board.value(player, profile)) })
+				end
+			end
+			table.sort(entries, function(a, b)
+				return a.value > b.value
+			end)
+		end
+		for i, row in board.rows do
+			local entry = entries[i]
+			row.name.Text = entry and nameOf(entry.userId) or "—"
+			row.value.Text = entry and board.format(entry.value) or ""
+		end
+	end
+end
+
+-- Время в игре
+task.spawn(function()
+	while true do
+		task.wait(10)
+		for _, player in Players:GetPlayers() do
+			local profile = profiles[player]
+			if profile then
+				profile.playtime += 10
+			end
+		end
+	end
+end)
+
+task.spawn(function()
+	task.wait(5)
+	while true do
+		refreshBoards()
+		task.wait(30)
 	end
 end)
 
