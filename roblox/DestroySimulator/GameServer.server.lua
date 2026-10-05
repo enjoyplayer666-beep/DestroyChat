@@ -73,7 +73,7 @@ local PICKAXES = {
 ------------------------------------------------------------------
 local ADDONS = {
 	{ id = "efficiency", name = "Эффективность", desc = "+20% урона за уровень", baseCost = 300, growth = 3 },
-	{ id = "fortune", name = "Удача", desc = "+25% монет за уровень", baseCost = 500, growth = 3 },
+	{ id = "fortune", name = "Удача", desc = "+25% изумрудов за уровень", baseCost = 500, growth = 3 },
 	{ id = "sharpness", name = "Меткость", desc = "+3% шанс крита за уровень", baseCost = 400, growth = 3 },
 	{ id = "blast", name = "Взрыв", desc = "+8% шанс взрыва, задевает блоки рядом", baseCost = 2000, growth = 4 },
 	{ id = "auto", name = "Автокопка", desc = "Кирка сама бьёт ближайший блок", baseCost = 1500, growth = 4 },
@@ -446,7 +446,9 @@ local THEMES = {
 	ender = { floor = C(219, 222, 158), column = C(205, 208, 145) },
 }
 
-local COIN_STAT = "Монеты"
+local COIN_STAT = "Изумруды"
+-- значок изумруда внутри текста (цветной ромбик)
+local EM = '<font color="#4CF07A">◆</font>'
 local REBIRTH_STAT = "Ребёрты"
 
 local GOLD = C(255, 200, 40)
@@ -709,6 +711,7 @@ local function addLabel(part, text, color, offset)
 	label.TextScaled = true
 	label.TextColor3 = color
 	label.TextStrokeTransparency = 0
+	label.RichText = true
 	label.Text = text
 	label.Parent = gui
 	gui.Parent = part
@@ -742,7 +745,7 @@ local function buildPortal(folder, position, target)
 		CanCollide = false,
 		Parent = portal,
 	})
-	addLabel(top, target.name .. (target.price > 0 and ("\n$" .. abbreviate(target.price)) or ""), target.accent, V(0, 3, 0))
+	addLabel(top, target.name .. (target.price > 0 and ("\n" .. EM .. " " .. abbreviate(target.price)) or ""), target.accent, V(0, 3, 0))
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Войти"
@@ -766,11 +769,11 @@ local function buildEggStand(folder, position, world)
 	local middle = makePart({ Size = V(5, 3, 5), Position = position + V(0, 5.5, 0), Color = egg.color, Parent = stand })
 	local top = makePart({ Size = V(3.5, 2, 3.5), Position = position + V(0, 8, 0), Color = egg.color, Parent = stand })
 	addSpots(stand, middle, { egg.spot }, 3, { sidesOnly = true })
-	addLabel(top, egg.name .. "\n$" .. abbreviate(egg.price), GOLD, V(0, 3.5, 0))
+	addLabel(top, egg.name .. "\n" .. EM .. " " .. abbreviate(egg.price), GOLD, V(0, 3.5, 0))
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Открыть"
-	prompt.ObjectText = egg.name .. " ($" .. abbreviate(egg.price) .. ")"
+	prompt.ObjectText = egg.name .. " (" .. abbreviate(egg.price) .. " изумрудов)"
 	prompt.HoldDuration = 0
 	prompt.MaxActivationDistance = 12
 	prompt.RequiresLineOfSight = false
@@ -996,6 +999,7 @@ local function popup(position, text, color, big)
 	label.Font = Enum.Font.GothamBlack
 	label.TextScaled = true
 	label.TextColor3 = color
+	label.RichText = true
 	label.Text = text
 	label.Parent = gui
 	local outline = Instance.new("UIStroke")
@@ -1430,7 +1434,7 @@ shopRemote.OnServerEvent:Connect(function(player, action, arg)
 			bought += 1
 		end
 		if bought == 0 then
-			announce("Не хватает монет!", RED, player)
+			announce("Не хватает изумрудов!", RED, player)
 			return
 		end
 		player:SetAttribute("Level", level)
@@ -1441,7 +1445,7 @@ shopRemote.OnServerEvent:Connect(function(player, action, arg)
 	elseif action == "rebirth" then
 		local cost = rebirthCost(rebirths.Value)
 		if coins.Value < cost then
-			announce("Для ребёрта нужно $" .. abbreviate(cost), RED, player)
+			announce("Для ребёрта нужно " .. EM .. " " .. abbreviate(cost), RED, player)
 			return
 		end
 		coins.Value = 0
@@ -1456,7 +1460,7 @@ shopRemote.OnServerEvent:Connect(function(player, action, arg)
 			return
 		end
 		if coins.Value < def.price then
-			announce("Нужно $" .. abbreviate(def.price), RED, player)
+			announce("Нужно " .. EM .. " " .. abbreviate(def.price), RED, player)
 			return
 		end
 		coins.Value -= def.price
@@ -1476,7 +1480,7 @@ shopRemote.OnServerEvent:Connect(function(player, action, arg)
 		end
 		local cost = addonCost(addon, level)
 		if coins.Value < cost then
-			announce("Нужно $" .. abbreviate(cost), RED, player)
+			announce("Нужно " .. EM .. " " .. abbreviate(cost), RED, player)
 			return
 		end
 		coins.Value -= cost
@@ -1498,7 +1502,7 @@ goToWorld = function(player, worldId)
 	end
 	if not profile.worlds[worldId] then
 		if coins.Value < world.price then
-			announce("Мир «" .. world.name .. "» стоит $" .. abbreviate(world.price), RED, player)
+			announce("Мир «" .. world.name .. "» стоит " .. EM .. " " .. abbreviate(world.price), RED, player)
 			return
 		end
 		coins.Value -= world.price
@@ -1538,7 +1542,7 @@ openEgg = function(player, worldId)
 		return
 	end
 	if coins.Value < world.egg.price then
-		announce("Яйцо стоит $" .. abbreviate(world.egg.price), RED, player)
+		announce("Яйцо стоит " .. EM .. " " .. abbreviate(world.egg.price), RED, player)
 		return
 	end
 	lastEgg[player] = now
@@ -1957,10 +1961,10 @@ local function destroyBlock(data)
 	end
 
 	if topPlayer then
-		popup(data.core.Position + V(0, data.core.Size.Y / 2, 0), "+$" .. abbreviate(topReward), GOLD, true)
+		popup(data.core.Position + V(0, data.core.Size.Y / 2, 0), "+" .. abbreviate(topReward) .. " " .. EM, GOLD, true)
 		if data.def.announce then
 			announce(
-				topPlayer.DisplayName .. " разбил «" .. data.def.name .. "» и получил $" .. abbreviate(topReward) .. "!",
+				topPlayer.DisplayName .. " разбил «" .. data.def.name .. "» и получил " .. EM .. " " .. abbreviate(topReward) .. "!",
 				data.def.spot or data.def.color
 			)
 		end
@@ -2297,7 +2301,7 @@ task.spawn(function()
 		workspace:SetAttribute("EventActive", true)
 		workspace:SetAttribute("EventMultiplier", CONFIG.EventCoinMultiplier)
 		workspace:SetAttribute("EventEndsAt", workspace:GetServerTimeNow() + CONFIG.EventDuration)
-		announce("ЗОЛОТАЯ ЛИХОРАДКА! Монеты x" .. CONFIG.EventCoinMultiplier .. "!", GOLD)
+		announce("ЗОЛОТАЯ ЛИХОРАДКА! Изумруды x" .. CONFIG.EventCoinMultiplier .. "!", GOLD)
 
 		for _ = 1, 3 do
 			for _, world in WORLDS do
@@ -2438,8 +2442,8 @@ local BOARDS = {
 	},
 	{
 		id = "coins",
-		title = "Больше всего монет",
-		icon = "coin",
+		title = "Больше всего изумрудов",
+		icon = "emerald",
 		color = C(255, 190, 30),
 		value = function(_, profile)
 			return profile.earned

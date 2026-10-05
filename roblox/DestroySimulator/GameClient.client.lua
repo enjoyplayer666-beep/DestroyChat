@@ -35,7 +35,7 @@ local petModels = ReplicatedStorage:WaitForChild("PetModels")
 local blocksFolder = workspace:WaitForChild("Destructibles")
 
 local leaderstats = player:WaitForChild("leaderstats")
-local coinsValue = leaderstats:WaitForChild("Монеты")
+local coinsValue = leaderstats:WaitForChild("Изумруды")
 local rebirthsValue = leaderstats:WaitForChild("Ребёрты")
 
 ------------------------------------------------------------------
@@ -56,6 +56,9 @@ local RED = C(225, 55, 55)
 local ROW = C(85, 92, 150)
 local BODY = C(48, 50, 66)
 local SOFT = C(205, 205, 220)
+-- значок изумруда внутри текста (цветной ромбик)
+local EM = '<font color="#4CF07A">◆</font>'
+
 
 ------------------------------------------------------------------
 -- ПОМОЩНИКИ
@@ -251,6 +254,7 @@ local function panel(props, color, options)
 end
 
 local LABEL = {
+	RichText = true,
 	BackgroundTransparency = 1,
 	Font = Enum.Font.GothamBlack,
 	TextScaled = true,
@@ -274,6 +278,7 @@ local function button(props, color, padding)
 			AutoButtonColor = false,
 			Font = Enum.Font.GothamBlack,
 			TextScaled = true,
+			RichText = true,
 			TextColor3 = WHITE,
 			Text = "",
 		}, props)
@@ -363,31 +368,32 @@ local PIXEL_ICONS = {
 			".kk.............",
 		},
 	},
-	coin = {
+	emerald = {
 		palette = {
-			d = C(180, 110, 15),
+			G = C(40, 205, 95),
+			L = C(185, 255, 210),
+			M = C(110, 235, 160),
+			d = C(0, 120, 40),
+			g = C(0, 165, 55),
 			k = C(28, 24, 34),
-			l = C(255, 245, 170),
-			o = C(220, 150, 25),
-			y = C(255, 210, 50),
 		},
 		rows = {
-			".....kkkkkk.....",
-			"....kooooook....",
-			"...koooyyoook...",
-			"..kooyyyyyyook..",
-			".kooyyldoyyyook.",
-			"kooyylldoyyyyook",
-			"kooyylldoyyyyook",
-			"koyyyyldoyyyyyok",
-			"koyyyyydoyyyyyok",
-			"kooyyyydoyyyyook",
-			"kooyyyydoyyyyook",
-			".kooyyyooyyyook.",
-			"..kooyyyyyyook..",
-			"...koooyyoook...",
-			"....kooooook....",
-			".....kkkkkk.....",
+			"......kkkk......",
+			".....kLLLMk.....",
+			"....kLLLMMMk....",
+			"...kLLLLMMMGk...",
+			"..kLLLLMMMGGGk..",
+			"..kLLLMMMMGGgk..",
+			"..kLLMMLMGGggk..",
+			"..kLMMMMMGgggk..",
+			"..kMMMMMMGggdk..",
+			"..kMMGGMMGgddk..",
+			"..kMGGGGGGdddk..",
+			"..kGGGGggddddk..",
+			"...kGGggddddk...",
+			"....kgggdddk....",
+			".....kgdddk.....",
+			"......kkkk......",
 		},
 	},
 	egg = {
@@ -1179,7 +1185,7 @@ local function statRow(order, icon, color)
 	}, 3)
 	return row, value
 end
-local coinsRow, coinsText = statRow(1, "coin", GREEN_TEXT)
+local coinsRow, coinsText = statRow(1, "emerald", GREEN_TEXT)
 local coinsScale = create("UIScale", { Parent = coinsRow })
 local _, rebirthsText = statRow(2, "rebirth", C(130, 200, 255))
 local _, petsText = statRow(3, "paw", C(255, 170, 210))
@@ -1465,7 +1471,7 @@ pickWindow.update = function()
 				target.Text = "В РУКАХ"
 				target.BackgroundColor3 = BLUE
 			elseif entry.tier == current + 1 then
-				target.Text = "КУПИТЬ\n$" .. abbreviate(pick.price)
+				target.Text = "КУПИТЬ\n" .. EM .. " " .. abbreviate(pick.price)
 				target.BackgroundColor3 = coins >= pick.price and GREEN or GRAY
 			else
 				target.Text = "ЗАКРЫТО"
@@ -1478,7 +1484,7 @@ pickWindow.update = function()
 				target.BackgroundColor3 = GRAY
 			else
 				local cost = math.floor(entry.addon.baseCost * entry.addon.growth ^ level)
-				target.Text = "УЛУЧШИТЬ\n$" .. abbreviate(cost)
+				target.Text = "УЛУЧШИТЬ\n" .. EM .. " " .. abbreviate(cost)
 				target.BackgroundColor3 = coins >= cost and GREEN or GRAY
 			end
 		end
@@ -1669,7 +1675,7 @@ eggsWindow.render = function()
 		label({
 			Position = UDim2.fromOffset(8, 142),
 			Size = UDim2.new(1, -16, 0, 32),
-			Text = "$" .. abbreviate(world.egg.price),
+			Text = EM .. " " .. abbreviate(world.egg.price),
 			TextColor3 = GREEN_TEXT,
 			Parent = card,
 		}, 3)
@@ -1786,7 +1792,7 @@ do
 		petIcon(kind, petHolder)
 		eggResultName.Text = kind
 		eggResultName.TextColor3 = rarity.color
-		eggResultInfo.Text = info.rarity .. " · +" .. percent(info.bonus) .. " монет"
+		eggResultInfo.Text = info.rarity .. " · +" .. percent(info.bonus) .. " изумрудов"
 		eggStageScale.Scale = 0.4
 		TweenService:Create(eggStageScale, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 		playSound("reveal")
@@ -1818,7 +1824,7 @@ worldsWindow.update = function()
 			entry.button.Text = "ТЕЛЕПОРТ"
 			entry.button.BackgroundColor3 = BLUE
 		else
-			entry.button.Text = "ОТКРЫТЬ\n$" .. abbreviate(entry.world.price)
+			entry.button.Text = "ОТКРЫТЬ\n" .. EM .. " " .. abbreviate(entry.world.price)
 			entry.button.BackgroundColor3 = coinsValue.Value >= entry.world.price and GREEN or GRAY
 		end
 		entry.status.Text = unlocked[id] and "Открыт" or "Закрыт"
@@ -1878,7 +1884,7 @@ do
 	label({
 		Position = UDim2.fromOffset(0, 184),
 		Size = UDim2.new(1, 0, 0, 26),
-		Text = "*Ребёрт сбросит монеты и уровень кирки*",
+		Text = "*Ребёрт сбросит изумруды и уровень кирки*",
 		TextColor3 = C(255, 80, 80),
 		Parent = rebirthWindow.body,
 	}, 2)
@@ -1903,13 +1909,13 @@ do
 		local rebirths = rebirthsValue.Value
 		local cost = player:GetAttribute("RebirthCost") or 1
 		local bonus = INFO.rebirthBonus
-		multBefore.Text = "Монеты x" .. formatMultiplier(1 + rebirths * bonus)
-		multAfter.Text = "Монеты x" .. formatMultiplier(1 + (rebirths + 1) * bonus)
+		multBefore.Text = "Изумруды x" .. formatMultiplier(1 + rebirths * bonus)
+		multAfter.Text = "Изумруды x" .. formatMultiplier(1 + (rebirths + 1) * bonus)
 		countBefore.Text = "Ребёртов: " .. rebirths
 		countAfter.Text = "Ребёртов: " .. (rebirths + 1)
 		local coins = coinsValue.Value
 		rebirthFill.Size = UDim2.fromScale(math.clamp(coins / cost, 0, 1), 1)
-		rebirthBarText.Text = "$" .. abbreviate(coins) .. " / " .. abbreviate(cost)
+		rebirthBarText.Text = EM .. " " .. abbreviate(coins) .. " / " .. abbreviate(cost)
 		rebirthButton.BackgroundColor3 = coins >= cost and GREEN or GRAY
 	end
 	rebirthWindow.render = rebirthWindow.update
@@ -1937,11 +1943,11 @@ do
 			adminRemote:FireServer(action, arg)
 		end)
 	end
-	adminButton("$ +1K", GREEN, "coins", 1e3)
-	adminButton("$ +1M", GREEN, "coins", 1e6)
-	adminButton("$ +1B", GREEN, "coins", 1e9)
-	adminButton("$ +1T", GREEN, "coins", 1e12)
-	adminButton("$ Обнулить", GRAY, "resetCoins")
+	adminButton(EM .. " +1K", GREEN, "coins", 1e3)
+	adminButton(EM .. " +1M", GREEN, "coins", 1e6)
+	adminButton(EM .. " +1B", GREEN, "coins", 1e9)
+	adminButton(EM .. " +1T", GREEN, "coins", 1e12)
+	adminButton(EM .. " Обнулить", GRAY, "resetCoins")
 	adminButton("+1 ребёрт", MAGENTA, "rebirth")
 	adminButton("+10 уровней", ORANGE, "level")
 	adminButton("Лучшая кирка", ORANGE, "pickaxe")
@@ -2186,13 +2192,13 @@ local function refreshHud()
 		levelProgress.TextColor3 = WHITE
 	end
 	TweenService:Create(levelFill, TweenInfo.new(0.2), { Size = UDim2.fromScale(math.clamp(coins / levelCost, 0, 1), 1) }):Play()
-	statsLine.Text = "Урон " .. abbreviate(player:GetAttribute("Damage") or 1) .. "   ·   Монеты x" .. formatMultiplier(player:GetAttribute("CoinMultiplier") or 1)
+	statsLine.Text = "Урон " .. abbreviate(player:GetAttribute("Damage") or 1) .. "   ·   Изумруды x" .. formatMultiplier(player:GetAttribute("CoinMultiplier") or 1)
 
 	coinsText.Text = abbreviate(coins)
 	rebirthsText.Text = tostring(rebirthsValue.Value)
 	petsText.Text = #inventory.pets .. " / " .. INFO.maxPets
 
-	upgradeButton.Text = "УЛУЧШИТЬ\n$" .. abbreviate(levelCost)
+	upgradeButton.Text = "УЛУЧШИТЬ\n" .. EM .. " " .. abbreviate(levelCost)
 	upgradeButton.BackgroundColor3 = coins >= levelCost and GREEN or GRAY
 	maxButton.BackgroundColor3 = coins >= levelCost and GREEN or GRAY
 
@@ -2587,7 +2593,7 @@ task.spawn(function()
 		local active = workspace:GetAttribute("EventActive") == true
 		if active then
 			local left = math.max(0, math.ceil((workspace:GetAttribute("EventEndsAt") or now) - now))
-			eventText.Text = "МОНЕТЫ x" .. (workspace:GetAttribute("EventMultiplier") or 2) .. "\n" .. left .. " сек"
+			eventText.Text = "ИЗУМРУДЫ x" .. (workspace:GetAttribute("EventMultiplier") or 2) .. "\n" .. left .. " сек"
 			eventBody.BackgroundColor3 = (math.floor(now * 2) % 2 == 0) and ORANGE or C(255, 170, 30)
 		else
 			local left = math.max(0, math.ceil((workspace:GetAttribute("NextEventAt") or now) - now))
