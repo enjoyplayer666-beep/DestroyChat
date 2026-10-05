@@ -29,6 +29,7 @@ local openEggRemote = remotes:WaitForChild("OpenEgg")
 local eggResultRemote = remotes:WaitForChild("EggOpened")
 local worldRemote = remotes:WaitForChild("World")
 local tradeRemote = remotes:WaitForChild("Trade")
+local adminRemote = remotes:WaitForChild("Admin")
 local INFO = remotes:WaitForChild("GetInfo"):InvokeServer()
 local petModels = ReplicatedStorage:WaitForChild("PetModels")
 local icons = ReplicatedStorage:WaitForChild("Icons")
@@ -1291,6 +1292,65 @@ do
 	end
 	rebirthWindow.render = rebirthWindow.update
 end
+
+------------------------------------------------------------------
+-- АДМИН-ПАНЕЛЬ (видна только админам)
+------------------------------------------------------------------
+local adminWindow = makeWindow("admin", "Админ-панель", C(200, 40, 40), function(holder)
+	emojiIcon("🛠", holder)
+end)
+do
+	local list = scrolling({ Size = UDim2.fromScale(1, 1), Parent = adminWindow.body })
+	create("UIGridLayout", {
+		CellSize = UDim2.fromOffset(190, 56),
+		CellPadding = UDim2.fromOffset(10, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = list,
+	})
+	local order = 0
+	local function adminButton(text, color, action, arg)
+		order += 1
+		local target = button({ LayoutOrder = order, Text = text, Parent = list }, color, 6)
+		target.Activated:Connect(function()
+			adminRemote:FireServer(action, arg)
+		end)
+	end
+	adminButton("💰 +1K", GREEN, "coins", 1e3)
+	adminButton("💰 +1M", GREEN, "coins", 1e6)
+	adminButton("💰 +1B", GREEN, "coins", 1e9)
+	adminButton("💰 +1T", GREEN, "coins", 1e12)
+	adminButton("💰 Обнулить", GRAY, "resetCoins")
+	adminButton("🔁 +1 ребёрт", MAGENTA, "rebirth")
+	adminButton("⛏ +10 уровней", ORANGE, "level")
+	adminButton("⛏ Лучшая кирка", ORANGE, "pickaxe")
+	adminButton("🌍 Все миры", BLUE, "worlds")
+	local kinds = {}
+	for kind in INFO.pets do
+		table.insert(kinds, kind)
+	end
+	table.sort(kinds, function(a, b)
+		return INFO.pets[a].bonus < INFO.pets[b].bonus
+	end)
+	for _, kind in kinds do
+		adminButton("🐾 " .. kind, INFO.rarities[INFO.pets[kind].rarity].color:Lerp(Color3.new(0, 0, 0), 0.3), "pet", kind)
+	end
+end
+
+local adminButtonHud = button({
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, -14, 0.42, 70),
+	Size = UDim2.fromOffset(140, 46),
+	Text = "🛠 АДМИН",
+	Visible = player:GetAttribute("IsAdmin") == true,
+	Parent = gui,
+}, C(200, 40, 40), 6)
+scaled(adminButtonHud)
+adminButtonHud.Activated:Connect(function()
+	toggleWindow("admin")
+end)
+player:GetAttributeChangedSignal("IsAdmin"):Connect(function()
+	adminButtonHud.Visible = player:GetAttribute("IsAdmin") == true
+end)
 
 ------------------------------------------------------------------
 -- ОКНО: ТРЕЙД

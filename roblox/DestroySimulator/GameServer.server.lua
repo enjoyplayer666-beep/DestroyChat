@@ -18,6 +18,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
 local Debris = game:GetService("Debris")
+local RunService = game:GetService("RunService")
 
 local V = Vector3.new
 local C = Color3.fromRGB
@@ -505,6 +506,7 @@ local openEggRemote = makeRemote("RemoteEvent", "OpenEgg")
 local eggResultRemote = makeRemote("RemoteEvent", "EggOpened")
 local worldRemote = makeRemote("RemoteEvent", "World")
 local tradeRemote = makeRemote("RemoteEvent", "Trade")
+local adminRemote = makeRemote("RemoteEvent", "Admin")
 
 local function announce(text, color, target)
 	if target then
@@ -2306,6 +2308,65 @@ task.spawn(function()
 		eventActive = false
 		announce("Лихорадка закончилась. Копи силу до следующей!", WHITE)
 	end
+end)
+
+------------------------------------------------------------------
+-- АДМИН-ПАНЕЛЬ
+-- Админы: владелец игры, все в Studio и UserId из списка ниже.
+-- Свой UserId можно узнать в адресе своего профиля на roblox.com
+------------------------------------------------------------------
+local ADMINS = {
+	-- 123456789,
+}
+
+local function isAdmin(player)
+	return RunService:IsStudio() or player.UserId == game.CreatorId or table.find(ADMINS, player.UserId) ~= nil
+end
+
+local function markAdmin(player)
+	player:SetAttribute("IsAdmin", isAdmin(player))
+end
+Players.PlayerAdded:Connect(markAdmin)
+for _, player in Players:GetPlayers() do
+	markAdmin(player)
+end
+
+adminRemote.OnServerEvent:Connect(function(player, action, arg)
+	local profile = profiles[player]
+	local coins = stat(player, COIN_STAT)
+	local rebirths = stat(player, REBIRTH_STAT)
+	if not isAdmin(player) or not profile or not coins or not rebirths then
+		return
+	end
+	if action == "coins" and typeof(arg) == "number" then
+		coins.Value += math.clamp(math.floor(arg), 0, 1e15)
+	elseif action == "resetCoins" then
+		coins.Value = 0
+	elseif action == "rebirth" then
+		rebirths.Value += 1
+	elseif action == "level" then
+		player:SetAttribute("Level", (player:GetAttribute("Level") or 1) + 10)
+	elseif action == "worlds" then
+		for _, world in WORLDS do
+			profile.worlds[world.id] = true
+		end
+	elseif action == "pickaxe" then
+		profile.pickaxe = #PICKAXES
+		for _, addon in ADDONS do
+			profile.addons[addon.id] = PICKAXES[#PICKAXES].addonCap
+		end
+		giveTool(player)
+	elseif action == "pet" and typeof(arg) == "string" and PETS[arg] then
+		if #profile.pets >= CONFIG.MaxPets then
+			announce("Инвентарь питомцев полон", RED, player)
+			return
+		end
+		table.insert(profile.pets, { id = HttpService:GenerateGUID(false), kind = arg })
+	else
+		return
+	end
+	refreshPets(player)
+	announce("🛠 Готово!", GREEN, player)
 end)
 
 ------------------------------------------------------------------
