@@ -1178,6 +1178,159 @@ local function buildEnchantTable(folder, position)
 end
 
 ------------------------------------------------------------------
+-- БОЛЬШОЙ ПОРТАЛ В КОНЦЕ МИРА (адский, пока закрыт).
+-- Башни из аметистовых блоков с кристаллами, внутри фиолетовая гладь.
+------------------------------------------------------------------
+local function buildBigPortal(folder, position)
+	local model = Instance.new("Model")
+	model.Name = "BigPortal"
+	local B = 2 -- размер одного блока
+	local cols, middle = 19, 9
+	local shades = { C(110, 70, 190), C(92, 56, 162), C(128, 88, 210), C(78, 46, 140) }
+	local glint = C(205, 175, 255)
+	local crystal = C(220, 185, 255)
+	-- высота каждой колонки рамки: неровный верх с башенками
+	local heights = { 9, 13, 18, 16, 15, 17, 20, 16, 17, 16, 17, 16, 19, 15, 16, 18, 14, 12, 8 }
+	local function interiorTop(col)
+		local d = math.abs(col - middle)
+		if d > 4 then
+			return 0
+		end
+		return 13 - math.floor((d + 1) / 2)
+	end
+
+	local function crystalCluster(base)
+		makePart({ Name = "Crystal", Size = V(0.5, 1.6, 0.5), Position = base + V(0, 0.8, 0), Color = crystal, Material = NEON, CanCollide = false, Parent = model })
+		for _, tilt in { -28, 28 } do
+			makePart({
+				Name = "Crystal",
+				Size = V(0.4, 1.1, 0.4),
+				CFrame = CFrame.new(base + V(tilt / 60, 0.5, 0)) * CFrame.Angles(0, 0, math.rad(-tilt)),
+				Color = crystal:Lerp(C(160, 110, 230), 0.4),
+				CanCollide = false,
+				Parent = model,
+			})
+		end
+	end
+
+	local portalCells = {}
+	for col = 0, cols - 1 do
+		local x = (col - middle) * B
+		local top = interiorTop(col)
+		for row = 0, heights[col + 1] - 1 do
+			local y = row * B + B / 2
+			if row >= 1 and row < top then
+				table.insert(portalCells, V(x, y, 0))
+			else
+				local block = makePart({
+					Name = "Amethyst",
+					Size = V(B, B, B * 2),
+					Position = V(x, y, 0),
+					Color = shades[math.random(1, #shades)],
+					Parent = model,
+				})
+				if math.random() < 0.3 then
+					makePart({ Name = "Glint", Size = V(0.6, 0.6, 0.1), Position = block.Position + V(math.random(-1, 1) * 0.4, math.random(-1, 1) * 0.4, -B - 0.05), Color = glint, CanCollide = false, Parent = model })
+				end
+			end
+		end
+		-- кристаллы на верхушках
+		if math.random() < 0.7 then
+			crystalCluster(V(x, heights[col + 1] * B, 0))
+		end
+	end
+
+	-- ступени и обломки у основания (по бокам, выступают вперёд)
+	for _, side in { -1, 1 } do
+		for step = 0, 4 do
+			local col = middle + side * (6 + step)
+			local stepHeight = math.max(1, 4 - step + math.random(-1, 0))
+			for row = 0, stepHeight - 1 do
+				makePart({
+					Name = "Amethyst",
+					Size = V(B, B, B),
+					Position = V((col - middle) * B, row * B + B / 2, -B * 1.5),
+					Color = shades[math.random(1, #shades)],
+					Parent = model,
+				})
+			end
+			if math.random() < 0.6 then
+				crystalCluster(V((col - middle) * B, stepHeight * B, -B * 1.5))
+			end
+		end
+	end
+
+	-- аметистовая «россыпь» на земле
+	for _ = 1, 40 do
+		local x = math.random(-14, 14) * B / 2
+		local z = -math.random(2, 7) * B
+		if math.abs(x) > 8 or z < -8 then
+			makePart({ Name = "Patch", Size = V(B, 0.2, B), Position = V(x, 0.1, z), Color = shades[math.random(1, #shades)]:Lerp(WHITE, 0.15), CanCollide = false, Parent = model })
+			if math.random() < 0.25 then
+				crystalCluster(V(x, 0.2, z))
+			end
+		end
+	end
+
+	-- светящаяся гладь портала (пока твёрдая — войти нельзя)
+	local swirlA, swirlB = C(150, 60, 255), C(95, 30, 210)
+	for _, cell in portalCells do
+		local wave = math.sin(cell.X * 0.7 + cell.Y * 0.5)
+		makePart({
+			Name = "PortalSurface",
+			Size = V(B, B, 0.8),
+			Position = cell,
+			Color = swirlA:Lerp(swirlB, (wave + 1) / 2),
+			Material = NEON,
+			Transparency = 0.15,
+			Parent = model,
+		})
+	end
+	local glow = makePart({
+		Name = "PortalGlow",
+		Size = V(B * 8, B * 12, 1),
+		Position = V(0, B * 7, -0.6),
+		Transparency = 1,
+		CanCollide = false,
+		Parent = model,
+	})
+	local particles = Instance.new("ParticleEmitter")
+	particles.Color = ColorSequence.new(C(200, 120, 255), C(120, 40, 220))
+	particles.LightEmission = 1
+	particles.Size = NumberSequence.new(0.5, 0)
+	particles.Rate = 30
+	particles.Lifetime = NumberRange.new(1.5, 3)
+	particles.Speed = NumberRange.new(1, 3)
+	particles.SpreadAngle = Vector2.new(60, 60)
+	particles.EmissionDirection = Enum.NormalId.Front
+	particles.Parent = glow
+	local light = Instance.new("PointLight")
+	light.Color = C(170, 80, 255)
+	light.Brightness = 3
+	light.Range = 30
+	light.Parent = glow
+
+	-- надпись и «замок»
+	local sign = makePart({ Name = "Sign", Size = V(0.4, 0.4, 0.4), Position = V(0, 46, -2), Transparency = 1, CanCollide = false, Parent = model })
+	addLabel(sign, "НИЖНИЙ МИР\n<font color=\"#FF6060\">скоро откроется</font>", C(220, 150, 255), V(0, 0, 0))
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "Войти"
+	prompt.ObjectText = "Портал в Нижний мир"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 16
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = glow
+	prompt.Triggered:Connect(function(player)
+		announce("Портал пока закрыт. Скоро здесь откроется путь в Нижний мир!", C(200, 120, 255), player)
+	end)
+
+	model.WorldPivot = CFrame.new()
+	-- лицом к острову (-Z)
+	model:PivotTo(CFrame.new(position))
+	model.Parent = folder
+end
+
+------------------------------------------------------------------
 -- ГЛАВНЫЙ МИР «Луга»: хаб с НПС, забор-«линия» и зона добычи:
 -- остров посреди озера, холмы-террасы с деревьями, ручьи и водопады
 ------------------------------------------------------------------
@@ -1187,7 +1340,9 @@ local LAKE_RADIUS = 64
 local GATE_Z = -60
 local HUB = { minX = -60, maxX = 60, minZ = -168, maxZ = GATE_Z }
 local MAIN_BOUNDS = { minX = -126, maxX = 126, minZ = -174, maxZ = 156 }
-local STREAM_ANGLES = { 30, 90, 150, 205 }
+local STREAM_ANGLES = { 35, 145, 205, 330 }
+local PORTAL_PLAZA = { halfWidth = 27, minZ = ISLAND_CENTER.Z + LAKE_RADIUS - 2, maxZ = 150 }
+local PORTAL_POSITION = V(0, 0, 134)
 local WATER = C(55, 125, 220)
 local FALL = C(110, 180, 250)
 
@@ -1199,6 +1354,9 @@ local function mainTileKind(x, z)
 	local r = math.sqrt(dx * dx + dz * dz)
 	if math.abs(x) <= 9 and z < ISLAND_CENTER.Z and r >= LAKE_RADIUS then
 		return "path", r
+	end
+	if math.abs(x) <= PORTAL_PLAZA.halfWidth and z >= PORTAL_PLAZA.minZ and z <= PORTAL_PLAZA.maxZ then
+		return "plaza", r
 	end
 	if r < ISLAND_RADIUS - 3 then
 		return "island", r
@@ -1278,7 +1436,7 @@ local function buildMainWorld(world)
 				Color = shade(path and C(140, 135, 128) or C(84, 140, 50), 0.2),
 				Parent = folder,
 			})
-		elseif tile.kind == "path" then
+		elseif tile.kind == "path" or tile.kind == "plaza" then
 			makePart({
 				Name = "Path",
 				Size = V(T, 2, T),
@@ -1357,24 +1515,26 @@ local function buildMainWorld(world)
 		end
 	end
 
-	-- 3. Мост через озеро
-	local bridgeFrom = ISLAND_CENTER.Z - LAKE_RADIUS - 2
-	local bridgeTo = ISLAND_CENTER.Z - ISLAND_RADIUS + 3
-	for z = bridgeFrom, bridgeTo, 2 do
-		makePart({ Name = "Plank", Size = V(10, 1, 2), Position = V(0, -0.5, z + 1), Color = shade(C(170, 120, 65), 0.15), Parent = folder })
-	end
-	for _, x in { -5, 5 } do
-		makePart({
-			Name = "Rail",
-			Size = V(0.6, 0.5, bridgeTo - bridgeFrom + 2),
-			Position = V(x, 2, (bridgeFrom + bridgeTo) / 2 + 1),
-			Color = C(120, 80, 40),
-			Parent = folder,
-		})
-		for z = bridgeFrom, bridgeTo + 2, 4 do
-			makePart({ Name = "Post", Size = V(0.7, 2.4, 0.7), Position = V(x, 1, z), Color = C(110, 72, 36), Parent = folder })
+	-- 3. Мосты через озеро: от ворот к острову и от острова к порталу
+	local function buildBridge(bridgeFrom, bridgeTo)
+		for z = bridgeFrom, bridgeTo, 2 do
+			makePart({ Name = "Plank", Size = V(10, 1, 2), Position = V(0, -0.5, z + 1), Color = shade(C(170, 120, 65), 0.15), Parent = folder })
+		end
+		for _, x in { -5, 5 } do
+			makePart({
+				Name = "Rail",
+				Size = V(0.6, 0.5, bridgeTo - bridgeFrom + 2),
+				Position = V(x, 2, (bridgeFrom + bridgeTo) / 2 + 1),
+				Color = C(120, 80, 40),
+				Parent = folder,
+			})
+			for z = bridgeFrom, bridgeTo + 2, 4 do
+				makePart({ Name = "Post", Size = V(0.7, 2.4, 0.7), Position = V(x, 1, z), Color = C(110, 72, 36), Parent = folder })
+			end
 		end
 	end
+	buildBridge(ISLAND_CENTER.Z - LAKE_RADIUS - 2, ISLAND_CENTER.Z - ISLAND_RADIUS + 3)
+	buildBridge(ISLAND_CENTER.Z + ISLAND_RADIUS - 5, ISLAND_CENTER.Z + LAKE_RADIUS)
 
 	-- 4. Забор-«линия» с воротами в зону добычи
 	for x = HUB.minX, HUB.maxX, 3 do
@@ -1443,6 +1603,7 @@ local function buildMainWorld(world)
 
 	buildSpawnEgg(folder, facing(V(-30, 0, -134), V(0, 0, -134)), world, true)
 	buildEnchantTable(folder, V(-44, 0, -99))
+	buildBigPortal(folder, PORTAL_POSITION)
 
 	local portalX = 28
 	for _, target in WORLDS do
