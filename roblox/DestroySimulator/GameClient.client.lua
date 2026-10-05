@@ -386,6 +386,13 @@ end
 ------------------------------------------------------------------
 -- ЭКРАН
 ------------------------------------------------------------------
+-- Прячем стандартный инвентарь и список игроков Roblox: у нас свой интерфейс
+local StarterGui = game:GetService("StarterGui")
+pcall(function()
+	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+end)
+
 local gui = create("ScreenGui", {
 	Name = "DestroyHUD",
 	ResetOnSpawn = false,
@@ -1556,7 +1563,13 @@ local function refreshHud()
 	local pickaxe = player:GetAttribute("Pickaxe") or 1
 
 	levelText.Text = "Уровень " .. level
-	levelProgress.Text = abbreviate(coins) .. " / " .. abbreviate(levelCost)
+	if coins >= levelCost then
+		levelProgress.Text = "МОЖНО УЛУЧШИТЬ!"
+		levelProgress.TextColor3 = GREEN_TEXT
+	else
+		levelProgress.Text = abbreviate(coins) .. " / " .. abbreviate(levelCost)
+		levelProgress.TextColor3 = WHITE
+	end
 	TweenService:Create(levelFill, TweenInfo.new(0.2), { Size = UDim2.fromScale(math.clamp(coins / levelCost, 0, 1), 1) }):Play()
 	statsLine.Text = "⛏ Урон " .. abbreviate(player:GetAttribute("Damage") or 1) .. "      💰 x" .. formatMultiplier(player:GetAttribute("CoinMultiplier") or 1)
 
@@ -1648,11 +1661,11 @@ do
 	tint = create("ColorCorrectionEffect", { Name = "DestroyTint", Parent = Lighting })
 	local grade = create("ColorCorrectionEffect", { Name = "DestroyGrade", Parent = Lighting })
 	local bloom = Lighting:FindFirstChildOfClass("BloomEffect") or create("BloomEffect", { Parent = Lighting })
-	bloom.Intensity = 0.8
-	bloom.Size = 30
-	bloom.Threshold = 1.3
+	bloom.Intensity = 0.3
+	bloom.Size = 18
+	bloom.Threshold = 2.2
 	local sunRays = Lighting:FindFirstChildOfClass("SunRaysEffect") or create("SunRaysEffect", { Parent = Lighting })
-	sunRays.Intensity = 0.06
+	sunRays.Intensity = 0.03
 	sunRays.Spread = 0.6
 	Lighting.GlobalShadows = true
 	Lighting.ShadowSoftness = 0.25
@@ -1662,7 +1675,7 @@ do
 	local WORLD_LOOK = {
 		[1] = {
 			clock = 14,
-			brightness = 2.5,
+			brightness = 2,
 			ambient = C(110, 110, 120),
 			outdoor = C(140, 140, 150),
 			density = 0.3,
@@ -1670,8 +1683,8 @@ do
 			decay = C(110, 150, 200),
 			haze = 1,
 			stars = 0,
-			contrast = 0.12,
-			saturation = 0.2,
+			contrast = 0.08,
+			saturation = 0.05,
 		},
 		[2] = {
 			clock = 0,
@@ -1830,6 +1843,27 @@ do
 			end
 		end)
 	end
+
+	-- инвентарь спрятан, поэтому кирка всегда в руках
+	local function equipPickaxe()
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local backpack = player:FindFirstChildOfClass("Backpack")
+		if humanoid and backpack and not character:FindFirstChildOfClass("Tool") then
+			for _, tool in backpack:GetChildren() do
+				if tool:IsA("Tool") and tool:GetAttribute("Pickaxe") then
+					humanoid:EquipTool(tool)
+					return
+				end
+			end
+		end
+	end
+	task.spawn(function()
+		while true do
+			task.wait(0.5)
+			equipPickaxe()
+		end
+	end)
 
 	local function onCharacter(character)
 		character.ChildAdded:Connect(hookTool)

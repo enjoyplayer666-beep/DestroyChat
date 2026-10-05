@@ -441,7 +441,7 @@ local WORLDS = {
 }
 
 local THEMES = {
-	overworld = { floor = C(95, 159, 53), column = C(134, 96, 67), columnTop = C(95, 159, 53) },
+	overworld = { floor = C(84, 140, 50), column = C(134, 96, 67), columnTop = C(95, 155, 55) },
 	nether = { floor = NETHERRACK, floorAlt = C(84, 64, 51), column = C(100, 45, 45) },
 	ender = { floor = C(219, 222, 158), column = C(205, 208, 145) },
 }
@@ -806,7 +806,7 @@ local function buildWorld(world)
 				Name = "Floor",
 				Size = V(T, 2, T),
 				Position = origin + V((i + 0.5) * T, -1, (j + 0.5) * T),
-				Color = shade(color, 0.12),
+				Color = shade(color, 0.2),
 				Material = material,
 				Parent = folder,
 			})
@@ -2567,7 +2567,7 @@ local function buildBoard(board, position)
 end
 
 for index, board in BOARDS do
-	buildBoard(board, worldOrigin(1) + V(-51 + (index - 1) * 34, 19, -(CONFIG.WorldTiles / 2) * CONFIG.TileSize + 0.6))
+	buildBoard(board, worldOrigin(1) + V(-51 + (index - 1) * 34, 27, -(CONFIG.WorldTiles / 2) * CONFIG.TileSize + 0.6))
 end
 
 local nameCache = {}
