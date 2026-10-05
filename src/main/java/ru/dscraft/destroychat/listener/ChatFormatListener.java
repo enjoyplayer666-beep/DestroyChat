@@ -115,7 +115,14 @@ public class ChatFormatListener implements Listener {
                 ? Component.empty() : ColorUtil.rich(split.prefix());
 
         Component name = nameStyler.chatName(sender, split.nickStyle(), group);
-        if (config.nameClickMsg()) {
+        var menu = config.playerMenu();
+        if (menu != null && menu.getBoolean("enabled", true)) {
+            java.util.Map<String, String> ph = java.util.Map.of("name", sender.getName(),
+                    "world", menu.getString("worlds." + sender.getWorld().getName(), sender.getWorld().getName()));
+            name = name
+                    .clickEvent(ClickEvent.runCommand("/" + ru.dscraft.destroychat.command.PlayerMenuCommand.NAME + " " + sender.getName()))
+                    .hoverEvent(HoverEvent.showText(ColorUtil.parse(menu.getString("name-hover", ""), ph)));
+        } else if (config.nameClickMsg()) {
             name = name
                     .clickEvent(ClickEvent.suggestCommand("/msg " + sender.getName() + " "))
                     .hoverEvent(HoverEvent.showText(Component.text("Написать в личные сообщения", NamedTextColor.GRAY)));

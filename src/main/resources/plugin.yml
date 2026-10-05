@@ -25,6 +25,9 @@ commands:
   chatprefix:
     description: Отдельный префикс для чата (то же, что /prefix chat)
     usage: /chatprefix <текст> | /chatprefix reset
+  dcplayer:
+    description: Меню действий над игроком (клик по нику в чате)
+    usage: /dcplayer <ник>
   contact:
     description: Контакты команды проекта
     usage: /contact

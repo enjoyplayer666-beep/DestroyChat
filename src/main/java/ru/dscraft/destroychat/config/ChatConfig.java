@@ -135,6 +135,11 @@ public class ChatConfig {
         return cfg.getString("format.global-message-color", "<#DBA078>");
     }
 
+    /** Меню действий по клику на ник (player-menu), null - нет раздела. */
+    public org.bukkit.configuration.ConfigurationSection playerMenu() {
+        return cfg.getConfigurationSection("player-menu");
+    }
+
     public boolean nameClickMsg() {
         return cfg.getBoolean("format.name-click-msg", true);
     }

@@ -26,6 +26,9 @@ public final class MediaBansPlugin extends ru.dscraft.destroychat.module.Module 
     static final List<String> COMMANDS = List.of(
             "ban", "tempban", "mute", "tempmute", "kick", "unban", "unmute", "checkban", "checkmute", "banlist", "mediabans");
 
+    /** Включённый модуль - для меню игрока в чате (DestroyChat). */
+    private static MediaBansPlugin instance;
+
     private PunishStore store;
     private final Access access = new Access();
     private final Style style = new Style();
@@ -36,6 +39,7 @@ public final class MediaBansPlugin extends ru.dscraft.destroychat.module.Module 
 
     @Override
     public void onEnable() {
+        instance = this;
         saveDefaultConfig();
         getConfig().options().copyDefaults(true);
         saveConfig();
@@ -62,6 +66,7 @@ public final class MediaBansPlugin extends ru.dscraft.destroychat.module.Module 
 
     @Override
     public void onDisable() {
+        instance = null;
         if (store != null) store.save();
     }
 
@@ -96,6 +101,12 @@ public final class MediaBansPlugin extends ru.dscraft.destroychat.module.Module 
     }
 
     // ---------------- для остальных классов ----------------
+
+    /** Может ли игрок выдать временный бан (ban) или мут (!ban). Модуль выключен - нет. */
+    public static boolean canPunish(org.bukkit.command.CommandSender sender, boolean ban) {
+        MediaBansPlugin p = instance;
+        return p != null && p.access.can(sender, ban ? Access.Action.TEMPBAN : Access.Action.TEMPMUTE);
+    }
 
     public PunishStore store() {
         return store;

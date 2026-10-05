@@ -38,6 +38,8 @@ public class CommandLogListener implements Listener {
         Player player = event.getPlayer();
         // пароли - никогда
         if (isAuth(message)) return;
+        // клик по нику в чате (меню игрока) - не команда игрока, в логи не пишем
+        if (message.toLowerCase(Locale.ROOT).startsWith("/" + ru.dscraft.destroychat.command.PlayerMenuCommand.NAME + " ")) return;
         // опы видят все команды всех игроков, команда проекта - только команды из staff-visible
         boolean forStaff = logged(cfg.getStringList("command-log.staff-visible"), message);
 

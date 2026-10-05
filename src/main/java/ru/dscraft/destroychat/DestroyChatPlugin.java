@@ -10,6 +10,7 @@ import ru.dscraft.destroychat.command.ChatPrefixCommand;
 import ru.dscraft.destroychat.command.ColorCommand;
 import ru.dscraft.destroychat.command.BackCommand;
 import ru.dscraft.destroychat.command.ContactCommand;
+import ru.dscraft.destroychat.command.PlayerMenuCommand;
 import ru.dscraft.destroychat.command.StaffCommands;
 import ru.dscraft.destroychat.config.ChatConfig;
 import ru.dscraft.destroychat.hook.LuckPermsHook;
@@ -107,6 +108,11 @@ public final class DestroyChatPlugin extends JavaPlugin {
                 getCommand(name).setExecutor(staffCommands);
                 getCommand(name).setTabCompleter(staffCommands);
             }
+        }
+
+        // меню действий над игроком (клик по нику в чате)
+        if (getCommand(PlayerMenuCommand.NAME) != null) {
+            getCommand(PlayerMenuCommand.NAME).setExecutor(new PlayerMenuCommand(this));
         }
 
         // /contact - контакты команды проекта (contacts.yml), доступна всем

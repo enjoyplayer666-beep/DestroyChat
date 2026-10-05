@@ -177,6 +177,15 @@ public class CommandAccess implements Listener {
         return out;
     }
 
+    /** Можно ли игроку ввести эту команду (строка с / или без). */
+    public boolean canUse(Player player, String line) {
+        if (unrestricted(player)) return true;
+        String text = line.startsWith("/") ? line.substring(1) : line;
+        String[] parts = text.trim().split(" ", 2);
+        String label = parts[0].toLowerCase(Locale.ROOT);
+        return label.indexOf(':') < 0 && canRun(allowed(player), label, parts.length > 1 ? parts[1] : "");
+    }
+
     /** Имя, под которым ввели команду, её главное имя и все алиасы. */
     private static Set<String> names(String label) {
         Set<String> out = new HashSet<>();
@@ -285,6 +294,8 @@ public class CommandAccess implements Listener {
         if (text.length() < 2) return;
         String[] parts = text.substring(1).split(" ", 2);
         String label = parts[0].toLowerCase(Locale.ROOT);
+        // меню игрока по клику на ник - у всех, без антиспама и не видно в Tab
+        if (label.equals(ru.dscraft.destroychat.command.PlayerMenuCommand.NAME)) return;
         if (label.indexOf(':') >= 0 || !canRun(allowed(player), label, parts.length > 1 ? parts[1] : "")) {
             event.setCancelled(true);
             player.sendMessage(message());

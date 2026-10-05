@@ -34,8 +34,53 @@ format:
   # цвет сообщений по умолчанию (сняты со скрина)
   local-message-color: "<#AFAABF>"
   global-message-color: "<#DBA078>"
-  # клик по нику в чате -> /msg ник
+  # клик по нику в чате -> /msg ник (если меню игрока ниже выключено)
   name-click-msg: true
+
+# Меню действий над игроком: клик по нику в чате. {name} - ник, {world} - мир (названия из worlds).
+# Пункт видят только те, кому доступна его команда (commands.yml).
+# need: mute - только кто может мутить (MediaBans: ultra и выше), need: ban - банить (elitesp), команда проекта - всё.
+# action: suggest - вставить команду в чат, run - выполнить сразу. После правки: /destroychat reload
+player-menu:
+  enabled: true
+  name-hover: "<#C9C9FB>Ник:</#C9C9FB> <white>{name}</white>\n<#C9C9FB>Мир:</#C9C9FB> <white>{world}</white>\n\n<#9B6BFF>Нажми, чтобы выбрать действие.</#9B6BFF>"
+  worlds:
+    world: "Лобби"
+    world_skypvp: "SkyPvP"
+    world_nether: "Незер"
+    world_the_end: "Энд"
+  self: "<#C9C9FB>Это ты :)</#C9C9FB>"
+  top: ""
+  title: " <#9B6BFF><bold>Выберите действие над игроком</bold></#9B6BFF>"
+  border: "<#6E4BC9><strikethrough>                                                  </strikethrough></#6E4BC9>"
+  items:
+    msg:
+      text: "  <#5AA9FF>[✉]</#5AA9FF> <white>Написать в ЛС</white>"
+      hover: "<white>Написать личное сообщение <#5AA9FF>{name}</#5AA9FF></white>"
+      action: suggest
+      command: "/msg {name} "
+    clan:
+      text: "  <#FFA63D>[⚑]</#FFA63D> <white>Пригласить в клан</white>"
+      hover: "<white>Пригласить в клан <#FFA63D>{name}</#FFA63D></white>"
+      action: run
+      command: "/clan invite {name}"
+    tpa:
+      text: "  <#B57CFF>[⚡]</#B57CFF> <white>Запросить телепорт</white>"
+      hover: "<white>Запрос телепортации к <#B57CFF>{name}</#B57CFF></white>"
+      action: run
+      command: "/tpa {name}"
+    mute:
+      text: "  <#FF5555>[✖]</#FF5555> <white>Выдать мут</white>"
+      hover: "<white>Выдать временный мут <#FF5555>{name}</#FF5555></white>"
+      action: suggest
+      command: "/tempmute {name} "
+      need: mute
+    ban:
+      text: "  <#FF3B3B>[⊘]</#FF3B3B> <white>Выдать бан</white>"
+      hover: "<white>Выдать временный бан <#FF3B3B>{name}</#FF3B3B></white>"
+      action: suggest
+      command: "/tempban {name} "
+      need: ban
 
 # звёзды после ника в чате для персонала: группа LuckPerms -> звёзды.
 # Проверяется сверху вниз, берётся первая группа, которая есть у игрока (с учётом наследования).
