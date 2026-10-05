@@ -42,7 +42,6 @@ local CONFIG = {
 	ComboWindow = 1.5, -- сколько секунд держится комбо между ударами
 	ComboMax = 50, -- на комбо 50 и выше монеты x2
 	RebirthBonus = 0.5, -- +50% монет за каждый ребёрт
-	MaxEquippedPets = 3, -- сколько питомцев можно надеть
 	MaxPets = 60, -- размер инвентаря питомцев
 	TradeMaxPets = 8, -- сколько питомцев можно положить в один трейд
 	TradeCountdown = 3, -- отсчёт перед обменом (сек)
@@ -78,6 +77,42 @@ local ADDONS = {
 	{ id = "blast", name = "Взрыв", desc = "+8% шанс взрыва, задевает блоки рядом", baseCost = 2000, growth = 4 },
 	{ id = "auto", name = "Автокопка", desc = "Кирка сама бьёт ближайший блок", baseCost = 1500, growth = 4 },
 }
+------------------------------------------------------------------
+-- УЛУЧШЕНИЯ У КРИПЕРА: слоты питомцев (сколько можно надеть).
+-- Цена — сколько изумрудов стоит открыть этот слот.
+------------------------------------------------------------------
+local BASE_PET_SLOTS = 1
+local MAX_PET_SLOTS = 5
+local PET_SLOT_PRICES = { [2] = 2500, [3] = 40000, [4] = 750000, [5] = 15000000 }
+
+------------------------------------------------------------------
+-- АУРЫ У ЭНДЕРМЕНА: пламя вокруг игрока, boost — множитель изумрудов
+------------------------------------------------------------------
+local AURAS = {
+	{ id = "flame", name = "Пламя", boost = 1.2, price = 5000, color = C(255, 140, 40), secondary = C(255, 220, 80) },
+	{ id = "soul", name = "Пламя душ", boost = 1.5, price = 100000, color = C(70, 200, 255), secondary = C(190, 240, 255) },
+	{ id = "emerald", name = "Изумрудное пламя", boost = 2, price = 2000000, color = C(60, 230, 90), secondary = C(200, 255, 180) },
+	{ id = "ender", name = "Пламя Края", boost = 3, price = 50000000, color = C(190, 90, 255), secondary = C(240, 190, 255) },
+	{ id = "dragon", name = "Дыхание дракона", boost = 5, price = 1000000000, color = C(255, 60, 200), secondary = C(255, 200, 240) },
+}
+local AURA_BY_ID = {}
+for _, aura in AURAS do
+	AURA_BY_ID[aura.id] = aura
+end
+
+------------------------------------------------------------------
+-- ЗЕЛЬЯ У ТОРГОВЦА: цена = max(base, цена_уровня_кирки * mult)
+------------------------------------------------------------------
+local POTIONS = {
+	{ id = "wealth", name = "Зелье богатства", desc = "x2 изумрудов на 10 минут", minutes = 10, base = 1500, mult = 4, color = C(80, 230, 100) },
+	{ id = "power", name = "Зелье силы", desc = "x2 урона на 10 минут", minutes = 10, base = 1500, mult = 4, color = C(235, 60, 60) },
+	{ id = "speed", name = "Зелье скорости", desc = "Быстрый бег на 10 минут", minutes = 10, base = 300, mult = 1, color = C(90, 170, 255) },
+}
+local POTION_BY_ID = {}
+for _, potion in POTIONS do
+	POTION_BY_ID[potion.id] = potion
+end
+
 local ADDON_BY_ID = {}
 for _, addon in ADDONS do
 	ADDON_BY_ID[addon.id] = addon
@@ -505,6 +540,7 @@ local announceRemote = makeRemote("RemoteEvent", "Announce")
 local petRemote = makeRemote("RemoteEvent", "Pets")
 local inventoryRemote = makeRemote("RemoteEvent", "Inventory")
 local openEggRemote = makeRemote("RemoteEvent", "OpenEgg")
+local uiRemote = makeRemote("RemoteEvent", "UI")
 local eggResultRemote = makeRemote("RemoteEvent", "EggOpened")
 local worldRemote = makeRemote("RemoteEvent", "World")
 local tradeRemote = makeRemote("RemoteEvent", "Trade")
@@ -693,8 +729,11 @@ end
 
 local SPAWN_Z = -(CONFIG.WorldTiles / 2 - 1.5) * CONFIG.TileSize
 
+local HUB_SPAWN = V(0, 0.5, -140)
+local spawnSpots = {} -- [worldId] = { { key, x, z } } — где могут появляться блоки
+
 local function spawnCFrame(id)
-	local position = worldOrigin(id) + V(0, 4, SPAWN_Z)
+	local position = id == 1 and HUB_SPAWN + V(0, 3.5, 0) or worldOrigin(id) + V(0, 4, SPAWN_Z)
 	return CFrame.lookAt(position, position + V(0, 0, 1))
 end
 
@@ -760,19 +799,241 @@ local function buildPortal(folder, position, target)
 	portal.Parent = folder
 end
 
-local function buildEggStand(folder, position, world)
-	local egg = world.egg
-	local stand = Instance.new("Model")
-	stand.Name = "EggStand"
-	local pedestal = makePart({ Name = "Pedestal", Size = V(7, 2, 7), Position = position + V(0, 1, 0), Color = C(60, 60, 70), Parent = stand })
-	makePart({ Size = V(4, 2, 4), Position = position + V(0, 3, 0), Color = egg.color, Parent = stand })
-	local middle = makePart({ Size = V(5, 3, 5), Position = position + V(0, 5.5, 0), Color = egg.color, Parent = stand })
-	local top = makePart({ Size = V(3.5, 2, 3.5), Position = position + V(0, 8, 0), Color = egg.color, Parent = stand })
-	addSpots(stand, middle, { egg.spot }, 3, { sidesOnly = true })
-	addLabel(top, egg.name .. "\n" .. EM .. " " .. abbreviate(egg.price), GOLD, V(0, 3.5, 0))
+------------------------------------------------------------------
+-- ФИГУРЫ ИЗ КУБИКОВ (мобы-НПС). Строятся лицом к -Z, ноги на земле (y = 0).
+------------------------------------------------------------------
+local function buildFigure(name, build)
+	local model = Instance.new("Model")
+	model.Name = name
+	local function box(size, position, color, material, spots)
+		local part = makePart({ Size = size, Position = position, Color = color, Material = material or SMOOTH, Parent = model })
+		if spots then
+			addSpots(model, part, spots, 4)
+		end
+		return part
+	end
+	local function pair(size, position, color, material, spots)
+		box(size, position, color, material, spots)
+		box(size, V(-position.X, position.Y, position.Z), color, material, spots)
+	end
+	build(box, pair)
+	model.WorldPivot = CFrame.new()
+	return model
+end
+
+local function creeperNpc()
+	return buildFigure("Крипер", function(box, pair)
+		local green = C(85, 165, 75)
+		local camo = { C(60, 140, 55), C(115, 200, 95), C(45, 110, 45), C(150, 220, 130) }
+		pair(V(1, 1.5, 1), V(0.5, 0.75, -1), green, nil, camo)
+		pair(V(1, 1.5, 1), V(0.5, 0.75, 1), green, nil, camo)
+		box(V(2, 3, 1), V(0, 3, 0), green, nil, camo)
+		box(V(2, 2, 2), V(0, 5.5, 0), green, nil, camo)
+		local face = C(25, 35, 25)
+		pair(V(0.5, 0.5, 0.2), V(0.5, 5.75, -1.06), face)
+		box(V(0.5, 0.75, 0.2), V(0, 5.125, -1.06), face)
+		pair(V(0.25, 0.75, 0.2), V(0.375, 4.875, -1.06), face)
+	end)
+end
+
+local function endermanNpc()
+	local model = buildFigure("Эндермен", function(box, pair)
+		local black = C(18, 18, 22)
+		local dark = { C(32, 32, 40), C(26, 26, 32) }
+		pair(V(0.36, 5.4, 0.36), V(0.36, 2.7, 0), black, nil, dark)
+		box(V(1.44, 2.16, 0.72), V(0, 6.48, 0), black, nil, dark)
+		pair(V(0.36, 5.4, 0.36), V(0.9, 4.86, 0), black, nil, dark)
+		box(V(1.44, 1.44, 1.44), V(0, 8.28, 0), black, nil, dark)
+		pair(V(0.54, 0.18, 0.16), V(0.4, 8.19, -0.78), C(225, 120, 255), NEON)
+		pair(V(0.18, 0.18, 0.2), V(0.31, 8.19, -0.8), C(255, 215, 255), NEON)
+	end)
+	local body = model:FindFirstChildWhichIsA("BasePart")
+	if body then
+		local particles = Instance.new("ParticleEmitter")
+		particles.Color = ColorSequence.new(C(200, 90, 255))
+		particles.LightEmission = 1
+		particles.Size = NumberSequence.new(0.25)
+		particles.Rate = 10
+		particles.Lifetime = NumberRange.new(1.5, 2.5)
+		particles.Speed = NumberRange.new(0.5, 1.5)
+		particles.SpreadAngle = Vector2.new(180, 180)
+		particles.Parent = body
+	end
+	return model
+end
+
+local function villagerNpc(robe, apron)
+	return buildFigure("Житель", function(box, pair)
+		local skin = C(190, 135, 100)
+		local skinSpots = { C(175, 120, 90), C(200, 145, 110) }
+		box(V(1.76, 4.4, 1.32), V(0, 2.2, 0), robe, nil, { robe:Lerp(DARK, 0.2), robe:Lerp(WHITE, 0.1) })
+		if apron then
+			box(V(1.5, 3.0, 0.1), V(0, 2.0, -0.71), apron)
+		end
+		box(V(2.2, 0.7, 0.7), V(0, 3.3, -0.95), robe)
+		box(V(0.9, 0.55, 0.12), V(0, 3.3, -1.32), skin)
+		box(V(1.76, 2.2, 1.76), V(0, 5.5, 0), skin, nil, skinSpots)
+		box(V(0.44, 0.88, 0.44), V(0, 5.0, -1.1), C(170, 115, 85))
+		box(V(1.2, 0.2, 0.12), V(0, 5.85, -0.92), C(80, 55, 40))
+		pair(V(0.4, 0.22, 0.12), V(0.36, 5.6, -0.92), C(240, 240, 240))
+		pair(V(0.2, 0.22, 0.14), V(0.26, 5.6, -0.93), C(40, 140, 60))
+	end)
+end
+
+------------------------------------------------------------------
+-- ЛАВКА С НПС. Строится лицом к -Z, потом ставится на место.
+------------------------------------------------------------------
+local function buildStall(folder, cf, title, color, icon, windowName, npc)
+	local model = Instance.new("Model")
+	model.Name = "Stall_" .. windowName
+	local wood, woodDark = C(200, 132, 62), C(150, 95, 45)
+	local counter = makePart({ Name = "Counter", Size = V(12, 3.2, 2.6), Position = V(0, 1.6, -2), Color = wood, Parent = model })
+	addSpots(model, counter, { woodDark, wood:Lerp(WHITE, 0.15) }, 5)
+	makePart({ Size = V(12.6, 0.5, 3), Position = V(0, 3.45, -2), Color = woodDark, Parent = model })
+	for _, x in { -5.7, 5.7 } do
+		for _, z in { -3.4, 3.2 } do
+			makePart({ Size = V(0.8, 10, 0.8), Position = V(x, 5, z), Color = woodDark, Parent = model })
+		end
+	end
+	-- полосатый навес
+	for i = 0, 5 do
+		local stripe = i % 2 == 0 and color or WHITE
+		makePart({ Size = V(2.2, 0.6, 7.8), Position = V(-5.5 + i * 2.2, 10.3, -0.1), Color = stripe, Parent = model })
+		makePart({ Size = V(2.2, 0.9, 0.3), Position = V(-5.5 + i * 2.2, 9.6, -4.1), Color = stripe, Parent = model })
+	end
+	-- вывеска с пиксельной иконкой (иконку дорисует клиент)
+	local sign = makePart({ Name = "Sign", Size = V(0.4, 0.4, 0.4), Position = V(0, 12, -2), Transparency = 1, CanCollide = false, Parent = model })
+	local gui = Instance.new("BillboardGui")
+	gui.Size = UDim2.fromOffset(280, 70)
+	gui.MaxDistance = 140
+	gui.LightInfluence = 0
+	gui.Parent = sign
+	local slot = Instance.new("Frame")
+	slot.Name = "PixelIconSlot"
+	slot.BackgroundTransparency = 1
+	slot.Size = UDim2.fromOffset(64, 64)
+	slot.Position = UDim2.fromOffset(0, 3)
+	slot:SetAttribute("Icon", icon)
+	slot.Parent = gui
+	local text = Instance.new("TextLabel")
+	text.BackgroundTransparency = 1
+	text.Position = UDim2.fromOffset(70, 0)
+	text.Size = UDim2.new(1, -70, 1, 0)
+	text.Font = Enum.Font.GothamBlack
+	text.TextScaled = true
+	text.TextXAlignment = Enum.TextXAlignment.Left
+	text.TextColor3 = WHITE
+	text.Text = title
+	text.Parent = gui
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 3
+	stroke.Color = C(15, 15, 20)
+	stroke.Parent = text
+
+	npc:PivotTo(CFrame.new(0, 0, 1))
+	npc.Parent = model
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Открыть"
+	prompt.ObjectText = title
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 12
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = counter
+	prompt.Triggered:Connect(function(player)
+		uiRemote:FireClient(player, "open", windowName)
+	end)
+
+	model.WorldPivot = CFrame.new()
+	model:PivotTo(cf)
+	model.Parent = folder
+end
+
+------------------------------------------------------------------
+-- ЯЙЦО ПРИЗЫВА (как в Майнкрафте). Строится лицом к -Z.
+------------------------------------------------------------------
+local function colorHex(color)
+	return string.format("#%02X%02X%02X", math.floor(color.R * 255), math.floor(color.G * 255), math.floor(color.B * 255))
+end
+
+local function buildSpawnEgg(folder, cf, world, creeperFace)
+	local egg = world.egg
+	local model = Instance.new("Model")
+	model.Name = "SpawnEgg_" .. world.id
+	local pedestal = makePart({ Name = "Pedestal", Size = V(8, 2, 8), Position = V(0, 1, 0), Color = C(75, 75, 85), Parent = model })
+	addSpots(model, pedestal, { C(60, 60, 70), C(100, 100, 110) }, 5)
+
+	local voxel, layers, radius, middle = 0.8, 11, 3.2, 0.4
+	local spotColors = { egg.spot, egg.spot:Lerp(DARK, 0.2), egg.color:Lerp(WHITE, 0.25) }
+	local layerDepth = {}
+	for i = 0, layers - 1 do
+		local t = (i + 0.5) / layers
+		local k = t < middle and (t - middle) / middle or (t - middle) / (1 - middle)
+		local r = radius * math.sqrt(math.max(0.06, 1 - k * k))
+		local wide = math.max(voxel, math.floor(r * 2 / voxel + 0.5) * voxel)
+		local narrow = math.max(voxel, math.floor(r * 1.25 / voxel + 0.5) * voxel)
+		local y = 2 + voxel * (i + 0.5)
+		makePart({ Size = V(wide, voxel, narrow), Position = V(0, y, 0), Color = egg.color, Parent = model })
+		makePart({ Size = V(narrow, voxel, wide), Position = V(0, y, 0), Color = egg.color, Parent = model })
+		layerDepth[i] = wide
+		-- пятна
+		for _ = 1, 3 do
+			local along = (math.random(0, math.max(0, narrow / voxel - 1)) - (narrow / voxel - 1) / 2) * voxel
+			local out = wide / 2 + 0.03
+			local side = math.random(1, 4)
+			local offset = side == 1 and V(along, 0, -out) or side == 2 and V(along, 0, out) or side == 3 and V(-out, 0, along) or V(out, 0, along)
+			local thin = (side <= 2) and V(voxel, voxel, 0.1) or V(0.1, voxel, voxel)
+			makePart({ Size = thin, Position = V(0, y, 0) + offset, Color = spotColors[math.random(1, #spotColors)], CanCollide = false, Parent = model })
+		end
+	end
+	if creeperFace then
+		local face = C(20, 40, 20)
+		local function facePixel(x, layer, height)
+			local z = -layerDepth[layer] / 2 - 0.08
+			makePart({ Size = V(voxel, voxel * height, 0.16), Position = V(x, 2 + voxel * (layer + height / 2), z), Color = face, CanCollide = false, Parent = model })
+		end
+		facePixel(-voxel, 7, 1)
+		facePixel(voxel, 7, 1)
+		facePixel(0, 4, 2)
+		facePixel(-voxel, 3, 2)
+		facePixel(voxel, 3, 2)
+	end
+
+	-- надпись: название, цена и шансы питомцев
+	local lines = { '<font size="34">' .. egg.name .. "</font>", EM .. " " .. abbreviate(egg.price) }
+	local total = 0
+	for _, entry in egg.pets do
+		total += entry.weight
+	end
+	for _, entry in egg.pets do
+		local rarity = RARITIES[PETS[entry.kind].rarity]
+		local chance = entry.weight / total * 100
+		local chanceText = chance < 1 and string.format("%.1f%%", chance) or (math.floor(chance + 0.5) .. "%")
+		table.insert(lines, '<font color="' .. colorHex(rarity.color) .. '">' .. entry.kind .. "</font>  " .. chanceText)
+	end
+	local top = makePart({ Name = "Top", Size = V(0.4, 0.4, 0.4), Position = V(0, 12, 0), Transparency = 1, CanCollide = false, Parent = model })
+	local gui = Instance.new("BillboardGui")
+	gui.Size = UDim2.fromOffset(240, 34 * #lines)
+	gui.StudsOffset = V(0, 1.5 + #lines * 0.45, 0)
+	gui.MaxDistance = 70
+	gui.LightInfluence = 0
+	gui.Parent = top
+	local text = Instance.new("TextLabel")
+	text.BackgroundTransparency = 1
+	text.Size = UDim2.fromScale(1, 1)
+	text.Font = Enum.Font.GothamBlack
+	text.TextScaled = true
+	text.RichText = true
+	text.TextColor3 = WHITE
+	text.Text = table.concat(lines, "\n")
+	text.Parent = gui
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2.5
+	stroke.Color = C(15, 15, 20)
+	stroke.Parent = text
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "Открыть яйцо"
 	prompt.ObjectText = egg.name .. " (" .. abbreviate(egg.price) .. " изумрудов)"
 	prompt.HoldDuration = 0
 	prompt.MaxActivationDistance = 12
@@ -781,10 +1042,332 @@ local function buildEggStand(folder, position, world)
 	prompt.Triggered:Connect(function(player)
 		openEgg(player, world.id)
 	end)
-	stand.Parent = folder
+
+	model.WorldPivot = CFrame.new()
+	model:PivotTo(cf)
+	model.Parent = folder
+end
+
+------------------------------------------------------------------
+-- ГЛАВНЫЙ МИР «Луга»: хаб с НПС, забор-«линия» и зона добычи:
+-- остров посреди озера, холмы-террасы с деревьями, ручьи и водопады
+------------------------------------------------------------------
+local ISLAND_CENTER = V(0, 0, 45)
+local ISLAND_RADIUS = 48
+local LAKE_RADIUS = 64
+local GATE_Z = -60
+local HUB = { minX = -60, maxX = 60, minZ = -168, maxZ = GATE_Z }
+local MAIN_BOUNDS = { minX = -126, maxX = 126, minZ = -174, maxZ = 156 }
+local STREAM_ANGLES = { 30, 90, 150, 205 }
+local WATER = C(55, 125, 220)
+local FALL = C(110, 180, 250)
+
+local function mainTileKind(x, z)
+	if x >= HUB.minX and x <= HUB.maxX and z >= HUB.minZ and z <= HUB.maxZ then
+		return "hub", 0
+	end
+	local dx, dz = x - ISLAND_CENTER.X, z - ISLAND_CENTER.Z
+	local r = math.sqrt(dx * dx + dz * dz)
+	if math.abs(x) <= 9 and z < ISLAND_CENTER.Z and r >= LAKE_RADIUS then
+		return "path", r
+	end
+	if r < ISLAND_RADIUS - 3 then
+		return "island", r
+	elseif r < ISLAND_RADIUS then
+		return "sand", r
+	elseif r < LAKE_RADIUS then
+		return "water", r
+	end
+	return "hill", r
+end
+
+local function buildCherry(folder, base)
+	makePart({ Name = "Log", Size = V(2.4, 10, 2.4), Position = base + V(0, 5, 0), Color = C(75, 45, 45), Parent = folder })
+	local pink = C(245, 175, 205)
+	makePart({ Name = "Leaves", Size = V(14, 5, 14), Position = base + V(0, 11, 0), Color = shade(pink, 0.12), Parent = folder })
+	makePart({ Name = "Leaves", Size = V(9, 4, 9), Position = base + V(0, 15, 0), Color = shade(pink, 0.12), Parent = folder })
+end
+
+local function buildMainWorld(world)
+	local T = CONFIG.TileSize
+	local folder = Instance.new("Folder")
+	folder.Name = world.name
+	local spots = {}
+	spawnSpots[world.id] = spots
+
+	-- 1. Высоты холмов
+	local tiles = {}
+	for x = MAIN_BOUNDS.minX + T / 2, MAIN_BOUNDS.maxX, T do
+		for z = MAIN_BOUNDS.minZ + T / 2, MAIN_BOUNDS.maxZ, T do
+			local kind, r = mainTileKind(x, z)
+			local height = 0
+			if kind == "hill" then
+				local bump = math.floor((math.noise(x / 40, z / 40, 3.7) + 0.5) * 2.5)
+				height = math.clamp(1 + math.floor((r - LAKE_RADIUS) / 7) + bump, 1, 10)
+			end
+			tiles[x .. "," .. z] = { x = x, z = z, kind = kind, r = r, height = height }
+		end
+	end
+	local function topOf(tile)
+		if not tile then
+			return -0.6
+		end
+		if tile.kind == "hill" then
+			return tile.height * 4
+		elseif tile.kind == "water" then
+			return -0.6
+		end
+		return 0
+	end
+	local function tileAt(x, z)
+		local tx = math.floor((x - MAIN_BOUNDS.minX) / T) * T + MAIN_BOUNDS.minX + T / 2
+		local tz = math.floor((z - MAIN_BOUNDS.minZ) / T) * T + MAIN_BOUNDS.minZ + T / 2
+		return tiles[tx .. "," .. tz]
+	end
+	local function streamAngle(tile)
+		local dx, dz = tile.x - ISLAND_CENTER.X, tile.z - ISLAND_CENTER.Z
+		for _, angle in STREAM_ANGLES do
+			local a = math.rad(angle)
+			local along = dx * math.cos(a) + dz * math.sin(a)
+			local perp = math.abs(-dx * math.sin(a) + dz * math.cos(a))
+			if along > 0 and perp < 3.6 and tile.r < 112 then
+				return a
+			end
+		end
+		return nil
+	end
+
+	-- 2. Строим плитки
+	for _, tile in tiles do
+		local x, z = tile.x, tile.z
+		if tile.kind == "hub" then
+			local path = math.abs(x) <= 6
+			makePart({
+				Name = path and "Path" or "Grass",
+				Size = V(T, 2, T),
+				Position = V(x, -1, z),
+				Color = shade(path and C(140, 135, 128) or C(84, 140, 50), 0.2),
+				Parent = folder,
+			})
+		elseif tile.kind == "path" then
+			makePart({
+				Name = "Path",
+				Size = V(T, 2, T),
+				Position = V(x, -1, z),
+				Color = shade(math.abs(x) <= 6 and C(140, 135, 128) or C(84, 140, 50), 0.2),
+				Parent = folder,
+			})
+		elseif tile.kind == "island" then
+			makePart({ Name = "Grass", Size = V(T, 2, T), Position = V(x, -1, z), Color = shade(C(88, 148, 52), 0.2), Parent = folder })
+			if tile.r < ISLAND_RADIUS - 6 then
+				table.insert(spots, { key = x .. "," .. z, x = x, z = z })
+			end
+		elseif tile.kind == "sand" then
+			makePart({ Name = "Sand", Size = V(T, 2, T), Position = V(x, -1, z), Color = shade(C(220, 205, 150), 0.12), Parent = folder })
+		elseif tile.kind == "water" then
+			makePart({ Name = "LakeBed", Size = V(T, 2, T), Position = V(x, -4, z), Color = shade(C(200, 185, 135), 0.15), Parent = folder })
+			makePart({
+				Name = "Water",
+				Size = V(T, 0.4, T),
+				Position = V(x, -0.8, z),
+				Color = shade(WATER, 0.08),
+				Transparency = 0.3,
+				CanCollide = false,
+				CanQuery = false,
+				Parent = folder,
+			})
+		else
+			local top = tile.height * 4
+			makePart({ Name = "Hill", Size = V(T, top + 2, T), Position = V(x, top / 2 - 1, z), Color = shade(C(134, 96, 67), 0.15), Parent = folder })
+			local angle = streamAngle(tile)
+			if angle then
+				-- ручей сверху и водопад вниз, к следующей ступеньке
+				makePart({
+					Name = "Stream",
+					Size = V(T + 0.02, 0.4, T + 0.02),
+					Position = V(x, top + 0.1, z),
+					Color = shade(WATER, 0.08),
+					Transparency = 0.15,
+					CanCollide = false,
+					Parent = folder,
+				})
+				local inward = V(-math.cos(angle), 0, -math.sin(angle))
+				local below = topOf(tileAt(x + inward.X * T, z + inward.Z * T))
+				local drop = top - below
+				if drop > 0.5 then
+					local edge = V(x, below + drop / 2 + 0.1, z) + inward * (T / 2)
+					local fall = makePart({
+						Name = "Waterfall",
+						Size = V(T - 0.6, drop, 0.6),
+						Color = FALL,
+						Transparency = 0.1,
+						CanCollide = false,
+						Parent = folder,
+					})
+					fall.CFrame = CFrame.lookAt(edge, edge + inward)
+					makePart({
+						Name = "Foam",
+						Size = V(T, 0.3, 2.5),
+						Color = WHITE,
+						Transparency = 0.25,
+						CanCollide = false,
+						CFrame = CFrame.lookAt(V(edge.X, below + 0.2, edge.Z), V(edge.X, below + 0.2, edge.Z) + inward) * CFrame.new(0, 0, -1),
+						Parent = folder,
+					})
+				end
+			else
+				makePart({ Name = "Grass", Size = V(T + 0.05, 1.2, T + 0.05), Position = V(x, top - 0.58, z), Color = shade(C(95, 155, 55), 0.15), Parent = folder })
+				if tile.height <= 7 and math.random() < 0.13 then
+					if math.random() < 0.55 then
+						buildCherry(folder, V(x, top, z))
+					else
+						buildTree(folder, V(x, top, z))
+					end
+				end
+			end
+		end
+	end
+
+	-- 3. Мост через озеро
+	local bridgeFrom = ISLAND_CENTER.Z - LAKE_RADIUS - 2
+	local bridgeTo = ISLAND_CENTER.Z - ISLAND_RADIUS + 3
+	for z = bridgeFrom, bridgeTo, 2 do
+		makePart({ Name = "Plank", Size = V(10, 1, 2), Position = V(0, -0.5, z + 1), Color = shade(C(170, 120, 65), 0.15), Parent = folder })
+	end
+	for _, x in { -5, 5 } do
+		makePart({
+			Name = "Rail",
+			Size = V(0.6, 0.5, bridgeTo - bridgeFrom + 2),
+			Position = V(x, 2, (bridgeFrom + bridgeTo) / 2 + 1),
+			Color = C(120, 80, 40),
+			Parent = folder,
+		})
+		for z = bridgeFrom, bridgeTo + 2, 4 do
+			makePart({ Name = "Post", Size = V(0.7, 2.4, 0.7), Position = V(x, 1, z), Color = C(110, 72, 36), Parent = folder })
+		end
+	end
+
+	-- 4. Забор-«линия» с воротами в зону добычи
+	for x = HUB.minX, HUB.maxX, 3 do
+		if math.abs(x) > 9 then
+			makePart({ Name = "Fence", Size = V(0.7, 3, 0.7), Position = V(x, 1.5, GATE_Z), Color = C(130, 88, 45), Parent = folder })
+		end
+	end
+	for _, side in { -1, 1 } do
+		local from, to = 9.5 * side, HUB.maxX * side
+		makePart({
+			Name = "FenceRail",
+			Size = V(math.abs(to - from), 0.4, 0.4),
+			Position = V((from + to) / 2, 2.4, GATE_Z),
+			Color = C(150, 100, 52),
+			Parent = folder,
+		})
+		makePart({
+			Name = "FenceRail",
+			Size = V(math.abs(to - from), 0.4, 0.4),
+			Position = V((from + to) / 2, 1.2, GATE_Z),
+			Color = C(150, 100, 52),
+			Parent = folder,
+		})
+		makePart({ Name = "GatePost", Size = V(1.4, 11, 1.4), Position = V(10 * side, 5.5, GATE_Z), Color = C(110, 72, 36), Parent = folder })
+	end
+	local gateBeam = makePart({ Name = "GateBeam", Size = V(22, 1.6, 1.6), Position = V(0, 11.5, GATE_Z), Color = C(110, 72, 36), Parent = folder })
+	addLabel(gateBeam, "ЗОНА ДОБЫЧИ", C(110, 255, 80), V(0, 2.5, 0))
+	for i = -9, 8 do
+		makePart({
+			Name = "Line",
+			Size = V(1, 0.1, 1),
+			Position = V(i + 0.5, 0.05, GATE_Z + 0.5),
+			Color = i % 2 == 0 and WHITE or C(25, 25, 25),
+			CanCollide = false,
+			Parent = folder,
+		})
+		makePart({
+			Name = "Line",
+			Size = V(1, 0.1, 1),
+			Position = V(i + 0.5, 0.05, GATE_Z - 0.5),
+			Color = i % 2 == 0 and C(25, 25, 25) or WHITE,
+			CanCollide = false,
+			Parent = folder,
+		})
+	end
+
+	-- 5. Хаб: спавн, лавки с мобами, яйцо, порталы
+	local pad = Instance.new("SpawnLocation")
+	pad.Anchored = true
+	pad.Duration = 0
+	pad.Neutral = true
+	pad.Size = V(14, 1, 14)
+	pad.Position = HUB_SPAWN
+	pad.Material = NEON
+	pad.Color = world.accent
+	pad.TopSurface = Enum.SurfaceType.Smooth
+	pad.Parent = folder
+
+	local function facing(position, target)
+		return CFrame.lookAt(position, V(target.X, position.Y, target.Z))
+	end
+	buildStall(folder, facing(V(-24, 0, -112), V(0, 0, -112)), "Улучшения", C(80, 190, 70), "uparrow", "upgrades", creeperNpc())
+	buildStall(folder, facing(V(-24, 0, -86), V(0, 0, -86)), "Ауры", C(150, 70, 230), "fire", "auras", endermanNpc())
+	buildStall(folder, facing(V(24, 0, -112), V(0, 0, -112)), "Кирки", C(235, 130, 35), "pickaxe", "pickaxes", villagerNpc(C(115, 80, 50), C(55, 50, 50)))
+	buildStall(folder, facing(V(24, 0, -86), V(0, 0, -86)), "Магазин", C(50, 130, 230), "potion", "shop", villagerNpc(C(45, 75, 150), nil))
+
+	buildSpawnEgg(folder, facing(V(-30, 0, -134), V(0, 0, -134)), world, true)
+
+	local portalX = 28
+	for _, target in WORLDS do
+		if target.id ~= world.id then
+			buildPortal(folder, V(portalX, 0, -128), target)
+			portalX += 12
+		end
+	end
+
+	for _ = 1, 40 do
+		local x, z = math.random(-56, 56), math.random(-164, -66)
+		if math.abs(x) > 10 and math.abs(math.abs(x) - 24) > 8 then
+			makePart({ Name = "Stem", Size = V(0.3, 1.2, 0.3), Position = V(x, 0.6, z), Color = C(60, 140, 40), CanCollide = false, Parent = folder })
+			makePart({
+				Name = "Flower",
+				Size = V(0.8, 0.5, 0.8),
+				Position = V(x, 1.4, z),
+				Color = math.random() < 0.5 and C(230, 50, 50) or C(250, 220, 50),
+				CanCollide = false,
+				Parent = folder,
+			})
+		end
+	end
+
+	-- 6. Невидимые стены по краю
+	local cx, cz = (MAIN_BOUNDS.minX + MAIN_BOUNDS.maxX) / 2, (MAIN_BOUNDS.minZ + MAIN_BOUNDS.maxZ) / 2
+	local w, d = MAIN_BOUNDS.maxX - MAIN_BOUNDS.minX, MAIN_BOUNDS.maxZ - MAIN_BOUNDS.minZ
+	for _, wall in {
+		{ V(cx, 60, MAIN_BOUNDS.minZ), V(w, 140, 2) },
+		{ V(cx, 60, MAIN_BOUNDS.maxZ), V(w, 140, 2) },
+		{ V(MAIN_BOUNDS.minX, 60, cz), V(2, 140, d) },
+		{ V(MAIN_BOUNDS.maxX, 60, cz), V(2, 140, d) },
+	} do
+		makePart({ Name = "Barrier", Position = wall[1], Size = wall[2], Transparency = 1, Parent = folder })
+	end
+	for _ = 1, 12 do
+		makePart({
+			Name = "Cloud",
+			Size = V(math.random(20, 40), 4, math.random(12, 24)),
+			Position = V(math.random(-180, 180), math.random(90, 110), math.random(-200, 180)),
+			Color = WHITE,
+			Transparency = 0.1,
+			CanCollide = false,
+			Parent = folder,
+		})
+	end
+
+	folder.Parent = worldsFolder
 end
 
 local function buildWorld(world)
+	if world.id == 1 then
+		buildMainWorld(world)
+		return
+	end
 	local T = CONFIG.TileSize
 	local half = CONFIG.WorldTiles / 2
 	local ringSize = 3
@@ -966,7 +1549,16 @@ local function buildWorld(world)
 	end
 
 	-- Яйцо этого мира
-	buildEggStand(folder, origin + V(26, 0, SPAWN_Z), world)
+	buildSpawnEgg(folder, CFrame.lookAt(origin + V(26, 0, SPAWN_Z), origin + V(0, 0, SPAWN_Z)), world, false)
+
+	-- Где появляются блоки
+	local spots = {}
+	for i = -half + 1, half - 2 do
+		for j = -half + 5, half - 2 do
+			table.insert(spots, { key = i .. "," .. j, x = origin.X + (i + 0.5) * T, z = (j + 0.5) * T })
+		end
+	end
+	spawnSpots[world.id] = spots
 
 	folder.Parent = worldsFolder
 end
@@ -1095,10 +1687,27 @@ local function petBonus(player)
 	return total
 end
 
+local function petSlots(player)
+	local profile = profiles[player]
+	return profile and profile.petSlots or BASE_PET_SLOTS
+end
+
+local function boostActive(player, id)
+	local profile = profiles[player]
+	return profile ~= nil and (profile.boosts[id] or 0) > os.time()
+end
+
+local function auraBoost(player)
+	local profile = profiles[player]
+	local aura = profile and profile.aura and AURA_BY_ID[profile.aura]
+	return aura and aura.boost or 1
+end
+
 local function coinMultiplier(player)
 	local rebirths = stat(player, REBIRTH_STAT)
 	local rebirthMult = 1 + (rebirths and rebirths.Value or 0) * CONFIG.RebirthBonus
-	return rebirthMult * (1 + petBonus(player)) * (1 + addonLevel(player, "fortune") * 0.25)
+	local wealth = boostActive(player, "wealth") and 2 or 1
+	return rebirthMult * (1 + petBonus(player)) * (1 + addonLevel(player, "fortune") * 0.25) * auraBoost(player) * wealth
 end
 
 local function damageOf(player)
@@ -1106,7 +1715,8 @@ local function damageOf(player)
 	local profile = profiles[player]
 	local pickaxe = PICKAXES[profile and profile.pickaxe or 1]
 	local efficiency = 1 + addonLevel(player, "efficiency") * 0.2
-	return math.max(1, math.floor(level ^ 1.5 * pickaxe.damage * efficiency))
+	local power = boostActive(player, "power") and 2 or 1
+	return math.max(1, math.floor(level ^ 1.5 * pickaxe.damage * efficiency * power))
 end
 
 -- Обновляет атрибуты, которые читает интерфейс игрока
@@ -1123,6 +1733,16 @@ local function refreshPlayer(player)
 	player:SetAttribute("PetBonus", petBonus(player))
 	player:SetAttribute("CoinMultiplier", math.floor(coinMultiplier(player) * 100 + 0.5) / 100)
 	player:SetAttribute("Pickaxe", profile.pickaxe)
+	player:SetAttribute("PetSlots", profile.petSlots)
+	player:SetAttribute("Aura", profile.aura or "")
+	local owned = {}
+	for id in profile.auras do
+		table.insert(owned, id)
+	end
+	player:SetAttribute("Auras", table.concat(owned, ","))
+	for _, potion in POTIONS do
+		player:SetAttribute("Boost_" .. potion.id, profile.boosts[potion.id] or 0)
+	end
 	for _, addon in ADDONS do
 		player:SetAttribute("Addon_" .. addon.id, profile.addons[addon.id] or 0)
 	end
@@ -1180,7 +1800,25 @@ local function loadData(player)
 		playtime = saved.playtime or 0, -- секунд в игре
 		earned = saved.earned or saved.coins or 0, -- монет заработано за всё время
 		robux = saved.robux or 0, -- потрачено Robux
+		petSlots = math.clamp(saved.petSlots or BASE_PET_SLOTS, BASE_PET_SLOTS, MAX_PET_SLOTS),
+		auras = {},
+		aura = nil,
+		boosts = {},
 	}
+	for _, id in saved.auras or {} do
+		if AURA_BY_ID[id] then
+			profile.auras[id] = true
+		end
+	end
+	if saved.aura and profile.auras[saved.aura] then
+		profile.aura = saved.aura
+	end
+	for _, potion in POTIONS do
+		local ends = saved.boosts and saved.boosts[potion.id]
+		if typeof(ends) == "number" then
+			profile.boosts[potion.id] = ends
+		end
+	end
 	for _, id in saved.worlds or {} do
 		if WORLDS[id] then
 			profile.worlds[id] = true
@@ -1192,7 +1830,7 @@ local function loadData(player)
 		end
 	end
 	for _, id in saved.equipped or {} do
-		if findPet(profile, id) and #profile.equipped < CONFIG.MaxEquippedPets then
+		if findPet(profile, id) and #profile.equipped < profile.petSlots then
 			table.insert(profile.equipped, id)
 		end
 	end
@@ -1230,6 +1868,16 @@ local function saveData(player)
 		playtime = profile.playtime,
 		earned = profile.earned,
 		robux = profile.robux,
+		petSlots = profile.petSlots,
+		auras = (function()
+			local list = {}
+			for id in profile.auras do
+				table.insert(list, id)
+			end
+			return list
+		end)(),
+		aura = profile.aura,
+		boosts = profile.boosts,
 	}
 	local ok, err = pcall(function()
 		store:SetAsync("player_" .. player.UserId, data)
@@ -1325,6 +1973,39 @@ local function swingTool(player)
 	end
 end
 
+-- Аура: пламя вокруг игрока
+local function applyAura(player)
+	local profile = profiles[player]
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not profile or not root then
+		return
+	end
+	for _, name in { "AuraFire", "AuraLight" } do
+		local old = root:FindFirstChild(name)
+		if old then
+			old:Destroy()
+		end
+	end
+	local aura = profile.aura and AURA_BY_ID[profile.aura]
+	if not aura then
+		return
+	end
+	local fire = Instance.new("Fire")
+	fire.Name = "AuraFire"
+	fire.Color = aura.color
+	fire.SecondaryColor = aura.secondary
+	fire.Size = 6
+	fire.Heat = 7
+	fire.Parent = root
+	local light = Instance.new("PointLight")
+	light.Name = "AuraLight"
+	light.Color = aura.color
+	light.Brightness = 2
+	light.Range = 12
+	light.Parent = root
+end
+
 local function teleport(player, worldId)
 	player:SetAttribute("World", worldId)
 	local character = player.Character
@@ -1353,6 +2034,7 @@ local function onPlayerAdded(player)
 			character:PivotTo(spawnCFrame(world))
 		end
 		giveTool(player)
+		applyAura(player)
 	end)
 
 	local profile, saved = loadData(player)
@@ -1468,6 +2150,55 @@ shopRemote.OnServerEvent:Connect(function(player, action, arg)
 		refreshPlayer(player)
 		giveTool(player)
 		announce(player.DisplayName .. " получил: " .. def.name .. "!", def.color)
+	elseif action == "petSlot" then
+		local nextSlot = profile.petSlots + 1
+		local price = PET_SLOT_PRICES[nextSlot]
+		if not price then
+			return
+		end
+		if coins.Value < price then
+			announce("Нужно " .. EM .. " " .. abbreviate(price), RED, player)
+			return
+		end
+		coins.Value -= price
+		profile.petSlots = nextSlot
+		refreshPets(player)
+		announce("Слотов питомцев: " .. nextSlot .. "!", GREEN, player)
+	elseif action == "aura" then
+		local aura = typeof(arg) == "string" and AURA_BY_ID[arg]
+		if not aura then
+			return
+		end
+		if not profile.auras[aura.id] then
+			if coins.Value < aura.price then
+				announce("Нужно " .. EM .. " " .. abbreviate(aura.price), RED, player)
+				return
+			end
+			coins.Value -= aura.price
+			profile.auras[aura.id] = true
+			profile.aura = aura.id
+			announce("Аура «" .. aura.name .. "» получена!", aura.color)
+		elseif profile.aura == aura.id then
+			profile.aura = nil
+		else
+			profile.aura = aura.id
+		end
+		applyAura(player)
+		refreshPlayer(player)
+	elseif action == "potion" then
+		local potion = typeof(arg) == "string" and POTION_BY_ID[arg]
+		if not potion then
+			return
+		end
+		local price = math.max(potion.base, math.floor(levelCost(player:GetAttribute("Level") or 1) * potion.mult))
+		if coins.Value < price then
+			announce("Нужно " .. EM .. " " .. abbreviate(price), RED, player)
+			return
+		end
+		coins.Value -= price
+		profile.boosts[potion.id] = math.max(os.time(), profile.boosts[potion.id] or 0) + potion.minutes * 60
+		refreshPlayer(player)
+		announce(potion.name .. " выпито!", potion.color, player)
 	elseif action == "addon" then
 		local addon = typeof(arg) == "string" and ADDON_BY_ID[arg]
 		if not addon then
@@ -1488,6 +2219,40 @@ shopRemote.OnServerEvent:Connect(function(player, action, arg)
 		refreshPlayer(player)
 		announce(addon.name .. " → ур. " .. (level + 1), GOLD, player)
 	end
+end)
+
+-- Следим за зельями: когда действие кончается, обновляем урон и множитель
+local boostState = {}
+task.spawn(function()
+	while true do
+		task.wait(1)
+		for _, player in Players:GetPlayers() do
+			local profile = profiles[player]
+			if profile then
+				local state = boostState[player] or {}
+				boostState[player] = state
+				local changed = false
+				for _, potion in POTIONS do
+					local active = boostActive(player, potion.id)
+					if state[potion.id] ~= active then
+						state[potion.id] = active
+						changed = true
+					end
+				end
+				if changed then
+					refreshPlayer(player)
+				end
+				local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+				local speed = state.speed and 30 or 16
+				if humanoid and humanoid.WalkSpeed ~= speed then
+					humanoid.WalkSpeed = speed
+				end
+			end
+		end
+	end
+end)
+Players.PlayerRemoving:Connect(function(player)
+	boostState[player] = nil
 end)
 
 ------------------------------------------------------------------
@@ -1564,7 +2329,7 @@ openEgg = function(player, worldId)
 
 	local pet = { id = HttpService:GenerateGUID(false), kind = kind }
 	table.insert(profile.pets, pet)
-	if #profile.equipped < CONFIG.MaxEquippedPets then
+	if #profile.equipped < petSlots(player) then
 		table.insert(profile.equipped, pet.id)
 	end
 	refreshPets(player)
@@ -1597,7 +2362,7 @@ petRemote.OnServerEvent:Connect(function(player, action, id)
 			return PETS[a.kind].bonus > PETS[b.kind].bonus
 		end)
 		profile.equipped = {}
-		for i = 1, math.min(CONFIG.MaxEquippedPets, #sorted) do
+		for i = 1, math.min(petSlots(player), #sorted) do
 			table.insert(profile.equipped, sorted[i].id)
 		end
 		refreshPets(player)
@@ -1609,8 +2374,8 @@ petRemote.OnServerEvent:Connect(function(player, action, id)
 	end
 	local equippedIndex = table.find(profile.equipped, id)
 	if action == "equip" and not equippedIndex then
-		if #profile.equipped >= CONFIG.MaxEquippedPets then
-			announce("Можно надеть только " .. CONFIG.MaxEquippedPets .. " питомцев", RED, player)
+		if #profile.equipped >= petSlots(player) then
+			announce("Открой больше слотов у Крипера! Сейчас: " .. petSlots(player), RED, player)
 			return
 		end
 		table.insert(profile.equipped, id)
@@ -1841,17 +2606,18 @@ local function pickBlock(world)
 	return world.blocks[1]
 end
 
-local function freeTile(worldId)
-	local half = CONFIG.WorldTiles / 2
+local function freeSpot(worldId)
+	local spots = spawnSpots[worldId]
+	if not spots or #spots == 0 then
+		return nil
+	end
 	for _ = 1, 30 do
-		local i = math.random(-half + 1, half - 2)
-		local j = math.random(-half + 5, half - 2) -- первые ряды заняты спавном, порталами и яйцом
-		local key = i .. "," .. j
-		if not occupied[worldId][key] then
-			return i, j, key
+		local spot = spots[math.random(1, #spots)]
+		if not occupied[worldId][spot.key] then
+			return spot
 		end
 	end
-	return nil, nil, nil
+	return nil
 end
 
 local function updateBar(data)
@@ -2055,13 +2821,13 @@ local function hitBlock(player, model, auto)
 end
 
 local function spawnBlock(world, def)
-	local i, j, key = freeTile(world.id)
-	if not i then
+	local spot = freeSpot(world.id)
+	if not spot then
 		return
 	end
+	local key = spot.key
 	local s = def.size or CONFIG.BlockSize
-	local T = CONFIG.TileSize
-	local position = worldOrigin(world.id) + V((i + 0.5) * T, s / 2, (j + 0.5) * T)
+	local position = V(spot.x, s / 2, spot.z)
 	local model, core = buildBlockModel(def, position)
 	local fill, hpText = makeHealthBar(core, def)
 
@@ -2226,7 +2992,11 @@ local GAME_INFO = {
 	rarities = RARITIES,
 	pickaxes = {},
 	addons = {},
-	maxEquipped = CONFIG.MaxEquippedPets,
+	maxEquipped = MAX_PET_SLOTS,
+	basePetSlots = BASE_PET_SLOTS,
+	petSlotPrices = {},
+	auras = {},
+	potions = {},
 	maxPets = CONFIG.MaxPets,
 	comboWindow = CONFIG.ComboWindow,
 	tradeCountdown = CONFIG.TradeCountdown,
@@ -2250,6 +3020,15 @@ for _, world in WORLDS do
 		eggColor = world.egg.color,
 		eggSpot = world.egg.spot,
 	})
+end
+for slot = BASE_PET_SLOTS + 1, MAX_PET_SLOTS do
+	table.insert(GAME_INFO.petSlotPrices, { slot = slot, price = PET_SLOT_PRICES[slot] })
+end
+for _, aura in AURAS do
+	table.insert(GAME_INFO.auras, { id = aura.id, name = aura.name, boost = aura.boost, price = aura.price, color = aura.color, secondary = aura.secondary })
+end
+for _, potion in POTIONS do
+	table.insert(GAME_INFO.potions, { id = potion.id, name = potion.name, desc = potion.desc, base = potion.base, mult = potion.mult, color = potion.color })
 end
 for kind, def in PETS do
 	GAME_INFO.pets[kind] = { rarity = def.rarity, bonus = def.bonus, fly = def.fly == true }
@@ -2503,26 +3282,44 @@ local function boardText(parent, props, strokeThickness)
 	return text
 end
 
-local function buildBoard(board, position)
+local function buildBoard(board, groundCFrame)
+	local model = Instance.new("Model")
+	model.Name = "Leaderboard_" .. board.id
 	local frame = makePart({
 		Name = "Leaderboard_" .. board.id,
 		Size = V(20, 26, 1.2),
-		Position = position,
+		Position = V(0, 28, 0),
 		Color = C(50, 34, 20),
-		Parent = worldsFolder,
+		Parent = model,
 	})
-	-- светящаяся рамка цвета таблицы
+	-- деревянная рамка, как у доски в Майнкрафте
+	local woodFrame = C(125, 85, 42)
 	for _, edge in {
-		{ V(20.8, 0.6, 0.4), V(0, 13.1, 0.5) },
-		{ V(20.8, 0.6, 0.4), V(0, -13.1, 0.5) },
-		{ V(0.6, 26.8, 0.4), V(10.1, 0, 0.5) },
-		{ V(0.6, 26.8, 0.4), V(-10.1, 0, 0.5) },
+		{ V(22, 1.2, 1.8), V(0, 13.6, 0) },
+		{ V(22, 1.2, 1.8), V(0, -13.6, 0) },
+		{ V(1.2, 28.4, 1.8), V(10.6, 0, 0) },
+		{ V(1.2, 28.4, 1.8), V(-10.6, 0, 0) },
 	} do
-		makePart({ Name = "Frame", Size = edge[1], Position = position + edge[2], Color = board.color, Material = NEON, CanCollide = false, Parent = worldsFolder })
+		local part = makePart({ Name = "Frame", Size = edge[1], Position = V(0, 28, 0) + edge[2], Color = woodFrame, Parent = model })
+		addSpots(model, part, { woodFrame:Lerp(DARK, 0.25), woodFrame:Lerp(WHITE, 0.12) }, 3)
 	end
+	-- ножки
+	for _, x in { -8, 8 } do
+		makePart({ Name = "Leg", Size = V(1.4, 14, 1.4), Position = V(x, 7, 0.6), Color = woodFrame:Lerp(DARK, 0.2), Parent = model })
+	end
+	-- золотой пьедестал для игрока №1
+	local podium = makePart({ Name = "Podium", Size = V(6, 3, 6), Position = V(0, 1.5, -8), Color = C(255, 200, 40), Parent = model })
+	addSpots(model, podium, { C(230, 165, 20), C(255, 235, 120) }, 4)
+	local podiumGui = Instance.new("SurfaceGui")
+	podiumGui.Face = Enum.NormalId.Front
+	podiumGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	podiumGui.PixelsPerStud = 30
+	podiumGui.LightInfluence = 0
+	podiumGui.Parent = podium
+	boardText(podiumGui, { Size = UDim2.fromScale(1, 1), Text = "1", Parent = podiumGui }, 5)
 
 	local surface = Instance.new("SurfaceGui")
-	surface.Face = Enum.NormalId.Back
+	surface.Face = Enum.NormalId.Front
 	surface.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	surface.PixelsPerStud = 30
 	surface.LightInfluence = 0
@@ -2619,10 +3416,55 @@ local function buildBoard(board, position)
 	end)
 	board.store = ok and store or nil
 	board.written = {}
+
+	model.WorldPivot = CFrame.new()
+	model:PivotTo(groundCFrame)
+	model.Parent = worldsFolder
+	board.avatarCFrame = groundCFrame * CFrame.new(0, 3, -8)
 end
 
+-- Доски стоят за спавном полукругом и смотрят на него
 for index, board in BOARDS do
-	buildBoard(board, worldOrigin(1) + V(-54 + (index - 1) * 36, 28, -(CONFIG.WorldTiles / 2) * CONFIG.TileSize + 0.6))
+	local ground = V(-45 + (index - 1) * 30, 0, index == 1 and -158 or index == 4 and -158 or -163)
+	buildBoard(board, CFrame.lookAt(ground, V(0, 0, -128)))
+end
+
+-- 3D-аватар лидера на золотом пьедестале
+local function showLeader(board, userId)
+	if board.avatarUser == userId then
+		return
+	end
+	board.avatarUser = userId
+	if board.avatar then
+		board.avatar:Destroy()
+		board.avatar = nil
+	end
+	if not userId then
+		return
+	end
+	task.spawn(function()
+		local ok, avatar = pcall(function()
+			return Players:CreateHumanoidModelFromUserId(userId)
+		end)
+		if not ok or not avatar or board.avatarUser ~= userId then
+			return
+		end
+		for _, part in avatar:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.Anchored = true
+			end
+		end
+		local humanoid = avatar:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		end
+		avatar.Name = "Leader_" .. board.id
+		avatar:PivotTo(board.avatarCFrame)
+		local box, size = avatar:GetBoundingBox()
+		avatar:PivotTo(avatar:GetPivot() + V(0, board.avatarCFrame.Position.Y - (box.Position.Y - size.Y / 2), 0))
+		avatar.Parent = worldsFolder
+		board.avatar = avatar
+	end)
 end
 
 local nameCache = {}
@@ -2688,6 +3530,8 @@ local function refreshBoards()
 			row.name.Text = entry and nameOf(entry.userId) or "—"
 			row.value.Text = entry and board.format(entry.value) or ""
 		end
+		local leader = entries[1]
+		showLeader(board, leader and leader.userId and leader.userId > 0 and leader.userId or nil)
 	end
 end
 

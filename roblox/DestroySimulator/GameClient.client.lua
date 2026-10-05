@@ -20,16 +20,11 @@ local C = Color3.fromRGB
 
 local player = Players.LocalPlayer
 local remotes = ReplicatedStorage:WaitForChild("DestroyRemotes")
-local shopRemote = remotes:WaitForChild("Shop")
-local hitRemote = remotes:WaitForChild("Hit")
-local announceRemote = remotes:WaitForChild("Announce")
-local petRemote = remotes:WaitForChild("Pets")
-local inventoryRemote = remotes:WaitForChild("Inventory")
-local openEggRemote = remotes:WaitForChild("OpenEgg")
-local eggResultRemote = remotes:WaitForChild("EggOpened")
-local worldRemote = remotes:WaitForChild("World")
-local tradeRemote = remotes:WaitForChild("Trade")
-local adminRemote = remotes:WaitForChild("Admin")
+-- Связь с сервером
+local R = {}
+for _, name in { "Shop", "Hit", "Announce", "Pets", "Inventory", "EggOpened", "World", "Trade", "UI", "Admin" } do
+	R[name] = remotes:WaitForChild(name)
+end
 local INFO = remotes:WaitForChild("GetInfo"):InvokeServer()
 local petModels = ReplicatedStorage:WaitForChild("PetModels")
 local blocksFolder = workspace:WaitForChild("Destructibles")
@@ -1086,15 +1081,15 @@ local statsLine = label({
 local leftGroup = create("Frame", {
 	AnchorPoint = Vector2.new(0, 0.5),
 	Position = UDim2.new(0, 14, 0.46, 0),
-	Size = UDim2.fromOffset(212, 392),
+	Size = UDim2.fromOffset(196, 462),
 	BackgroundTransparency = 1,
 	Parent = gui,
 })
 scaled(leftGroup)
-local tiles = create("Frame", { Size = UDim2.fromOffset(212, 320), BackgroundTransparency = 1, Parent = leftGroup })
+local tiles = create("Frame", { Size = UDim2.fromOffset(196, 392), BackgroundTransparency = 1, Parent = leftGroup })
 create("UIGridLayout", {
-	CellSize = UDim2.fromOffset(100, 100),
-	CellPadding = UDim2.fromOffset(12, 10),
+	CellSize = UDim2.fromOffset(92, 92),
+	CellPadding = UDim2.fromOffset(12, 8),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 	Parent = tiles,
 })
@@ -1128,33 +1123,39 @@ local function tile(order, title, color, buildIcon)
 	return result, holder, badge
 end
 
-local pickaxesTile, pickaxesTileIcon, pickaxesBadge = tile(1, "Кирки", ORANGE, function(holder)
+local shopTile = tile(1, "Магазин", BLUE, function(holder)
+	pixelIcon("potion", holder)
+end)
+local pickaxesTile, pickaxesTileIcon, pickaxesBadge = tile(2, "Кирки", ORANGE, function(holder)
 	pixelIcon("pickaxe", holder)
 end)
-local petsTile = tile(2, "Питомцы", PINK, function(holder)
+local petsTile = tile(3, "Питомцы", PINK, function(holder)
 	pixelIcon("pethead", holder)
 end)
-local eggsTile = tile(3, "Яйца", C(235, 185, 30), function(holder)
-	pixelIcon("egg", holder)
+local aurasTile = tile(4, "Ауры", PURPLE, function(holder)
+	pixelIcon("fire", holder)
 end)
-local worldsTile = tile(4, "Миры", BLUE, function(holder)
-	pixelIcon("grass", holder)
-end)
-local tradeTile = tile(5, "Трейд", PURPLE, function(holder)
-	pixelIcon("trade", holder)
+local upgradesTile = tile(5, "Улучшения", GREEN, function(holder)
+	pixelIcon("uparrow", holder)
 end)
 local rebirthTile, _, rebirthBadge = tile(6, "Ребёрт", MAGENTA, function(holder)
 	pixelIcon("rebirth", holder)
 end)
+local worldsTile = tile(7, "Миры", C(40, 160, 200), function(holder)
+	pixelIcon("grass", holder)
+end)
+local tradeTile = tile(8, "Трейд", C(120, 90, 200), function(holder)
+	pixelIcon("trade", holder)
+end)
 
 local upgradeButton = button({
-	Position = UDim2.fromOffset(0, 330),
-	Size = UDim2.fromOffset(146, 62),
+	Position = UDim2.fromOffset(0, 400),
+	Size = UDim2.fromOffset(134, 62),
 	Parent = leftGroup,
 }, GREEN, 6)
 local maxButton = button({
-	Position = UDim2.fromOffset(154, 330),
-	Size = UDim2.fromOffset(58, 62),
+	Position = UDim2.fromOffset(142, 400),
+	Size = UDim2.fromOffset(54, 62),
 	Text = "МАКС",
 	Parent = leftGroup,
 }, GREEN, 6)
@@ -1512,7 +1513,7 @@ pickWindow.render = function()
 		local target = rowButton(row)
 		if tier == current + 1 then
 			target.Activated:Connect(function()
-				shopRemote:FireServer("pickaxe")
+				R.Shop:FireServer("pickaxe")
 			end)
 		end
 		table.insert(pickButtons, { button = target, tier = tier })
@@ -1550,7 +1551,7 @@ pickWindow.render = function()
 		}, 1.5)
 		local target = rowButton(row)
 		target.Activated:Connect(function()
-			shopRemote:FireServer("addon", addon.id)
+			R.Shop:FireServer("addon", addon.id)
 		end)
 		table.insert(pickButtons, { button = target, addon = addon })
 	end
@@ -1576,7 +1577,7 @@ local bestButton = button({
 	Parent = petsWindow.body,
 }, C(220, 160, 20), 5)
 bestButton.Activated:Connect(function()
-	petRemote:FireServer("best")
+	R.Pets:FireServer("best")
 end)
 local petsGrid = scrolling({ Position = UDim2.fromOffset(0, 48), Size = UDim2.new(1, 0, 1, -48), Parent = petsWindow.body })
 create("UIGridLayout", {
@@ -1593,11 +1594,11 @@ petsWindow.render = function()
 		#inventory.pets,
 		INFO.maxPets,
 		#inventory.equipped,
-		INFO.maxEquipped,
+		player:GetAttribute("PetSlots") or INFO.basePetSlots,
 		percent(player:GetAttribute("PetBonus") or 0)
 	)
 	if #inventory.pets == 0 then
-		label({ Size = UDim2.fromOffset(560, 34), Text = "Пока пусто. Открой яйцо в меню «Яйца»!", Parent = petsGrid }, 2)
+		label({ Size = UDim2.fromOffset(560, 34), Text = "Пока пусто. Подойди к яйцу у спавна и нажми E!", Parent = petsGrid }, 2)
 		return
 	end
 	for index, pet in sortedPets() do
@@ -1605,7 +1606,7 @@ petsWindow.render = function()
 		local card = petCard(pet.kind, petsGrid, index, equipped)
 		card.Activated:Connect(function()
 			playSound("click")
-			petRemote:FireServer(equipped and "unequip" or "equip", pet.id)
+			R.Pets:FireServer(equipped and "unequip" or "equip", pet.id)
 		end)
 		local trash = button({
 			AnchorPoint = Vector2.new(1, 0),
@@ -1618,7 +1619,7 @@ petsWindow.render = function()
 		local armed = false
 		trash.Activated:Connect(function()
 			if armed then
-				petRemote:FireServer("delete", pet.id)
+				R.Pets:FireServer("delete", pet.id)
 				return
 			end
 			armed = true
@@ -1633,79 +1634,6 @@ petsWindow.render = function()
 			end)
 		end)
 	end
-end
-
-------------------------------------------------------------------
--- ОКНО: ЯЙЦА (карточки, как в магазине)
-------------------------------------------------------------------
-local eggsWindow = makeWindow("eggs", "Яйца", C(235, 185, 30), function(holder)
-	pixelIcon("egg", holder)
-end)
-local eggsRow = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = eggsWindow.body })
-listLayout(eggsRow, 12, true)
-local eggButtons = {}
-
-eggsWindow.update = function()
-	local unlocked = unlockedWorlds()
-	for id, entry in eggButtons do
-		if not unlocked[id] then
-			entry.button.Text = "ЗАКРЫТО"
-			entry.button.BackgroundColor3 = GRAY
-		else
-			entry.button.Text = "ОТКРЫТЬ"
-			entry.button.BackgroundColor3 = coinsValue.Value >= entry.world.egg.price and GREEN or GRAY
-		end
-	end
-end
-
-eggsWindow.render = function()
-	if next(eggButtons) then
-		eggsWindow.update()
-		return
-	end
-	for _, world in INFO.worlds do
-		local card = panel({
-			LayoutOrder = world.id,
-			Size = UDim2.fromOffset(196, 352),
-			Parent = eggsRow,
-		}, world.accent:Lerp(Color3.new(0, 0, 0), 0.25), { noise = { 20, 36, 0.08 }, bottom = C(140, 140, 160) })
-		label({ Position = UDim2.fromOffset(8, 8), Size = UDim2.new(1, -16, 0, 28), Text = world.egg.name, Parent = card }, 2.5)
-		local holder = create("Frame", { Position = UDim2.fromOffset(46, 38), Size = UDim2.fromOffset(104, 104), BackgroundTransparency = 1, Parent = card })
-		worldEgg(world, holder)
-		label({
-			Position = UDim2.fromOffset(8, 142),
-			Size = UDim2.new(1, -16, 0, 32),
-			Text = EM .. " " .. abbreviate(world.egg.price),
-			TextColor3 = GREEN_TEXT,
-			Parent = card,
-		}, 3)
-		local chances = create("Frame", { Position = UDim2.fromOffset(10, 178), Size = UDim2.new(1, -20, 0, 104), BackgroundTransparency = 1, Parent = card })
-		create("UIGridLayout", {
-			CellSize = UDim2.fromOffset(54, 50),
-			CellPadding = UDim2.fromOffset(4, 4),
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			SortOrder = Enum.SortOrder.LayoutOrder,
-			Parent = chances,
-		})
-		for index, entry in world.egg.pets do
-			local rarity = INFO.rarities[INFO.pets[entry.kind].rarity]
-			local mini = panel({ LayoutOrder = index, Parent = chances }, rarity.color:Lerp(Color3.new(0, 0, 0), 0.35), { outline = 2, bevel = false })
-			local miniHolder = create("Frame", { Position = UDim2.fromOffset(2, 0), Size = UDim2.new(1, -4, 0, 34), BackgroundTransparency = 1, Parent = mini })
-			petIcon(entry.kind, miniHolder)
-			local chance = entry.chance < 1 and string.format("%.1f%%", entry.chance) or (math.floor(entry.chance + 0.5) .. "%")
-			label({ Position = UDim2.fromOffset(2, 32), Size = UDim2.new(1, -4, 0, 16), Text = chance, Parent = mini }, 1.5)
-		end
-		local open = button({
-			Position = UDim2.fromOffset(12, 290),
-			Size = UDim2.new(1, -24, 0, 50),
-			Parent = card,
-		}, GREEN, 6)
-		open.Activated:Connect(function()
-			openEggRemote:FireServer(world.id)
-		end)
-		eggButtons[world.id] = { button = open, world = world }
-	end
-	eggsWindow.update()
 end
 
 do
@@ -1757,7 +1685,7 @@ do
 		eggOverlay.Visible = false
 	end)
 
-	eggResultRemote.OnClientEvent:Connect(function(kind, worldId)
+	R.EggOpened.OnClientEvent:Connect(function(kind, worldId)
 		eggToken += 1
 		local token = eggToken
 		eggOverlay.Visible = true
@@ -1852,7 +1780,7 @@ worldsWindow.render = function()
 		local target = rowButton(row)
 		target.Activated:Connect(function()
 			if world.id ~= (player:GetAttribute("World") or 1) then
-				worldRemote:FireServer(world.id)
+				R.World:FireServer(world.id)
 			end
 		end)
 		worldButtons[world.id] = { button = target, status = status, world = world }
@@ -1902,7 +1830,7 @@ do
 	local rebirthBarText = label({ Position = UDim2.fromOffset(8, 6), Size = UDim2.new(1, -16, 1, -12), Parent = rebirthBar }, 2.5)
 	local rebirthButton = button({ Position = UDim2.fromOffset(0, 302), Size = UDim2.new(1, 0, 0, 58), Text = "РЕБЁРТ", Parent = rebirthWindow.body }, GREEN, 8)
 	rebirthButton.Activated:Connect(function()
-		shopRemote:FireServer("rebirth")
+		R.Shop:FireServer("rebirth")
 	end)
 
 	rebirthWindow.update = function()
@@ -1919,6 +1847,196 @@ do
 		rebirthButton.BackgroundColor3 = coins >= cost and GREEN or GRAY
 	end
 	rebirthWindow.render = rebirthWindow.update
+end
+
+------------------------------------------------------------------
+-- ОКНО: УЛУЧШЕНИЯ (у Крипера) — слоты питомцев
+------------------------------------------------------------------
+local upgradesWindow = makeWindow("upgrades", "Улучшения", C(80, 190, 70), function(holder)
+	pixelIcon("uparrow", holder)
+end)
+do
+	local list = scrolling({ Size = UDim2.fromScale(1, 1), Parent = upgradesWindow.body })
+	listLayout(list, 10)
+	local row = listRow(list, 1, 112, C(70, 160, 60))
+	iconBox(row, 92, function(box)
+		pixelIcon("paw", box)
+	end)
+	label({
+		Position = UDim2.fromOffset(114, 8),
+		Size = UDim2.new(1, -314, 0, 34),
+		Text = "Слоты питомцев",
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = row,
+	}, 2.5)
+	local desc = label({
+		Position = UDim2.fromOffset(114, 46),
+		Size = UDim2.new(1, -314, 0, 24),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = GOLD,
+		Parent = row,
+	}, 2)
+	local pipsFrame = create("Frame", { Position = UDim2.fromOffset(114, 78), Size = UDim2.fromOffset(200, 22), BackgroundTransparency = 1, Parent = row })
+	listLayout(pipsFrame, 6, true)
+	local pips = {}
+	for i = 1, INFO.maxEquipped do
+		local pip = create("Frame", { LayoutOrder = i, Size = UDim2.fromOffset(32, 22), BorderSizePixel = 0, Parent = pipsFrame })
+		outline(pip, 2)
+		pips[i] = pip
+	end
+	local buy = rowButton(row)
+	buy.Activated:Connect(function()
+		R.Shop:FireServer("petSlot")
+	end)
+
+	upgradesWindow.update = function()
+		local slots = player:GetAttribute("PetSlots") or INFO.basePetSlots
+		desc.Text = "Можно надеть питомцев: " .. slots .. " из " .. INFO.maxEquipped
+		for i, pip in pips do
+			pip.BackgroundColor3 = i <= slots and GREEN_TEXT or C(40, 40, 55)
+		end
+		local price = nil
+		for _, entry in INFO.petSlotPrices do
+			if entry.slot == slots + 1 then
+				price = entry.price
+			end
+		end
+		if not price then
+			buy.Text = "MAX"
+			buy.BackgroundColor3 = GRAY
+		else
+			buy.Text = "УЛУЧШИТЬ\n" .. EM .. " " .. abbreviate(price)
+			buy.BackgroundColor3 = coinsValue.Value >= price and GREEN or GRAY
+		end
+	end
+	upgradesWindow.render = upgradesWindow.update
+end
+
+------------------------------------------------------------------
+-- ОКНО: АУРЫ (у Эндермена)
+------------------------------------------------------------------
+local aurasWindow = makeWindow("auras", "Ауры", C(150, 70, 230), function(holder)
+	pixelIcon("fire", holder)
+end)
+do
+	local list = scrolling({ Size = UDim2.fromScale(1, 1), Parent = aurasWindow.body })
+	listLayout(list, 10)
+	local buttons = {}
+	for index, aura in INFO.auras do
+		local row = listRow(list, index, 104, aura.color:Lerp(Color3.new(0, 0, 0), 0.35))
+		iconBox(row, 86, function(box)
+			pixelIcon("fire", box, { o = aura.color, y = aura.secondary, l = aura.secondary:Lerp(WHITE, 0.6) })
+		end)
+		rowTexts(row, 108, aura.name, WHITE, "Изумруды x" .. formatMultiplier(aura.boost), GREEN_TEXT, nil)
+		local target = rowButton(row)
+		target.Activated:Connect(function()
+			R.Shop:FireServer("aura", aura.id)
+		end)
+		buttons[aura.id] = { button = target, aura = aura }
+	end
+
+	aurasWindow.update = function()
+		local owned = {}
+		for id in string.gmatch(player:GetAttribute("Auras") or "", "[^,]+") do
+			owned[id] = true
+		end
+		local current = player:GetAttribute("Aura") or ""
+		for id, entry in buttons do
+			if current == id then
+				entry.button.Text = "СНЯТЬ"
+				entry.button.BackgroundColor3 = BLUE
+			elseif owned[id] then
+				entry.button.Text = "НАДЕТЬ"
+				entry.button.BackgroundColor3 = GREEN
+			else
+				entry.button.Text = "КУПИТЬ\n" .. EM .. " " .. abbreviate(entry.aura.price)
+				entry.button.BackgroundColor3 = coinsValue.Value >= entry.aura.price and GREEN or GRAY
+			end
+		end
+	end
+	aurasWindow.render = aurasWindow.update
+end
+
+------------------------------------------------------------------
+-- ОКНО: МАГАЗИН (у Странствующего торговца) — зелья
+------------------------------------------------------------------
+local function timeLeft(seconds)
+	seconds = math.max(0, math.floor(seconds))
+	return string.format("%d:%02d", seconds // 60, seconds % 60)
+end
+
+local shopWindow = makeWindow("shop", "Магазин", BLUE, function(holder)
+	pixelIcon("potion", holder)
+end)
+do
+	local list = scrolling({ Size = UDim2.fromScale(1, 1), Parent = shopWindow.body })
+	listLayout(list, 10)
+	local rows = {}
+	for index, potion in INFO.potions do
+		local row = listRow(list, index, 104, potion.color:Lerp(Color3.new(0, 0, 0), 0.35))
+		iconBox(row, 86, function(box)
+			pixelIcon("potion", box, { p = potion.color, l = potion.color:Lerp(WHITE, 0.6), d = potion.color:Lerp(Color3.new(0, 0, 0), 0.35) })
+		end)
+		rowTexts(row, 108, potion.name, WHITE, potion.desc, GOLD, nil)
+		local status = label({
+			Position = UDim2.fromOffset(108, 68),
+			Size = UDim2.new(1, -308, 0, 22),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = GREEN_TEXT,
+			Parent = row,
+		}, 1.5)
+		local target = rowButton(row)
+		target.Activated:Connect(function()
+			R.Shop:FireServer("potion", potion.id)
+		end)
+		rows[potion.id] = { button = target, status = status, potion = potion }
+	end
+
+	shopWindow.update = function()
+		local levelCost = player:GetAttribute("LevelCost") or 1
+		for id, entry in rows do
+			local price = math.max(entry.potion.base, math.floor(levelCost * entry.potion.mult))
+			entry.button.Text = "КУПИТЬ\n" .. EM .. " " .. abbreviate(price)
+			entry.button.BackgroundColor3 = coinsValue.Value >= price and GREEN or GRAY
+			local left = (player:GetAttribute("Boost_" .. id) or 0) - os.time()
+			entry.status.Text = left > 0 and ("Действует ещё " .. timeLeft(left)) or ""
+		end
+	end
+	shopWindow.render = shopWindow.update
+end
+
+local updateBoosts
+do
+	-- Активные зелья справа на экране
+	local boostGroup = create("Frame", {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -14, 0.42, 128),
+		Size = UDim2.fromOffset(220, 150),
+		BackgroundTransparency = 1,
+		Parent = gui,
+	})
+	scaled(boostGroup)
+	listLayout(boostGroup, 6)
+	local boostRows = {}
+	for index, potion in INFO.potions do
+		local row = panel({ LayoutOrder = index, Size = UDim2.new(1, 0, 0, 42), Visible = false, Parent = boostGroup }, potion.color:Lerp(Color3.new(0, 0, 0), 0.35), { bevel = false })
+		local holder = create("Frame", { Position = UDim2.fromOffset(4, 3), Size = UDim2.fromOffset(36, 36), BackgroundTransparency = 1, Parent = row })
+		pixelIcon("potion", holder, { p = potion.color, l = potion.color:Lerp(WHITE, 0.6), d = potion.color:Lerp(Color3.new(0, 0, 0), 0.35) })
+		local text = label({ Position = UDim2.fromOffset(46, 6), Size = UDim2.new(1, -54, 1, -12), TextXAlignment = Enum.TextXAlignment.Left, Parent = row }, 2)
+		boostRows[potion.id] = { row = row, text = text, potion = potion }
+	end
+	function updateBoosts()
+		for id, entry in boostRows do
+			local left = (player:GetAttribute("Boost_" .. id) or 0) - os.time()
+			entry.row.Visible = left > 0
+			if left > 0 then
+				entry.text.Text = entry.potion.name:gsub("^Зелье ", "") .. "  " .. timeLeft(left)
+			end
+		end
+		if openName == "shop" then
+			shopWindow.update()
+		end
+	end
 end
 
 ------------------------------------------------------------------
@@ -1940,7 +2058,7 @@ do
 		order += 1
 		local target = button({ LayoutOrder = order, Text = text, Parent = list }, color, 6)
 		target.Activated:Connect(function()
-			adminRemote:FireServer(action, arg)
+			R.Admin:FireServer(action, arg)
 		end)
 	end
 	adminButton(EM .. " +1K", GREEN, "coins", 1e3)
@@ -2019,10 +2137,10 @@ local readyButton = button({ Position = UDim2.fromOffset(0, 310), Size = UDim2.n
 local cancelButton = button({ Position = UDim2.new(0.5, 6, 0, 310), Size = UDim2.new(0.5, -6, 0, 50), Text = "ОТМЕНА", Parent = tradeActive }, RED, 7)
 
 readyButton.Activated:Connect(function()
-	tradeRemote:FireServer("ready")
+	R.Trade:FireServer("ready")
 end)
 cancelButton.Activated:Connect(function()
-	tradeRemote:FireServer("cancel")
+	R.Trade:FireServer("cancel")
 end)
 
 local function updateTradeStatus()
@@ -2055,7 +2173,7 @@ tradeWindow.render = function()
 			offered[pet.id] = true
 			local card = petCard(pet.kind, mineGrid, index, false)
 			card.Activated:Connect(function()
-				tradeRemote:FireServer("remove", pet.id)
+				R.Trade:FireServer("remove", pet.id)
 			end)
 		end
 		for index, pet in tradeState.theirs do
@@ -2065,7 +2183,7 @@ tradeWindow.render = function()
 			if not offered[pet.id] then
 				local card = petCard(pet.kind, tradeInventory, index, equippedSet[pet.id] == true)
 				card.Activated:Connect(function()
-					tradeRemote:FireServer("add", pet.id)
+					R.Trade:FireServer("add", pet.id)
 				end)
 			end
 		end
@@ -2093,7 +2211,7 @@ tradeWindow.render = function()
 				target.Text = "ПРЕДЛОЖИТЬ"
 				target.BackgroundColor3 = PURPLE
 				target.Activated:Connect(function()
-					tradeRemote:FireServer("request", other.UserId)
+					R.Trade:FireServer("request", other.UserId)
 				end)
 			end
 		end
@@ -2105,7 +2223,7 @@ end
 
 tradeWindow.onClose = function()
 	if tradeState then
-		tradeRemote:FireServer("cancel")
+		R.Trade:FireServer("cancel")
 	end
 end
 
@@ -2127,7 +2245,7 @@ local toastToken = 0
 
 local function answerRequest(action)
 	if pendingRequest then
-		tradeRemote:FireServer(action, pendingRequest.userId)
+		R.Trade:FireServer(action, pendingRequest.userId)
 	end
 	pendingRequest = nil
 	toast.Visible = false
@@ -2139,7 +2257,7 @@ declineButton.Activated:Connect(function()
 	answerRequest("decline")
 end)
 
-tradeRemote.OnClientEvent:Connect(function(kind, data)
+R.Trade.OnClientEvent:Connect(function(kind, data)
 	if kind == "request" then
 		pendingRequest = data
 		toastText.Text = "" .. data.name .. " предлагает трейд"
@@ -2248,7 +2366,7 @@ local function showBanner(text, color)
 		end
 	end)
 end
-announceRemote.OnClientEvent:Connect(showBanner)
+R.Announce.OnClientEvent:Connect(showBanner)
 
 local comboToken = 0
 local function onCombo()
@@ -2460,7 +2578,7 @@ do
 			local target = mouse.Target
 			local model = target and target:FindFirstAncestorOfClass("Model")
 			if model and model.Parent == blocksFolder then
-				hitRemote:FireServer(model)
+				R.Hit:FireServer(model)
 			end
 		end)
 	end
@@ -2534,7 +2652,7 @@ player.AttributeChanged:Connect(function(name)
 	end
 end)
 
-inventoryRemote.OnClientEvent:Connect(function(data)
+R.Inventory.OnClientEvent:Connect(function(data)
 	inventory = data
 	equippedSet = {}
 	for _, id in inventory.equipped do
@@ -2554,8 +2672,19 @@ end)
 petsTile.Activated:Connect(function()
 	toggleWindow("pets")
 end)
-eggsTile.Activated:Connect(function()
-	toggleWindow("eggs")
+shopTile.Activated:Connect(function()
+	toggleWindow("shop")
+end)
+aurasTile.Activated:Connect(function()
+	toggleWindow("auras")
+end)
+upgradesTile.Activated:Connect(function()
+	toggleWindow("upgrades")
+end)
+R.UI.OnClientEvent:Connect(function(action, name)
+	if action == "open" and windows[name] then
+		openWindow(name)
+	end
 end)
 worldsTile.Activated:Connect(function()
 	toggleWindow("worlds")
@@ -2568,10 +2697,10 @@ rebirthTile.Activated:Connect(function()
 end)
 
 upgradeButton.Activated:Connect(function()
-	shopRemote:FireServer("level")
+	R.Shop:FireServer("level")
 end)
 maxButton.Activated:Connect(function()
-	shopRemote:FireServer("levelMax")
+	R.Shop:FireServer("levelMax")
 end)
 
 Players.PlayerAdded:Connect(function()
@@ -2608,6 +2737,7 @@ task.spawn(function()
 			}):Play()
 		end
 		updateTradeStatus()
+		updateBoosts()
 		task.wait(0.25)
 	end
 end)
@@ -2626,4 +2756,4 @@ end
 
 applyWorldLook()
 refreshHud()
-petRemote:FireServer("sync")
+R.Pets:FireServer("sync")
