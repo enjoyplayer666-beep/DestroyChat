@@ -32,7 +32,6 @@ local tradeRemote = remotes:WaitForChild("Trade")
 local adminRemote = remotes:WaitForChild("Admin")
 local INFO = remotes:WaitForChild("GetInfo"):InvokeServer()
 local petModels = ReplicatedStorage:WaitForChild("PetModels")
-local icons = ReplicatedStorage:WaitForChild("Icons")
 local blocksFolder = workspace:WaitForChild("Destructibles")
 
 local leaderstats = player:WaitForChild("leaderstats")
@@ -332,6 +331,638 @@ local function listLayout(parent, padding, horizontal)
 end
 
 ------------------------------------------------------------------
+-- ПИКСЕЛЬНЫЕ ИКОНКИ (как предметы в Майнкрафте). Каждая строка — ряд пикселей,
+-- каждая буква — цвет из palette, точка — прозрачный пиксель.
+------------------------------------------------------------------
+local PIXEL_ICONS = {
+	pickaxe = {
+		palette = {
+			b = C(150, 105, 165),
+			d = C(85, 60, 140),
+			g = C(140, 100, 215),
+			k = C(28, 24, 34),
+			n = C(85, 55, 105),
+			w = C(205, 175, 255),
+		},
+		rows = {
+			"................",
+			"....kkkkkkkkk...",
+			"...kwwwwwwwwwk..",
+			"...kddddgggwwwk.",
+			"....kkkkkkkggwk.",
+			".........kbngwk.",
+			"........kbnkgwk.",
+			".......kbnkkgwk.",
+			"......kbnk.kgwk.",
+			".....kbnk..kdwk.",
+			"....kbnk...kdwk.",
+			"...kbnk....kdwk.",
+			"..kbnk......kk..",
+			".kbnk...........",
+			"kbnk............",
+			".kk.............",
+		},
+	},
+	coin = {
+		palette = {
+			d = C(180, 110, 15),
+			k = C(28, 24, 34),
+			l = C(255, 245, 170),
+			o = C(220, 150, 25),
+			y = C(255, 210, 50),
+		},
+		rows = {
+			".....kkkkkk.....",
+			"....kooooook....",
+			"...koooyyoook...",
+			"..kooyyyyyyook..",
+			".kooyyldoyyyook.",
+			"kooyylldoyyyyook",
+			"kooyylldoyyyyook",
+			"koyyyyldoyyyyyok",
+			"koyyyyydoyyyyyok",
+			"kooyyyydoyyyyook",
+			"kooyyyydoyyyyook",
+			".kooyyyooyyyook.",
+			"..kooyyyyyyook..",
+			"...koooyyoook...",
+			"....kooooook....",
+			".....kkkkkk.....",
+		},
+	},
+	egg = {
+		palette = {
+			K = C(20, 40, 20),
+			e = C(80, 185, 70),
+			k = C(28, 24, 34),
+			l = C(170, 240, 150),
+			s = C(40, 120, 40),
+		},
+		rows = {
+			"......kkkk......",
+			".....keeeek.....",
+			"....keelelek....",
+			"...keeeeseeek...",
+			"..keeseeeeeeek..",
+			"..keeeeeeeseek..",
+			".keeeKKeeKKeeek.",
+			".keseKKeeKKesek.",
+			".keeeeeKKeeeeek.",
+			".keeeeKKKKeesek.",
+			".keseeKKKKeeeek.",
+			"..keeeKeeKeeek..",
+			"..keeseeeeesek..",
+			"...keeeseeeek...",
+			"....kkeeeekk....",
+			"......kkkk......",
+		},
+	},
+	grass = {
+		palette = {
+			G = C(95, 160, 50),
+			H = C(75, 135, 40),
+			L = C(150, 105, 70),
+			R = C(115, 80, 52),
+			k = C(28, 24, 34),
+			p = C(95, 65, 40),
+			t = C(110, 185, 60),
+			u = C(85, 155, 45),
+		},
+		rows = {
+			".......kk.......",
+			".....kkttkk.....",
+			"...kkttttttkk...",
+			".kktttuttttttkk.",
+			"ktttttttttuttttk",
+			"kGGttuttuttttHHk",
+			"kGGGGttttttHHHHk",
+			"kLLGGGGttHHHHRRk",
+			"kLLLLGGGHHHRRRRk",
+			"kLLpLLLGHRRRRRRk",
+			"kLLLLLLLRRRpRRRk",
+			"kLLLpLLLRRRRRRRk",
+			".kkLLLLLRRRRpkk.",
+			"...kkLpLRRRkk...",
+			".....kkLRkk.....",
+			".......kk.......",
+		},
+	},
+	tnt = {
+		palette = {
+			L = C(210, 50, 40),
+			R = C(160, 35, 30),
+			V = C(200, 200, 205),
+			W = C(240, 240, 240),
+			f = C(60, 60, 60),
+			k = C(28, 24, 34),
+			t = C(230, 70, 55),
+		},
+		rows = {
+			".......kk.......",
+			".....kkttkk.....",
+			"...kkttttttkk...",
+			".kktttttfttttkk.",
+			"ktttttttfttttttk",
+			"kLLttttttttttRRk",
+			"kLLLLttttttRRRRk",
+			"kWLLLLLttRRRRRVk",
+			"kWWWLLLLRRRRVVVk",
+			"kWWWWWLLRRVVVVVk",
+			"kLLWWWWWVVVVVRRk",
+			"kLLLLWWWVVVRRRRk",
+			".kkLLLLWVRRRRkk.",
+			"...kkLLLRRRkk...",
+			".....kkLRkk.....",
+			".......kk.......",
+		},
+	},
+	rebirth = {
+		palette = {
+			a = C(80, 200, 255),
+			b = C(60, 140, 240),
+			k = C(28, 24, 34),
+		},
+		rows = {
+			".....kkkkkk.....",
+			"...kkbbbbbbkk...",
+			"..kbbbbbbbbbbk..",
+			".kbbbkkkkkkbbbk.",
+			".kbbk......kbbbk",
+			"kbbbk.....kbbbbb",
+			"kbbk.......kbbbk",
+			"kbbk........kbk.",
+			".kak........kaak",
+			"kaaak.......kaak",
+			"aaaaak.....kaaak",
+			"kaaak......kaak.",
+			".kaaakkkkkkaaak.",
+			"..kaaaaaaaaaak..",
+			"...kkaaaaaakk...",
+			".....kkkkkk.....",
+		},
+	},
+	trade = {
+		palette = {
+			a = C(110, 230, 90),
+			b = C(255, 170, 60),
+			k = C(28, 24, 34),
+		},
+		rows = {
+			"...........k....",
+			"..........kak...",
+			"..........kaak..",
+			"..kkkkkkkkkaaak.",
+			".kaaaaaaaaaaaaak",
+			".kaaaaaaaaaaaaak",
+			"..kkkkkkkkkaaak.",
+			"...kbk....kaak..",
+			"..kbbk....kak...",
+			".kbbbkkkkkkkkk..",
+			"kbbbbbbbbbbbbbk.",
+			"kbbbbbbbbbbbbbk.",
+			".kbbbkkkkkkkkk..",
+			"..kbbk..........",
+			"...kbk..........",
+			"....k...........",
+		},
+	},
+	paw = {
+		palette = {
+			k = C(28, 24, 34),
+			l = C(255, 225, 235),
+			p = C(250, 170, 200),
+		},
+		rows = {
+			"................",
+			".....kk..kk.....",
+			"....kppkkppk....",
+			"....kppppppk....",
+			"....kppppppk....",
+			"..kkkkkkkkkkkk..",
+			".kpppk....kpppk.",
+			".kpppkkkkkkpppk.",
+			".kppkkppppkkppk.",
+			"..kkkplppppkkk..",
+			"...kppllppppk...",
+			"...kppppppppk...",
+			"....kppppppk....",
+			".....kppppk.....",
+			"......kkkk......",
+			"................",
+		},
+	},
+	fire = {
+		palette = {
+			k = C(28, 24, 34),
+			l = C(255, 245, 170),
+			o = C(240, 90, 30),
+			y = C(255, 190, 40),
+		},
+		rows = {
+			".......k........",
+			"......kok.......",
+			".....kook.......",
+			".....koook...k..",
+			"....koooook.kok.",
+			"...koooyoookkook",
+			"..kooooyyoooook.",
+			"..koooyyyyooook.",
+			".koooyyyyyyoook.",
+			".kooyyyllyyyook.",
+			".kooyylllyyyook.",
+			".koooyllllyyook.",
+			"..kooyyllyyook..",
+			"...koooyyoook...",
+			"....kkooookk....",
+			"......kkkk......",
+		},
+	},
+	clock = {
+		palette = {
+			f = C(250, 250, 240),
+			h = C(40, 40, 50),
+			k = C(28, 24, 34),
+			m = C(150, 150, 160),
+			r = C(230, 170, 40),
+		},
+		rows = {
+			".....kkkkkk.....",
+			"....krrrrrrk....",
+			"...krrrrrrrrk...",
+			"..krrfffmffrrk..",
+			".krrffffhfffrrk.",
+			"krrfffffhffffrrk",
+			"krrfffffhffffrrk",
+			"krrfffffhffffrrk",
+			"krrmffffrhfffmrk",
+			"krrfffffffhhfrrk",
+			"krrffffffffffrrk",
+			".krrffffffffrrk.",
+			"..krrffffffrrk..",
+			"...krrrrmrrrk...",
+			"....krrrrrrk....",
+			".....kkkkkk.....",
+		},
+	},
+	gem = {
+		palette = {
+			d = C(40, 150, 60),
+			k = C(28, 24, 34),
+			l = C(220, 255, 220),
+			m = C(70, 200, 90),
+			t = C(140, 240, 150),
+		},
+		rows = {
+			"................",
+			"................",
+			"...kkkkkkkkkk...",
+			"..kttttttttttk..",
+			"..kttllttttttk..",
+			".kttltttttttttk.",
+			".kmmmmmmddddddk.",
+			"..kmmmmmdddddk..",
+			"...kmmmmddddk...",
+			"....kmmmdddk....",
+			"....kmmmdddk....",
+			".....kmmddk.....",
+			"......kmdk......",
+			".......kk.......",
+			"................",
+			"................",
+		},
+	},
+	crown = {
+		palette = {
+			b = C(70, 140, 255),
+			d = C(200, 140, 20),
+			g = C(255, 205, 40),
+			k = C(28, 24, 34),
+			r = C(230, 50, 60),
+		},
+		rows = {
+			"................",
+			"................",
+			".......kk.......",
+			"......kggk......",
+			"..kk..kggk..kk..",
+			".kggkkkggkkkggk.",
+			".kggkgkggkgkggk.",
+			".kggkgkggkgkggk.",
+			".kggggggggggggk.",
+			".kggggggggggggk.",
+			".kgggrggbgrgggk.",
+			".kggggggggggggk.",
+			".kddddddddddddk.",
+			"..kkkkkkkkkkkk..",
+			"................",
+			"................",
+		},
+	},
+	lightning = {
+		palette = {
+			k = C(28, 24, 34),
+			l = C(255, 245, 170),
+			y = C(255, 215, 40),
+		},
+		rows = {
+			".........kkkk...",
+			"........kyyyyk..",
+			".......kyyyyk...",
+			"......kyyyyk....",
+			".....kyyyyk.....",
+			"....kyyyykkk....",
+			"...kyyyyyyyyk...",
+			"...klllllyyyk...",
+			"....kkkkyyyk....",
+			"......kyyyk.....",
+			".....kyyyk......",
+			"....kyykk.......",
+			"...kyyk.........",
+			"..kykk..........",
+			"...k............",
+			"................",
+		},
+	},
+	clover = {
+		palette = {
+			g = C(70, 190, 70),
+			k = C(28, 24, 34),
+			l = C(150, 240, 130),
+			s = C(50, 130, 50),
+		},
+		rows = {
+			"................",
+			"....kk....kk....",
+			"...kggk..kggk...",
+			"..kggggkkggggk..",
+			".kgglggggglgggk.",
+			".kggggggggggggk.",
+			"..kggggkkggggk..",
+			"...kkkkggkkkk...",
+			"..kggggggggggk..",
+			"..kggggksggggk..",
+			".kgggggggsggggk.",
+			"..kggggkkssggk..",
+			"..kggggkkgssgk..",
+			"...kkkk..kksk...",
+			"...........ksk..",
+			"............k...",
+		},
+	},
+	target = {
+		palette = {
+			k = C(28, 24, 34),
+			r = C(230, 50, 50),
+			w = C(250, 250, 250),
+		},
+		rows = {
+			".....kkkkkk.....",
+			"....krrrrrrk....",
+			"...krrrrrrrrk...",
+			"..krrwwwwwwrrk..",
+			".krrwwwwwwwwrrk.",
+			"krrwwwrrrrwwwrrk",
+			"krrwwrrwwrrwwrrk",
+			"krrwwrwwwwrwwrrk",
+			"krrwwrwwwwrwwrrk",
+			"krrwwrrwwrrwwrrk",
+			"krrwwwrrrrwwwrrk",
+			".krrwwwwwwwwrrk.",
+			"..krrwwwwwwrrk..",
+			"...krrrrrrrrk...",
+			"....krrrrrrk....",
+			".....kkkkkk.....",
+		},
+	},
+	gear = {
+		palette = {
+			g = C(170, 180, 195),
+			k = C(28, 24, 34),
+		},
+		rows = {
+			".......kk.......",
+			"...k..kggk..k...",
+			"..kgkkkggkkkgk..",
+			".kggggggggggggk.",
+			"..kggggggggggk..",
+			"..kggggggggggk..",
+			".kkgggkkkkgggkk.",
+			"kgggggk..kgggggk",
+			"kgggggk..kgggggk",
+			".kkgggkkkkgggkk.",
+			"..kggggggggggk..",
+			"..kggggggggggk..",
+			".kggggggggggggk.",
+			"..kgkkkggkkkgk..",
+			"...k..kggk..k...",
+			".......kk.......",
+		},
+	},
+	wrench = {
+		palette = {
+			g = C(190, 195, 210),
+			k = C(28, 24, 34),
+		},
+		rows = {
+			"..........kk....",
+			".........kggk...",
+			"........kggk....",
+			".......kgggk..k.",
+			".......kggggkkgk",
+			".......kgggggggk",
+			"........kgggggk.",
+			"........kggggk..",
+			".......kgggkk...",
+			"......kgggk.....",
+			".....kgggk......",
+			"....kgggk.......",
+			"...kgggk........",
+			"..kgggk.........",
+			"..kggk..........",
+			"...kk...........",
+		},
+	},
+	star = {
+		palette = {
+			k = C(28, 24, 34),
+			y = C(255, 215, 40),
+		},
+		rows = {
+			"........k.......",
+			".......kyk......",
+			".......kyk......",
+			"......kyyk......",
+			"......kyyyk.....",
+			".kkkkkyyyykkkkk.",
+			"kyyyyyyyyyyyyyyk",
+			".kyyyyyyyyyyyyk.",
+			"..kkyyyyyyyykk..",
+			"....kyyyyyyk....",
+			"....kyyyyyyk....",
+			"...kyyyyyyyyk...",
+			"...kyyykkyyyk...",
+			"..kyyyk..kkyyk..",
+			"..kykk.....kyk..",
+			"...k........k...",
+		},
+	},
+	check = {
+		palette = {
+			g = C(110, 230, 80),
+			k = C(28, 24, 34),
+		},
+		rows = {
+			"................",
+			".............kk.",
+			"............kggk",
+			"...........kgggk",
+			"..........kgggk.",
+			"..kk.....kgggk..",
+			".kggk...kgggk...",
+			"kgggk..kgggk....",
+			".kgggkkgggk.....",
+			"..kgggggggk.....",
+			"...kgggggk......",
+			"....kgggk.......",
+			".....kgk........",
+			"......k.........",
+			"................",
+			"................",
+		},
+	},
+	lock = {
+		palette = {
+			d = C(120, 80, 20),
+			g = C(255, 200, 40),
+			k = C(28, 24, 34),
+			s = C(180, 185, 195),
+		},
+		rows = {
+			"................",
+			".......kk.......",
+			".....kksskk.....",
+			"....kssssssk....",
+			"...ksskkkkssk...",
+			"...ksk....ksk...",
+			"..ksskkkkkkssk..",
+			"..kssggggggssk..",
+			"..kggggggggggk..",
+			"..kggggddggggk..",
+			"..kggggddggggk..",
+			"..kggggddggggk..",
+			"..kggggddggggk..",
+			"..kggggggggggk..",
+			"..kggggggggggk..",
+			"...kkkkkkkkkk...",
+		},
+	},
+	pethead = {
+		palette = {
+			B = C(120, 75, 35),
+			D = C(70, 45, 25),
+			F = C(255, 215, 80),
+			K = C(20, 15, 20),
+			R = C(225, 50, 50),
+			S = C(55, 35, 20),
+			T = C(250, 205, 70),
+			W = C(250, 250, 250),
+			f = C(225, 170, 50),
+			k = C(28, 24, 34),
+		},
+		rows = {
+			"................................",
+			"................................",
+			"................................",
+			"...................kkk..........",
+			"...............kkkkDDDkkk.......",
+			"...........kkkkDDTTTTDDDDkk.....",
+			".......kkkkTTTTDDDDTTTTDDDDkkk..",
+			"...kkkkTTDDDDTTTTTDDDDTTTTDDDDk.",
+			".kkTDDDDTTTTDDDDTTTTDDDDTTTTDFFk",
+			"kBTTTTDDDDTTTTDDDDTTTTTDDFFFFFFk",
+			"kBBSSTTTTDDDDTTTTDDDDFFFFFFFFFFk",
+			"kBBSSBBTTTTDDDDTTFFFFFFFFFDDDFFk",
+			"kBBSSBBSSBTTTFFFFFFFFFFDDDDFFFFk",
+			"kBBSSBBSSBBFFFFFFFDFFFFFFFFFFFFk",
+			"kBBSSBBSSBBFFFDDDDDFFFFFFKWWWFFk",
+			"kBBSSBBSSBBFFDDFFFFFFFFKKKWWWFFk",
+			"kBBSSBBSSBBFFFFFFKKFFFFKKKWWWFFk",
+			"kBBSSBBSSBBFFWWWKKKFFFFKKKWWWFFk",
+			"kBBSSBBSSBBFFWWWKKKFFFFKKKWWWFFk",
+			"kBBSSBBSSBBFFWWWKKKFFFFKKFFFFFFk",
+			"kBBSSBBSSBBFFWWWKKKFFFFFKFFFFFFk",
+			"kBBSSBBSSBBFFWWWKFFFKKKKKFFFFFFk",
+			"kBBSSBBSSBBFFFFFFKKKKKKKKFFFFFFk",
+			"kBBSSBBSSBBFFFFFFKKKKKKKKFFFFFFk",
+			"kBBSSBBSSBBFFFFFFKKKRRRKKFFFFFfk",
+			"kBBSSBBSSBBFFFFFFKKRRRRKFFfffffk",
+			"kBBSSBBSSBBFFFFFFKKRFFfffffffkk.",
+			".kBSSBBSSBBFFFFFFFfffffffkkkk...",
+			"..kkkBBSSBBFFFfffffffkkkk.......",
+			".....kkSSBBffffffkkkk...........",
+			".......kkkBffkkkk...............",
+			"..........kkk...................",
+		},
+	},
+}
+
+-- Рисует пиксельную иконку из квадратиков. overrides — заменить цвета (например, цвет кирки)
+local function pixelIcon(name, parent, overrides)
+	local holder = create("Frame", { Name = "PixelIcon", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Parent = parent })
+	create("UIAspectRatioConstraint", { Parent = holder })
+	local def = PIXEL_ICONS[name]
+	if not def then
+		return holder
+	end
+	local size = #def.rows
+	for y, row in def.rows do
+		local x = 1
+		while x <= size do
+			local ch = string.sub(row, x, x)
+			local last = x
+			while last < size and string.sub(row, last + 1, last + 1) == ch do
+				last += 1
+			end
+			if ch ~= "." then
+				create("Frame", {
+					BorderSizePixel = 0,
+					BackgroundColor3 = overrides and overrides[ch] or def.palette[ch],
+					Position = UDim2.fromScale((x - 1) / size, (y - 1) / size),
+					Size = UDim2.fromScale((last - x + 1) / size + 0.002, 1 / size + 0.002),
+					Parent = holder,
+				})
+			end
+			x = last + 1
+		end
+	end
+	return holder
+end
+
+local function shades(color)
+	return color:Lerp(Color3.new(1, 1, 1), 0.45), color, color:Lerp(Color3.new(0, 0, 0), 0.4)
+end
+
+local function tierPickaxe(tier, parent)
+	local light, mid, dark = shades(INFO.pickaxes[tier].color)
+	return pixelIcon("pickaxe", parent, { w = light, g = mid, d = dark })
+end
+
+local WORLD_BLOCK_COLORS = {
+	[2] = { t = C(150, 60, 55), u = C(120, 45, 45), G = C(130, 50, 48), H = C(105, 40, 40), L = C(110, 45, 45), R = C(80, 32, 32), p = C(70, 28, 28) },
+	[3] = { t = C(235, 238, 175), u = C(210, 214, 150), G = C(220, 222, 160), H = C(190, 192, 135), L = C(205, 208, 145), R = C(170, 172, 118), p = C(150, 152, 105) },
+}
+local function worldBlock(worldId, parent)
+	return pixelIcon("grass", parent, WORLD_BLOCK_COLORS[worldId])
+end
+
+local function worldEgg(world, parent)
+	local base = world.eggColor or C(245, 235, 210)
+	return pixelIcon("egg", parent, { e = base, l = base:Lerp(Color3.new(1, 1, 1), 0.5), s = world.eggSpot or C(120, 190, 80) })
+end
+
+local ADDON_ICONS = { efficiency = "lightning", fortune = "clover", sharpness = "target", blast = "tnt", auto = "gear" }
+
+------------------------------------------------------------------
 -- 3D-ИКОНКИ
 ------------------------------------------------------------------
 local function modelIcon(template, parent, options)
@@ -361,26 +992,6 @@ end
 
 local function petIcon(kind, parent)
 	return modelIcon(petModels:FindFirstChild(kind), parent)
-end
-
-local function pickaxeIcon(tier, parent)
-	return modelIcon(icons:FindFirstChild("Pickaxe_" .. tier), parent, {
-		rotation = CFrame.Angles(math.rad(-40), 0, 0),
-		direction = V(1, 0.15, 0),
-		zoom = 1.5,
-	})
-end
-
-local function blockIcon(worldId, parent)
-	return modelIcon(icons:FindFirstChild("Block_" .. worldId), parent, { direction = V(1, 0.85, -1), zoom = 1.7 })
-end
-
-local function eggIcon(worldId, parent)
-	return modelIcon(icons:FindFirstChild("Egg_" .. worldId), parent, { direction = V(0.5, 0.35, -1), zoom = 1.7 })
-end
-
-local function emojiIcon(emoji, parent)
-	return label({ Size = UDim2.fromScale(1, 1), Text = emoji, Parent = parent }, 0)
 end
 
 ------------------------------------------------------------------
@@ -438,8 +1049,8 @@ local levelFill = create("Frame", {
 corner(levelFill, 6)
 gradient(levelFill, WHITE, C(225, 160, 40))
 local levelIconHolder = create("Frame", {
-	Position = UDim2.fromOffset(4, -6),
-	Size = UDim2.fromOffset(64, 64),
+	Position = UDim2.fromOffset(6, -4),
+	Size = UDim2.fromOffset(60, 60),
 	BackgroundTransparency = 1,
 	Parent = levelBar,
 })
@@ -512,22 +1123,22 @@ local function tile(order, title, color, buildIcon)
 end
 
 local pickaxesTile, pickaxesTileIcon, pickaxesBadge = tile(1, "Кирки", ORANGE, function(holder)
-	pickaxeIcon(1, holder)
+	pixelIcon("pickaxe", holder)
 end)
 local petsTile = tile(2, "Питомцы", PINK, function(holder)
-	petIcon("Волк", holder)
+	pixelIcon("pethead", holder)
 end)
 local eggsTile = tile(3, "Яйца", C(235, 185, 30), function(holder)
-	eggIcon(1, holder)
+	pixelIcon("egg", holder)
 end)
 local worldsTile = tile(4, "Миры", BLUE, function(holder)
-	blockIcon(1, holder)
+	pixelIcon("grass", holder)
 end)
 local tradeTile = tile(5, "Трейд", PURPLE, function(holder)
-	emojiIcon("🤝", holder)
+	pixelIcon("trade", holder)
 end)
 local rebirthTile, _, rebirthBadge = tile(6, "Ребёрт", MAGENTA, function(holder)
-	emojiIcon("🔁", holder)
+	pixelIcon("rebirth", holder)
 end)
 
 local upgradeButton = button({
@@ -555,9 +1166,10 @@ local statsGroup = create("Frame", {
 scaled(statsGroup)
 listLayout(statsGroup, 2)
 
-local function statRow(order, emoji, color)
+local function statRow(order, icon, color)
 	local row = create("Frame", { LayoutOrder = order, Size = UDim2.new(1, 0, 0, 50), BackgroundTransparency = 1, Parent = statsGroup })
-	label({ Size = UDim2.fromOffset(50, 50), Text = emoji, Parent = row }, 0)
+	local iconHolder = create("Frame", { Position = UDim2.fromOffset(2, 3), Size = UDim2.fromOffset(44, 44), BackgroundTransparency = 1, Parent = row })
+	pixelIcon(icon, iconHolder)
 	local value = label({
 		Position = UDim2.fromOffset(58, 2),
 		Size = UDim2.new(1, -58, 1, -4),
@@ -567,10 +1179,10 @@ local function statRow(order, emoji, color)
 	}, 3)
 	return row, value
 end
-local coinsRow, coinsText = statRow(1, "💰", GREEN_TEXT)
+local coinsRow, coinsText = statRow(1, "coin", GREEN_TEXT)
 local coinsScale = create("UIScale", { Parent = coinsRow })
-local _, rebirthsText = statRow(2, "🔁", C(255, 130, 230))
-local _, petsText = statRow(3, "🐾", C(120, 210, 255))
+local _, rebirthsText = statRow(2, "rebirth", C(130, 200, 255))
+local _, petsText = statRow(3, "paw", C(255, 170, 210))
 
 ------------------------------------------------------------------
 -- СПРАВА: Золотая лихорадка
@@ -584,7 +1196,8 @@ local rightGroup = create("Frame", {
 })
 scaled(rightGroup)
 local eventHeader = panel({ Size = UDim2.new(1, 0, 0, 40), Parent = rightGroup }, C(45, 35, 30), { noise = { 30, 5, 0.15 } })
-label({ Position = UDim2.fromOffset(8, 5), Size = UDim2.new(1, -16, 1, -10), Text = "🔥 ЛИХОРАДКА", TextColor3 = GOLD, Parent = eventHeader }, 2.5)
+pixelIcon("fire", create("Frame", { Position = UDim2.fromOffset(6, 4), Size = UDim2.fromOffset(32, 32), BackgroundTransparency = 1, Parent = eventHeader }))
+label({ Position = UDim2.fromOffset(44, 5), Size = UDim2.new(1, -52, 1, -10), Text = "ЛИХОРАДКА", TextColor3 = GOLD, Parent = eventHeader }, 2.5)
 local eventBody = panel({ Position = UDim2.fromOffset(0, 46), Size = UDim2.new(1, 0, 0, 70), Parent = rightGroup }, ORANGE, { noise = { 30, 9, 0.12 } })
 local eventText = label({ Position = UDim2.fromOffset(10, 8), Size = UDim2.new(1, -20, 1, -16), Parent = eventBody }, 3)
 
@@ -822,7 +1435,7 @@ local function petCard(kind, parent, order, equipped)
 	}, 2)
 	if equipped then
 		local check = panel({ Position = UDim2.fromOffset(-6, -6), Size = UDim2.fromOffset(26, 26), ZIndex = 3, Parent = card }, GREEN, { bevel = false })
-		label({ Size = UDim2.fromScale(1, 1), Text = "✔", ZIndex = 3, Parent = check }, 1.5)
+		pixelIcon("check", check)
 	end
 	return card
 end
@@ -831,7 +1444,7 @@ end
 -- ОКНО: КИРКИ И АДДОНЫ
 ------------------------------------------------------------------
 local pickWindow = makeWindow("pickaxes", "Кирки и аддоны", ORANGE, function(holder)
-	pickaxeIcon(1, holder)
+	pixelIcon("pickaxe", holder)
 end)
 local pickList = scrolling({ Size = UDim2.fromScale(1, 1), Parent = pickWindow.body })
 listLayout(pickList, 10)
@@ -846,16 +1459,16 @@ pickWindow.update = function()
 		if entry.tier then
 			local pick = INFO.pickaxes[entry.tier]
 			if entry.tier < current then
-				target.Text = "✔ ЕСТЬ"
+				target.Text = "ЕСТЬ"
 				target.BackgroundColor3 = GRAY
 			elseif entry.tier == current then
 				target.Text = "В РУКАХ"
 				target.BackgroundColor3 = BLUE
 			elseif entry.tier == current + 1 then
-				target.Text = "КУПИТЬ\n💰 " .. abbreviate(pick.price)
+				target.Text = "КУПИТЬ\n$" .. abbreviate(pick.price)
 				target.BackgroundColor3 = coins >= pick.price and GREEN or GRAY
 			else
-				target.Text = "🔒"
+				target.Text = "ЗАКРЫТО"
 				target.BackgroundColor3 = GRAY
 			end
 		else
@@ -865,7 +1478,7 @@ pickWindow.update = function()
 				target.BackgroundColor3 = GRAY
 			else
 				local cost = math.floor(entry.addon.baseCost * entry.addon.growth ^ level)
-				target.Text = "УЛУЧШИТЬ\n💰 " .. abbreviate(cost)
+				target.Text = "УЛУЧШИТЬ\n$" .. abbreviate(cost)
 				target.BackgroundColor3 = coins >= cost and GREEN or GRAY
 			end
 		end
@@ -883,13 +1496,13 @@ pickWindow.render = function()
 		return order
 	end
 
-	sectionTitle(pickList, nextOrder(), "⛏ КИРКИ")
+	sectionTitle(pickList, nextOrder(), "КИРКИ")
 	for tier, pick in INFO.pickaxes do
 		local row = listRow(pickList, nextOrder(), 96, tier == current and C(70, 175, 55) or ROW)
 		iconBox(row, 78, function(box)
-			pickaxeIcon(tier, box)
+			tierPickaxe(tier, box)
 		end)
-		rowTexts(row, 100, pick.name, pick.color:Lerp(WHITE, 0.25), "⛏ Урон x" .. abbreviate(pick.damage), GOLD, "Аддоны до ур. " .. pick.addonCap)
+		rowTexts(row, 100, pick.name, pick.color:Lerp(WHITE, 0.25), "Урон x" .. abbreviate(pick.damage), GOLD, "Аддоны до ур. " .. pick.addonCap)
 		local target = rowButton(row)
 		if tier == current + 1 then
 			target.Activated:Connect(function()
@@ -899,15 +1512,14 @@ pickWindow.render = function()
 		table.insert(pickButtons, { button = target, tier = tier })
 	end
 
-	sectionTitle(pickList, nextOrder(), "✨ АДДОНЫ  (до ур. " .. cap .. " с твоей киркой)")
+	sectionTitle(pickList, nextOrder(), "АДДОНЫ  (до ур. " .. cap .. " с твоей киркой)")
 	for _, addon in INFO.addons do
 		local level = player:GetAttribute("Addon_" .. addon.id) or 0
 		local row = listRow(pickList, nextOrder(), 96)
-		local emoji, name = addon.name:match("^(%S+)%s+(.+)$")
 		iconBox(row, 78, function(box)
-			emojiIcon(emoji or "✨", box)
+			pixelIcon(ADDON_ICONS[addon.id] or "star", box)
 		end)
-		rowTexts(row, 100, (name or addon.name) .. "  ур. " .. level, WHITE, nil, nil, nil)
+		rowTexts(row, 100, addon.name .. "  ур. " .. level, WHITE, nil, nil, nil)
 		-- шкала уровня: 10 квадратиков
 		local pips = create("Frame", { Position = UDim2.fromOffset(100, 44), Size = UDim2.fromOffset(250, 18), BackgroundTransparency = 1, Parent = row })
 		listLayout(pips, 4, true)
@@ -943,7 +1555,7 @@ end
 -- ОКНО: ПИТОМЦЫ
 ------------------------------------------------------------------
 local petsWindow = makeWindow("pets", "Питомцы", PINK, function(holder)
-	petIcon("Волк", holder)
+	pixelIcon("pethead", holder)
 end)
 local petsInfo = label({
 	Size = UDim2.new(1, -200, 0, 34),
@@ -954,7 +1566,7 @@ local bestButton = button({
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -4, 0, 0),
 	Size = UDim2.fromOffset(190, 40),
-	Text = "⭐ НАДЕТЬ ЛУЧШИХ",
+	Text = "НАДЕТЬ ЛУЧШИХ",
 	Parent = petsWindow.body,
 }, C(220, 160, 20), 5)
 bestButton.Activated:Connect(function()
@@ -971,7 +1583,7 @@ create("UIGridLayout", {
 petsWindow.render = function()
 	clear(petsGrid)
 	petsInfo.Text = string.format(
-		"🐾 %d/%d   ✔ %d/%d   💰 +%s",
+		"Питомцы %d/%d   ·   Надето %d/%d   ·   Бонус +%s",
 		#inventory.pets,
 		INFO.maxPets,
 		#inventory.equipped,
@@ -993,7 +1605,7 @@ petsWindow.render = function()
 			AnchorPoint = Vector2.new(1, 0),
 			Position = UDim2.new(1, 4, 0, -4),
 			Size = UDim2.fromOffset(28, 28),
-			Text = "🗑",
+			Text = "X",
 			ZIndex = 3,
 			Parent = card,
 		}, C(80, 80, 95), 3)
@@ -1010,7 +1622,7 @@ petsWindow.render = function()
 				if trash.Parent then
 					armed = false
 					trash.BackgroundColor3 = C(80, 80, 95)
-					trash.Text = "🗑"
+					trash.Text = "X"
 				end
 			end)
 		end)
@@ -1021,7 +1633,7 @@ end
 -- ОКНО: ЯЙЦА (карточки, как в магазине)
 ------------------------------------------------------------------
 local eggsWindow = makeWindow("eggs", "Яйца", C(235, 185, 30), function(holder)
-	eggIcon(1, holder)
+	pixelIcon("egg", holder)
 end)
 local eggsRow = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = eggsWindow.body })
 listLayout(eggsRow, 12, true)
@@ -1031,7 +1643,7 @@ eggsWindow.update = function()
 	local unlocked = unlockedWorlds()
 	for id, entry in eggButtons do
 		if not unlocked[id] then
-			entry.button.Text = "🔒 " .. entry.world.name
+			entry.button.Text = "ЗАКРЫТО"
 			entry.button.BackgroundColor3 = GRAY
 		else
 			entry.button.Text = "ОТКРЫТЬ"
@@ -1052,12 +1664,12 @@ eggsWindow.render = function()
 			Parent = eggsRow,
 		}, world.accent:Lerp(Color3.new(0, 0, 0), 0.25), { noise = { 20, 36, 0.08 }, bottom = C(140, 140, 160) })
 		label({ Position = UDim2.fromOffset(8, 8), Size = UDim2.new(1, -16, 0, 28), Text = world.egg.name, Parent = card }, 2.5)
-		local holder = create("Frame", { Position = UDim2.fromOffset(38, 36), Size = UDim2.fromOffset(120, 106), BackgroundTransparency = 1, Parent = card })
-		eggIcon(world.id, holder)
+		local holder = create("Frame", { Position = UDim2.fromOffset(46, 38), Size = UDim2.fromOffset(104, 104), BackgroundTransparency = 1, Parent = card })
+		worldEgg(world, holder)
 		label({
 			Position = UDim2.fromOffset(8, 142),
 			Size = UDim2.new(1, -16, 0, 32),
-			Text = "💰 " .. abbreviate(world.egg.price),
+			Text = "$" .. abbreviate(world.egg.price),
 			TextColor3 = GREEN_TEXT,
 			Parent = card,
 		}, 3)
@@ -1149,7 +1761,10 @@ do
 		eggResultInfo.Text = ""
 		clear(petHolder)
 		clear(eggHolder)
-		local egg = eggIcon(worldId or 1, eggHolder)
+		local egg = worldEgg(INFO.worlds[worldId or 1] or INFO.worlds[1], eggHolder)
+	egg.Size = UDim2.fromScale(0.8, 0.8)
+	egg.AnchorPoint = Vector2.new(0.5, 0.5)
+	egg.Position = UDim2.fromScale(0.5, 0.5)
 		for i = 1, 4 do
 			local angle = 10 + i * 4
 			TweenService:Create(egg, TweenInfo.new(0.09), { Rotation = -angle }):Play()
@@ -1186,7 +1801,7 @@ end
 -- ОКНО: МИРЫ
 ------------------------------------------------------------------
 local worldsWindow = makeWindow("worlds", "Миры", BLUE, function(holder)
-	blockIcon(1, holder)
+	pixelIcon("grass", holder)
 end)
 local worldsList = scrolling({ Size = UDim2.fromScale(1, 1), Parent = worldsWindow.body })
 listLayout(worldsList, 10)
@@ -1197,16 +1812,16 @@ worldsWindow.update = function()
 	local current = player:GetAttribute("World") or 1
 	for id, entry in worldButtons do
 		if id == current then
-			entry.button.Text = "📍 ТЫ ЗДЕСЬ"
+			entry.button.Text = "ТЫ ЗДЕСЬ"
 			entry.button.BackgroundColor3 = GRAY
 		elseif unlocked[id] then
 			entry.button.Text = "ТЕЛЕПОРТ"
 			entry.button.BackgroundColor3 = BLUE
 		else
-			entry.button.Text = "ОТКРЫТЬ\n💰 " .. abbreviate(entry.world.price)
+			entry.button.Text = "ОТКРЫТЬ\n$" .. abbreviate(entry.world.price)
 			entry.button.BackgroundColor3 = coinsValue.Value >= entry.world.price and GREEN or GRAY
 		end
-		entry.status.Text = unlocked[id] and "✔ Открыт" or "🔒 Закрыт"
+		entry.status.Text = unlocked[id] and "Открыт" or "Закрыт"
 		entry.status.TextColor3 = unlocked[id] and GREEN_TEXT or SOFT
 	end
 end
@@ -1219,7 +1834,7 @@ worldsWindow.render = function()
 	for _, world in INFO.worlds do
 		local row = listRow(worldsList, world.id, 104, world.accent:Lerp(Color3.new(0, 0, 0), 0.3))
 		iconBox(row, 86, function(box)
-			blockIcon(world.id, box)
+			worldBlock(world.id, box)
 		end)
 		rowTexts(row, 108, world.name, WHITE, nil, nil, "Яйцо: " .. world.egg.name)
 		local status = label({
@@ -1243,7 +1858,7 @@ end
 -- ОКНО: РЕБЁРТ (до и после)
 ------------------------------------------------------------------
 local rebirthWindow = makeWindow("rebirth", "Ребёрт", MAGENTA, function(holder)
-	emojiIcon("🔁", holder)
+	pixelIcon("rebirth", holder)
 end)
 label({ Position = UDim2.fromOffset(0, 0), Size = UDim2.new(0.45, 0, 0, 32), Text = "Сейчас:", Parent = rebirthWindow.body }, 2.5)
 label({ Position = UDim2.new(0.55, 0, 0, 0), Size = UDim2.new(0.45, 0, 0, 32), Text = "После:", Parent = rebirthWindow.body }, 2.5)
@@ -1270,7 +1885,7 @@ do
 	label({
 		Position = UDim2.fromOffset(0, 212),
 		Size = UDim2.new(1, 0, 0, 22),
-		Text = "Кирки, аддоны, питомцы и миры останутся ✔",
+		Text = "Кирки, аддоны, питомцы и миры останутся",
 		TextColor3 = SOFT,
 		Parent = rebirthWindow.body,
 	}, 1.5)
@@ -1279,7 +1894,7 @@ do
 	corner(rebirthFill, 6)
 	gradient(rebirthFill, WHITE, C(225, 160, 40))
 	local rebirthBarText = label({ Position = UDim2.fromOffset(8, 6), Size = UDim2.new(1, -16, 1, -12), Parent = rebirthBar }, 2.5)
-	local rebirthButton = button({ Position = UDim2.fromOffset(0, 302), Size = UDim2.new(1, 0, 0, 58), Text = "🔁 РЕБЁРТ", Parent = rebirthWindow.body }, GREEN, 8)
+	local rebirthButton = button({ Position = UDim2.fromOffset(0, 302), Size = UDim2.new(1, 0, 0, 58), Text = "РЕБЁРТ", Parent = rebirthWindow.body }, GREEN, 8)
 	rebirthButton.Activated:Connect(function()
 		shopRemote:FireServer("rebirth")
 	end)
@@ -1288,13 +1903,13 @@ do
 		local rebirths = rebirthsValue.Value
 		local cost = player:GetAttribute("RebirthCost") or 1
 		local bonus = INFO.rebirthBonus
-		multBefore.Text = "💰 x" .. formatMultiplier(1 + rebirths * bonus)
-		multAfter.Text = "💰 x" .. formatMultiplier(1 + (rebirths + 1) * bonus)
-		countBefore.Text = "🔁 " .. rebirths
-		countAfter.Text = "🔁 " .. (rebirths + 1)
+		multBefore.Text = "Монеты x" .. formatMultiplier(1 + rebirths * bonus)
+		multAfter.Text = "Монеты x" .. formatMultiplier(1 + (rebirths + 1) * bonus)
+		countBefore.Text = "Ребёртов: " .. rebirths
+		countAfter.Text = "Ребёртов: " .. (rebirths + 1)
 		local coins = coinsValue.Value
 		rebirthFill.Size = UDim2.fromScale(math.clamp(coins / cost, 0, 1), 1)
-		rebirthBarText.Text = "💰 " .. abbreviate(coins) .. " / " .. abbreviate(cost)
+		rebirthBarText.Text = "$" .. abbreviate(coins) .. " / " .. abbreviate(cost)
 		rebirthButton.BackgroundColor3 = coins >= cost and GREEN or GRAY
 	end
 	rebirthWindow.render = rebirthWindow.update
@@ -1304,7 +1919,7 @@ end
 -- АДМИН-ПАНЕЛЬ (видна только админам)
 ------------------------------------------------------------------
 local adminWindow = makeWindow("admin", "Админ-панель", C(200, 40, 40), function(holder)
-	emojiIcon("🛠", holder)
+	pixelIcon("wrench", holder)
 end)
 do
 	local list = scrolling({ Size = UDim2.fromScale(1, 1), Parent = adminWindow.body })
@@ -1322,15 +1937,15 @@ do
 			adminRemote:FireServer(action, arg)
 		end)
 	end
-	adminButton("💰 +1K", GREEN, "coins", 1e3)
-	adminButton("💰 +1M", GREEN, "coins", 1e6)
-	adminButton("💰 +1B", GREEN, "coins", 1e9)
-	adminButton("💰 +1T", GREEN, "coins", 1e12)
-	adminButton("💰 Обнулить", GRAY, "resetCoins")
-	adminButton("🔁 +1 ребёрт", MAGENTA, "rebirth")
-	adminButton("⛏ +10 уровней", ORANGE, "level")
-	adminButton("⛏ Лучшая кирка", ORANGE, "pickaxe")
-	adminButton("🌍 Все миры", BLUE, "worlds")
+	adminButton("$ +1K", GREEN, "coins", 1e3)
+	adminButton("$ +1M", GREEN, "coins", 1e6)
+	adminButton("$ +1B", GREEN, "coins", 1e9)
+	adminButton("$ +1T", GREEN, "coins", 1e12)
+	adminButton("$ Обнулить", GRAY, "resetCoins")
+	adminButton("+1 ребёрт", MAGENTA, "rebirth")
+	adminButton("+10 уровней", ORANGE, "level")
+	adminButton("Лучшая кирка", ORANGE, "pickaxe")
+	adminButton("Все миры", BLUE, "worlds")
 	local kinds = {}
 	for kind in INFO.pets do
 		table.insert(kinds, kind)
@@ -1339,7 +1954,7 @@ do
 		return INFO.pets[a].bonus < INFO.pets[b].bonus
 	end)
 	for _, kind in kinds do
-		adminButton("🐾 " .. kind, INFO.rarities[INFO.pets[kind].rarity].color:Lerp(Color3.new(0, 0, 0), 0.3), "pet", kind)
+		adminButton(kind, INFO.rarities[INFO.pets[kind].rarity].color:Lerp(Color3.new(0, 0, 0), 0.3), "pet", kind)
 	end
 end
 
@@ -1347,7 +1962,7 @@ local adminButtonHud = button({
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -14, 0.42, 70),
 	Size = UDim2.fromOffset(140, 46),
-	Text = "🛠 АДМИН",
+	Text = "АДМИН",
 	Visible = player:GetAttribute("IsAdmin") == true,
 	Parent = gui,
 }, C(200, 40, 40), 6)
@@ -1363,7 +1978,7 @@ end)
 -- ОКНО: ТРЕЙД
 ------------------------------------------------------------------
 local tradeWindow = makeWindow("trade", "Трейд", PURPLE, function(holder)
-	emojiIcon("🤝", holder)
+	pixelIcon("trade", holder)
 end)
 local tradeState = nil
 local countdownStartedAt = 0
@@ -1395,7 +2010,7 @@ label({ Position = UDim2.fromOffset(8, 2), Size = UDim2.new(1, -16, 0, 20), Text
 local tradeInventory = scrolling({ Position = UDim2.fromOffset(4, 22), Size = UDim2.new(1, -8, 1, -24), Parent = inventoryPanel })
 create("UIGridLayout", { CellSize = UDim2.fromOffset(66, 84), CellPadding = UDim2.fromOffset(6, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = tradeInventory })
 local readyButton = button({ Position = UDim2.fromOffset(0, 310), Size = UDim2.new(0.5, -6, 0, 50), Parent = tradeActive }, GREEN, 7)
-local cancelButton = button({ Position = UDim2.new(0.5, 6, 0, 310), Size = UDim2.new(0.5, -6, 0, 50), Text = "❌ ОТМЕНА", Parent = tradeActive }, RED, 7)
+local cancelButton = button({ Position = UDim2.new(0.5, 6, 0, 310), Size = UDim2.new(0.5, -6, 0, 50), Text = "ОТМЕНА", Parent = tradeActive }, RED, 7)
 
 readyButton.Activated:Connect(function()
 	tradeRemote:FireServer("ready")
@@ -1410,11 +2025,11 @@ local function updateTradeStatus()
 	end
 	if tradeState.countdown then
 		local left = math.max(0, math.ceil(INFO.tradeCountdown - (os.clock() - countdownStartedAt)))
-		tradeStatus.Text = "🔄 Обмен через " .. left .. " сек…"
+		tradeStatus.Text = "Обмен через " .. left .. " сек…"
 		tradeStatus.TextColor3 = GOLD
 	else
-		local me = tradeState.myReady and "✅ Ты готов" or "⏳ Ты не готов"
-		local them = tradeState.theirReady and ("✅ " .. tradeState.partner .. " готов") or ("⏳ " .. tradeState.partner .. " не готов")
+		local me = tradeState.myReady and "Ты готов" or "Ты не готов"
+		local them = tradeState.theirReady and (tradeState.partner .. " готов") or (tradeState.partner .. " не готов")
 		tradeStatus.Text = me .. "   ·   " .. them
 		tradeStatus.TextColor3 = WHITE
 	end
@@ -1448,7 +2063,7 @@ tradeWindow.render = function()
 				end)
 			end
 		end
-		readyButton.Text = tradeState.myReady and "↩ НЕ ГОТОВ" or "✅ ГОТОВ"
+		readyButton.Text = tradeState.myReady and "НЕ ГОТОВ" or "ГОТОВ"
 		readyButton.BackgroundColor3 = tradeState.myReady and GRAY or GREEN
 		updateTradeStatus()
 	else
@@ -1477,7 +2092,7 @@ tradeWindow.render = function()
 			end
 		end
 		if count == 0 then
-			label({ Size = UDim2.new(1, -14, 0, 34), Text = "Пока нет других игроков. Позови друга! 🙂", Parent = tradePlayers }, 2)
+			label({ Size = UDim2.new(1, -14, 0, 34), Text = "Пока нет других игроков. Позови друга!", Parent = tradePlayers }, 2)
 		end
 	end
 end
@@ -1499,8 +2114,8 @@ local toast = panel({
 }, PURPLE, { noise = { 34, 16, 0.1 } })
 scaled(toast)
 local toastText = label({ Position = UDim2.fromOffset(10, 10), Size = UDim2.new(1, -20, 0, 50), Parent = toast }, 2.5)
-local acceptButton = button({ Position = UDim2.fromOffset(10, 70), Size = UDim2.fromOffset(120, 48), Text = "✅ ДА", Parent = toast }, GREEN, 6)
-local declineButton = button({ Position = UDim2.fromOffset(140, 70), Size = UDim2.fromOffset(120, 48), Text = "❌ НЕТ", Parent = toast }, RED, 6)
+local acceptButton = button({ Position = UDim2.fromOffset(10, 70), Size = UDim2.fromOffset(120, 48), Text = "ДА", Parent = toast }, GREEN, 6)
+local declineButton = button({ Position = UDim2.fromOffset(140, 70), Size = UDim2.fromOffset(120, 48), Text = "НЕТ", Parent = toast }, RED, 6)
 local pendingRequest = nil
 local toastToken = 0
 
@@ -1521,7 +2136,7 @@ end)
 tradeRemote.OnClientEvent:Connect(function(kind, data)
 	if kind == "request" then
 		pendingRequest = data
-		toastText.Text = "🤝 " .. data.name .. " предлагает трейд"
+		toastText.Text = "" .. data.name .. " предлагает трейд"
 		toast.Visible = true
 		toastToken += 1
 		local token = toastToken
@@ -1553,7 +2168,7 @@ end)
 ------------------------------------------------------------------
 -- ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
 ------------------------------------------------------------------
-local shownPickaxe = 1
+local shownPickaxe = 0
 
 local function refreshHud()
 	local coins = coinsValue.Value
@@ -1571,13 +2186,13 @@ local function refreshHud()
 		levelProgress.TextColor3 = WHITE
 	end
 	TweenService:Create(levelFill, TweenInfo.new(0.2), { Size = UDim2.fromScale(math.clamp(coins / levelCost, 0, 1), 1) }):Play()
-	statsLine.Text = "⛏ Урон " .. abbreviate(player:GetAttribute("Damage") or 1) .. "      💰 x" .. formatMultiplier(player:GetAttribute("CoinMultiplier") or 1)
+	statsLine.Text = "Урон " .. abbreviate(player:GetAttribute("Damage") or 1) .. "   ·   Монеты x" .. formatMultiplier(player:GetAttribute("CoinMultiplier") or 1)
 
 	coinsText.Text = abbreviate(coins)
 	rebirthsText.Text = tostring(rebirthsValue.Value)
 	petsText.Text = #inventory.pets .. " / " .. INFO.maxPets
 
-	upgradeButton.Text = "⬆ УЛУЧШИТЬ\n💰 " .. abbreviate(levelCost)
+	upgradeButton.Text = "УЛУЧШИТЬ\n$" .. abbreviate(levelCost)
 	upgradeButton.BackgroundColor3 = coins >= levelCost and GREEN or GRAY
 	maxButton.BackgroundColor3 = coins >= levelCost and GREEN or GRAY
 
@@ -1588,12 +2203,12 @@ local function refreshHud()
 	if pickaxe ~= shownPickaxe then
 		shownPickaxe = pickaxe
 		clear(pickaxesTileIcon)
-		pickaxeIcon(pickaxe, pickaxesTileIcon)
+		tierPickaxe(pickaxe, pickaxesTileIcon)
 		clear(levelIconHolder)
-		pickaxeIcon(pickaxe, levelIconHolder)
+		tierPickaxe(pickaxe, levelIconHolder)
 	end
 end
-pickaxeIcon(1, levelIconHolder)
+tierPickaxe(1, levelIconHolder)
 
 -- Окна обновляем не чаще 4 раз в секунду
 local updateQueued = false
@@ -1990,6 +2605,18 @@ task.spawn(function()
 		task.wait(0.25)
 	end
 end)
+
+-- Пиксельные иконки на таблицах рекордов в мире
+local function fillSlot(slot)
+	if slot.Name == "PixelIconSlot" and slot:IsA("Frame") and not slot:FindFirstChild("PixelIcon") then
+		pixelIcon(slot:GetAttribute("Icon") or "star", slot)
+	end
+end
+local worldsFolder = workspace:WaitForChild("Worlds")
+worldsFolder.DescendantAdded:Connect(fillSlot)
+for _, slot in worldsFolder:GetDescendants() do
+	fillSlot(slot)
+end
 
 applyWorldLook()
 refreshHud()

@@ -72,11 +72,11 @@ local PICKAXES = {
 -- АДДОНЫ ДЛЯ КИРОК. Цена уровня = baseCost * growth ^ текущий_уровень
 ------------------------------------------------------------------
 local ADDONS = {
-	{ id = "efficiency", name = "⚡ Эффективность", desc = "+20% урона за уровень", baseCost = 300, growth = 3 },
-	{ id = "fortune", name = "🍀 Удача", desc = "+25% монет за уровень", baseCost = 500, growth = 3 },
-	{ id = "sharpness", name = "🎯 Меткость", desc = "+3% шанс крита за уровень", baseCost = 400, growth = 3 },
-	{ id = "blast", name = "💥 Взрыв", desc = "+8% шанс взрыва, задевает блоки рядом", baseCost = 2000, growth = 4 },
-	{ id = "auto", name = "🤖 Автокопка", desc = "Кирка сама бьёт ближайший блок", baseCost = 1500, growth = 4 },
+	{ id = "efficiency", name = "Эффективность", desc = "+20% урона за уровень", baseCost = 300, growth = 3 },
+	{ id = "fortune", name = "Удача", desc = "+25% монет за уровень", baseCost = 500, growth = 3 },
+	{ id = "sharpness", name = "Меткость", desc = "+3% шанс крита за уровень", baseCost = 400, growth = 3 },
+	{ id = "blast", name = "Взрыв", desc = "+8% шанс взрыва, задевает блоки рядом", baseCost = 2000, growth = 4 },
+	{ id = "auto", name = "Автокопка", desc = "Кирка сама бьёт ближайший блок", baseCost = 1500, growth = 4 },
 }
 local ADDON_BY_ID = {}
 for _, addon in ADDONS do
@@ -742,7 +742,7 @@ local function buildPortal(folder, position, target)
 		CanCollide = false,
 		Parent = portal,
 	})
-	addLabel(top, "🌍 " .. target.name .. (target.price > 0 and ("\n💰 " .. abbreviate(target.price)) or ""), target.accent, V(0, 3, 0))
+	addLabel(top, target.name .. (target.price > 0 and ("\n$" .. abbreviate(target.price)) or ""), target.accent, V(0, 3, 0))
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Войти"
@@ -766,11 +766,11 @@ local function buildEggStand(folder, position, world)
 	local middle = makePart({ Size = V(5, 3, 5), Position = position + V(0, 5.5, 0), Color = egg.color, Parent = stand })
 	local top = makePart({ Size = V(3.5, 2, 3.5), Position = position + V(0, 8, 0), Color = egg.color, Parent = stand })
 	addSpots(stand, middle, { egg.spot }, 3, { sidesOnly = true })
-	addLabel(top, "🥚 " .. egg.name .. "\n💰 " .. abbreviate(egg.price), GOLD, V(0, 3.5, 0))
+	addLabel(top, egg.name .. "\n$" .. abbreviate(egg.price), GOLD, V(0, 3.5, 0))
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Открыть"
-	prompt.ObjectText = egg.name .. " (💰 " .. abbreviate(egg.price) .. ")"
+	prompt.ObjectText = egg.name .. " ($" .. abbreviate(egg.price) .. ")"
 	prompt.HoldDuration = 0
 	prompt.MaxActivationDistance = 12
 	prompt.RequiresLineOfSight = false
@@ -1436,19 +1436,19 @@ shopRemote.OnServerEvent:Connect(function(player, action, arg)
 		player:SetAttribute("Level", level)
 		refreshPlayer(player)
 		if bought > 1 then
-			announce("⛏ Уровень кирки +" .. bought .. "!", GOLD, player)
+			announce("Уровень кирки +" .. bought .. "!", GOLD, player)
 		end
 	elseif action == "rebirth" then
 		local cost = rebirthCost(rebirths.Value)
 		if coins.Value < cost then
-			announce("Для ребёрта нужно 💰 " .. abbreviate(cost), RED, player)
+			announce("Для ребёрта нужно $" .. abbreviate(cost), RED, player)
 			return
 		end
 		coins.Value = 0
 		rebirths.Value += 1
 		player:SetAttribute("Level", 1)
 		refreshPlayer(player)
-		announce("🔁 " .. player.DisplayName .. " сделал ребёрт #" .. rebirths.Value .. "!", C(190, 120, 255))
+		announce(player.DisplayName .. " сделал ребёрт #" .. rebirths.Value .. "!", C(190, 120, 255))
 	elseif action == "pickaxe" then
 		local nextTier = profile.pickaxe + 1
 		local def = PICKAXES[nextTier]
@@ -1456,14 +1456,14 @@ shopRemote.OnServerEvent:Connect(function(player, action, arg)
 			return
 		end
 		if coins.Value < def.price then
-			announce("Нужно 💰 " .. abbreviate(def.price), RED, player)
+			announce("Нужно $" .. abbreviate(def.price), RED, player)
 			return
 		end
 		coins.Value -= def.price
 		profile.pickaxe = nextTier
 		refreshPlayer(player)
 		giveTool(player)
-		announce("⛏ " .. player.DisplayName .. " получил: " .. def.name .. "!", def.color)
+		announce(player.DisplayName .. " получил: " .. def.name .. "!", def.color)
 	elseif action == "addon" then
 		local addon = typeof(arg) == "string" and ADDON_BY_ID[arg]
 		if not addon then
@@ -1476,7 +1476,7 @@ shopRemote.OnServerEvent:Connect(function(player, action, arg)
 		end
 		local cost = addonCost(addon, level)
 		if coins.Value < cost then
-			announce("Нужно 💰 " .. abbreviate(cost), RED, player)
+			announce("Нужно $" .. abbreviate(cost), RED, player)
 			return
 		end
 		coins.Value -= cost
@@ -1498,13 +1498,13 @@ goToWorld = function(player, worldId)
 	end
 	if not profile.worlds[worldId] then
 		if coins.Value < world.price then
-			announce("Мир «" .. world.name .. "» стоит 💰 " .. abbreviate(world.price), RED, player)
+			announce("Мир «" .. world.name .. "» стоит $" .. abbreviate(world.price), RED, player)
 			return
 		end
 		coins.Value -= world.price
 		profile.worlds[worldId] = true
 		refreshPlayer(player)
-		announce("🌍 " .. player.DisplayName .. " открыл мир «" .. world.name .. "»!", world.accent)
+		announce(player.DisplayName .. " открыл мир «" .. world.name .. "»!", world.accent)
 	end
 	teleport(player, worldId)
 end
@@ -1538,7 +1538,7 @@ openEgg = function(player, worldId)
 		return
 	end
 	if coins.Value < world.egg.price then
-		announce("Яйцо стоит 💰 " .. abbreviate(world.egg.price), RED, player)
+		announce("Яйцо стоит $" .. abbreviate(world.egg.price), RED, player)
 		return
 	end
 	lastEgg[player] = now
@@ -1568,7 +1568,7 @@ openEgg = function(player, worldId)
 
 	local rarity = PETS[kind].rarity
 	if rarity == "Легендарный" or rarity == "Мифический" then
-		announce("🎉 " .. player.DisplayName .. " выбил питомца «" .. kind .. "» (" .. rarity .. ")!", RARITIES[rarity].color)
+		announce(player.DisplayName .. " выбил питомца «" .. kind .. "» (" .. rarity .. ")!", RARITIES[rarity].color)
 	end
 end
 
@@ -1681,13 +1681,13 @@ local function executeTrade(trade)
 	local a, b = trade.a, trade.b
 	local pa, pb = profiles[a], profiles[b]
 	if not pa or not pb then
-		endTrade(trade, "❌ Трейд отменён", RED)
+		endTrade(trade, "Трейд отменён", RED)
 		return
 	end
 	for _, side in { { pa, trade.offers[a] }, { pb, trade.offers[b] } } do
 		for _, id in side[2] do
 			if not findPet(side[1], id) then
-				endTrade(trade, "❌ Питомец пропал — трейд отменён", RED)
+				endTrade(trade, "Питомец пропал — трейд отменён", RED)
 				return
 			end
 		end
@@ -1696,7 +1696,7 @@ local function executeTrade(trade)
 		#pa.pets - #trade.offers[a] + #trade.offers[b] > CONFIG.MaxPets
 		or #pb.pets - #trade.offers[b] + #trade.offers[a] > CONFIG.MaxPets
 	then
-		endTrade(trade, "❌ У кого-то не хватает места для питомцев", RED)
+		endTrade(trade, "У кого-то не хватает места для питомцев", RED)
 		return
 	end
 
@@ -1719,7 +1719,7 @@ local function executeTrade(trade)
 	refreshPets(b)
 	task.spawn(saveData, a)
 	task.spawn(saveData, b)
-	endTrade(trade, "🤝 Трейд завершён!", GREEN)
+	endTrade(trade, "Трейд завершён!", GREEN)
 end
 
 tradeRemote.OnServerEvent:Connect(function(player, action, arg)
@@ -1735,7 +1735,7 @@ tradeRemote.OnServerEvent:Connect(function(player, action, arg)
 		tradeRequests[target] = tradeRequests[target] or {}
 		tradeRequests[target][player] = os.clock()
 		tradeRemote:FireClient(target, "request", { userId = player.UserId, name = player.DisplayName })
-		announce("📨 Запрос отправлен: " .. target.DisplayName, WHITE, player)
+		announce("Запрос отправлен: " .. target.DisplayName, WHITE, player)
 		return
 	end
 
@@ -1805,7 +1805,7 @@ tradeRemote.OnServerEvent:Connect(function(player, action, arg)
 		end
 		sendTradeState(trade)
 	elseif action == "cancel" then
-		endTrade(trade, "❌ Трейд отменён", RED)
+		endTrade(trade, "Трейд отменён", RED)
 	end
 end)
 
@@ -1957,10 +1957,10 @@ local function destroyBlock(data)
 	end
 
 	if topPlayer then
-		popup(data.core.Position + V(0, data.core.Size.Y / 2, 0), "+" .. abbreviate(topReward) .. " 💰", GOLD, true)
+		popup(data.core.Position + V(0, data.core.Size.Y / 2, 0), "+$" .. abbreviate(topReward), GOLD, true)
 		if data.def.announce then
 			announce(
-				"💎 " .. topPlayer.DisplayName .. " разбил «" .. data.def.name .. "» и получил 💰 " .. abbreviate(topReward) .. "!",
+				topPlayer.DisplayName .. " разбил «" .. data.def.name .. "» и получил $" .. abbreviate(topReward) .. "!",
 				data.def.spot or data.def.color
 			)
 		end
@@ -2101,7 +2101,7 @@ local function spawnBlock(world, def)
 	animateScale(data, 0.2, 0.35)
 
 	if def.announce then
-		announce("✨ В мире «" .. world.name .. "» появилась " .. def.name .. "! ✨", def.spot or def.color)
+		announce("В мире «" .. world.name .. "» появилась " .. def.name .. "!", def.spot or def.color)
 	end
 end
 
@@ -2243,6 +2243,8 @@ for _, world in WORLDS do
 		price = world.price,
 		accent = world.accent,
 		egg = { name = world.egg.name, price = world.egg.price, pets = eggPets },
+		eggColor = world.egg.color,
+		eggSpot = world.egg.spot,
 	})
 end
 for kind, def in PETS do
@@ -2295,7 +2297,7 @@ task.spawn(function()
 		workspace:SetAttribute("EventActive", true)
 		workspace:SetAttribute("EventMultiplier", CONFIG.EventCoinMultiplier)
 		workspace:SetAttribute("EventEndsAt", workspace:GetServerTimeNow() + CONFIG.EventDuration)
-		announce("🔥 ЗОЛОТАЯ ЛИХОРАДКА! Монеты x" .. CONFIG.EventCoinMultiplier .. "! 🔥", GOLD)
+		announce("ЗОЛОТАЯ ЛИХОРАДКА! Монеты x" .. CONFIG.EventCoinMultiplier .. "!", GOLD)
 
 		for _ = 1, 3 do
 			for _, world in WORLDS do
@@ -2366,7 +2368,7 @@ adminRemote.OnServerEvent:Connect(function(player, action, arg)
 		return
 	end
 	refreshPets(player)
-	announce("🛠 Готово!", GREEN, player)
+	announce("Готово!", GREEN, player)
 end)
 
 ------------------------------------------------------------------
@@ -2426,7 +2428,8 @@ end
 local BOARDS = {
 	{
 		id = "time",
-		title = "⏰ Время в игре",
+		title = "Время в игре",
+		icon = "clock",
 		color = C(80, 160, 255),
 		value = function(_, profile)
 			return profile.playtime
@@ -2435,7 +2438,8 @@ local BOARDS = {
 	},
 	{
 		id = "coins",
-		title = "💰 Больше всего монет",
+		title = "Больше всего монет",
+		icon = "coin",
 		color = C(255, 190, 30),
 		value = function(_, profile)
 			return profile.earned
@@ -2444,7 +2448,8 @@ local BOARDS = {
 	},
 	{
 		id = "rebirths",
-		title = "🔁 Ребёрты",
+		title = "Ребёрты",
+		icon = "rebirth",
 		color = C(190, 100, 255),
 		value = function(player)
 			local rebirths = stat(player, REBIRTH_STAT)
@@ -2454,7 +2459,8 @@ local BOARDS = {
 	},
 	{
 		id = "robux",
-		title = "💎 Потрачено Robux",
+		title = "Потрачено Robux",
+		icon = "gem",
 		color = C(70, 210, 90),
 		value = function(_, profile)
 			return profile.robux
@@ -2465,98 +2471,143 @@ local BOARDS = {
 	},
 }
 
-local RANK_COLORS = { C(255, 210, 50), C(210, 215, 225), C(220, 140, 70) }
+local RANK_COLORS = { C(235, 180, 30), C(165, 172, 190), C(200, 115, 55) }
+
+local function uiStroke(parent, thickness)
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = thickness
+	stroke.Color = C(15, 15, 20)
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = parent
+	return stroke
+end
+
+local function boardText(parent, props, strokeThickness)
+	local text = Instance.new("TextLabel")
+	text.BackgroundTransparency = 1
+	text.Font = Enum.Font.GothamBlack
+	text.TextScaled = true
+	text.TextColor3 = WHITE
+	for key, value in props do
+		text[key] = value
+	end
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = strokeThickness or 3
+	stroke.Color = C(15, 15, 20)
+	stroke.Parent = text
+	text.Parent = props.Parent
+	return text
+end
 
 local function buildBoard(board, position)
 	local frame = makePart({
 		Name = "Leaderboard_" .. board.id,
-		Size = V(15, 18, 1.2),
+		Size = V(20, 26, 1.2),
 		Position = position,
-		Color = C(66, 43, 20),
+		Color = C(50, 34, 20),
 		Parent = worldsFolder,
 	})
+	-- светящаяся рамка цвета таблицы
+	for _, edge in {
+		{ V(20.8, 0.6, 0.4), V(0, 13.1, 0.5) },
+		{ V(20.8, 0.6, 0.4), V(0, -13.1, 0.5) },
+		{ V(0.6, 26.8, 0.4), V(10.1, 0, 0.5) },
+		{ V(0.6, 26.8, 0.4), V(-10.1, 0, 0.5) },
+	} do
+		makePart({ Name = "Frame", Size = edge[1], Position = position + edge[2], Color = board.color, Material = NEON, CanCollide = false, Parent = worldsFolder })
+	end
 
 	local surface = Instance.new("SurfaceGui")
 	surface.Face = Enum.NormalId.Back
 	surface.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	surface.PixelsPerStud = 40
+	surface.PixelsPerStud = 30
 	surface.LightInfluence = 0
 	surface.Parent = frame
 
 	local background = Instance.new("Frame")
 	background.Size = UDim2.fromScale(1, 1)
-	background.BackgroundColor3 = C(48, 32, 18)
+	background.BackgroundColor3 = C(42, 30, 20)
 	background.BorderSizePixel = 0
 	background.Parent = surface
-	-- пиксельная текстура дерева
-	for _ = 1, 160 do
+	-- пиксельная текстура тёмного дерева
+	for _ = 1, 220 do
 		local pixel = Instance.new("Frame")
 		pixel.BorderSizePixel = 0
 		pixel.BackgroundColor3 = math.random() < 0.5 and C(0, 0, 0) or C(255, 220, 160)
-		pixel.BackgroundTransparency = 0.88
-		pixel.Size = UDim2.fromScale(1 / 20, 1 / 24)
-		pixel.Position = UDim2.fromScale(math.random(0, 19) / 20, math.random(0, 23) / 24)
+		pixel.BackgroundTransparency = 0.9
+		pixel.Size = UDim2.fromScale(1 / 20, 1 / 26)
+		pixel.Position = UDim2.fromScale(math.random(0, 19) / 20, math.random(0, 25) / 26)
 		pixel.Parent = background
 	end
 
 	local header = Instance.new("Frame")
 	header.Position = UDim2.fromOffset(16, 16)
-	header.Size = UDim2.new(1, -32, 0, 96)
+	header.Size = UDim2.new(1, -32, 0, 110)
 	header.BackgroundColor3 = board.color
 	header.BorderSizePixel = 0
 	header.Parent = surface
-	local headerStroke = Instance.new("UIStroke")
-	headerStroke.Thickness = 6
-	headerStroke.Color = C(15, 15, 20)
-	headerStroke.Parent = header
+	Instance.new("UICorner").Parent = header
+	uiStroke(header, 6)
+	local shine = Instance.new("UIGradient")
+	shine.Color = ColorSequence.new(WHITE, C(170, 170, 180))
+	shine.Rotation = 90
+	shine.Parent = header
 
-	local title = Instance.new("TextLabel")
-	title.BackgroundTransparency = 1
-	title.Position = UDim2.fromOffset(12, 8)
-	title.Size = UDim2.new(1, -24, 1, -16)
-	title.Font = Enum.Font.GothamBlack
-	title.TextScaled = true
-	title.TextColor3 = WHITE
-	title.Text = board.title
-	title.Parent = header
-	local titleStroke = Instance.new("UIStroke")
-	titleStroke.Thickness = 4
-	titleStroke.Color = C(15, 15, 20)
-	titleStroke.Parent = title
+	-- сюда клиент вставит пиксельную иконку
+	local slot = Instance.new("Frame")
+	slot.Name = "PixelIconSlot"
+	slot.BackgroundTransparency = 1
+	slot.Position = UDim2.fromOffset(14, 12)
+	slot.Size = UDim2.fromOffset(86, 86)
+	slot:SetAttribute("Icon", board.icon)
+	slot.Parent = header
+
+	boardText(header, {
+		Position = UDim2.fromOffset(112, 14),
+		Size = UDim2.new(1, -124, 1, -28),
+		Text = board.title,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = header,
+	}, 4)
 
 	board.rows = {}
 	for i = 1, 10 do
 		local row = Instance.new("Frame")
-		row.Position = UDim2.fromOffset(16, 124 + (i - 1) * 58)
-		row.Size = UDim2.new(1, -32, 0, 50)
-		row.BackgroundColor3 = i % 2 == 0 and C(70, 48, 28) or C(85, 58, 34)
+		row.Position = UDim2.fromOffset(16, 142 + (i - 1) * 62)
+		row.Size = UDim2.new(1, -32, 0, 54)
+		row.BackgroundColor3 = RANK_COLORS[i] or (i % 2 == 0 and C(72, 52, 34) or C(86, 62, 40))
 		row.BorderSizePixel = 0
 		row.Parent = surface
+		Instance.new("UICorner").Parent = row
+		uiStroke(row, 3)
 
-		local function cell(x, width, align, color)
-			local text = Instance.new("TextLabel")
-			text.BackgroundTransparency = 1
-			text.Position = UDim2.new(x, 8, 0, 6)
-			text.Size = UDim2.new(width, -16, 1, -12)
-			text.Font = Enum.Font.GothamBlack
-			text.TextScaled = true
-			text.TextXAlignment = align
-			text.TextColor3 = color
-			text.Parent = row
-			local outline = Instance.new("UIStroke")
-			outline.Thickness = 2.5
-			outline.Color = C(15, 15, 20)
-			outline.Parent = text
-			return text
-		end
-		local rank = cell(0, 0.13, Enum.TextXAlignment.Center, RANK_COLORS[i] or WHITE)
-		rank.Text = tostring(i)
+		local rankBox = Instance.new("Frame")
+		rankBox.Position = UDim2.fromOffset(6, 6)
+		rankBox.Size = UDim2.fromOffset(42, 42)
+		rankBox.BackgroundColor3 = C(25, 20, 18)
+		rankBox.BackgroundTransparency = 0.4
+		rankBox.BorderSizePixel = 0
+		rankBox.Parent = row
+		Instance.new("UICorner").Parent = rankBox
+		boardText(rankBox, { Size = UDim2.fromScale(1, 1), Text = tostring(i), Parent = rankBox }, 2.5)
+
 		board.rows[i] = {
-			name = cell(0.13, 0.55, Enum.TextXAlignment.Left, WHITE),
-			value = cell(0.68, 0.32, Enum.TextXAlignment.Right, board.color:Lerp(WHITE, 0.3)),
+			name = boardText(row, {
+				Position = UDim2.fromOffset(58, 9),
+				Size = UDim2.new(0.62, -58, 1, -18),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Text = "—",
+				Parent = row,
+			}, 3),
+			value = boardText(row, {
+				Position = UDim2.new(0.62, 0, 0, 9),
+				Size = UDim2.new(0.38, -12, 1, -18),
+				TextXAlignment = Enum.TextXAlignment.Right,
+				TextColor3 = i <= 3 and WHITE or board.color:Lerp(WHITE, 0.35),
+				Text = "",
+				Parent = row,
+			}, 3),
 		}
-		board.rows[i].name.Text = "—"
-		board.rows[i].value.Text = ""
 	end
 
 	local ok, store = pcall(function()
@@ -2567,7 +2618,7 @@ local function buildBoard(board, position)
 end
 
 for index, board in BOARDS do
-	buildBoard(board, worldOrigin(1) + V(-51 + (index - 1) * 34, 27, -(CONFIG.WorldTiles / 2) * CONFIG.TileSize + 0.6))
+	buildBoard(board, worldOrigin(1) + V(-54 + (index - 1) * 36, 28, -(CONFIG.WorldTiles / 2) * CONFIG.TileSize + 0.6))
 end
 
 local nameCache = {}
@@ -2657,4 +2708,4 @@ task.spawn(function()
 	end
 end)
 
-print("[DestroySim] Сервер запущен! Ломай блоки 💥")
+print("[DestroySim] Сервер запущен! Ломай блоки ")
