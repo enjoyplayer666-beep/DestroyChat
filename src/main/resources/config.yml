@@ -49,7 +49,6 @@ player-menu:
     world_skypvp: "SkyPvP"
     world_nether: "Незер"
     world_the_end: "Энд"
-  self: "<#C9C9FB>Это ты :)</#C9C9FB>"
   top: ""
   title: " <#9B6BFF><bold>Выберите действие над игроком</bold></#9B6BFF>"
   border: "<#6E4BC9><strikethrough>                                                  </strikethrough></#6E4BC9>"

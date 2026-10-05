@@ -38,10 +38,8 @@ public class PlayerMenuCommand implements CommandExecutor {
         String target = args[0];
         Map<String, String> ph = Map.of("name", target);
 
-        if (target.equalsIgnoreCase(viewer.getName())) {
-            viewer.sendMessage(ColorUtil.parse(cfg.getString("self", ""), ph));
-            return true;
-        }
+        // на себя меню не открывается
+        if (target.equalsIgnoreCase(viewer.getName())) return true;
 
         Component out = Component.empty();
         String top = cfg.getString("top", "");

@@ -77,10 +77,12 @@ public class ChatFormatListener implements Listener {
 
         // ---- сообщение и "шапка" ----
         Component message = buildMessage(sender, raw, global);
-        Component head = buildHead(sender, global);
+        // [0] - для остальных (ник кликабельный), [1] - самому отправителю (свой ник не кликается)
+        Component[] heads = buildHead(sender, global);
 
         event.message(message);
-        event.renderer(ChatRenderer.viewerUnaware((source, displayName, msg) -> head.append(msg)));
+        event.renderer((source, displayName, msg, viewer) ->
+                (viewer instanceof Player p && p.getUniqueId().equals(source.getUniqueId()) ? heads[1] : heads[0]).append(msg));
 
         // ---- локальный радиус ----
         if (!global) {
@@ -106,7 +108,7 @@ public class ChatFormatListener implements Listener {
         }
     }
 
-    private Component buildHead(Player sender, boolean global) {
+    private Component[] buildHead(Player sender, boolean global) {
         Component icon = ColorUtil.parse(global ? config.globalIcon() : config.localIcon());
         ChatConfig.GroupFormat group = nameStyler.group(sender);
         // хвост префикса (коды после текста) - цвет ника: /prefix chat &6КОРОЛЬ &2&l
@@ -114,7 +116,8 @@ public class ChatFormatListener implements Listener {
         Component prefix = split.prefix() == null || split.prefix().isBlank()
                 ? Component.empty() : ColorUtil.rich(split.prefix());
 
-        Component name = nameStyler.chatName(sender, split.nickStyle(), group);
+        Component plainName = nameStyler.chatName(sender, split.nickStyle(), group);
+        Component name = plainName;
         var menu = config.playerMenu();
         if (menu != null && menu.getBoolean("enabled", true)) {
             java.util.Map<String, String> ph = java.util.Map.of("name", sender.getName(),
@@ -128,13 +131,22 @@ public class ChatFormatListener implements Listener {
                     .hoverEvent(HoverEvent.showText(Component.text("Написать в личные сообщения", NamedTextColor.GRAY)));
         }
 
+        Component rank = resolveRank(sender);
+        Component clan = resolveClanTag(sender);
+        Component stars = resolveStars(sender);
+        return new Component[]{
+                layout(icon, rank, clan, prefix, name, stars),
+                layout(icon, rank, clan, prefix, plainName, stars)};
+    }
+
+    private Component layout(Component icon, Component rank, Component clan, Component prefix, Component name, Component stars) {
         return ColorUtil.parse(config.layout(),
                 Placeholder.component("icon", icon),
-                Placeholder.component("rank", resolveRank(sender)),
-                Placeholder.component("clan", resolveClanTag(sender)),
+                Placeholder.component("rank", rank),
+                Placeholder.component("clan", clan),
                 Placeholder.component("prefix", prefix),
                 Placeholder.component("name", name),
-                Placeholder.component("stars", resolveStars(sender)));
+                Placeholder.component("stars", stars));
     }
 
     /** Звёзды персонала после ника (staff-stars в config.yml), с пробелом перед ними. */
