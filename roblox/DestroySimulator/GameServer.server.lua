@@ -1049,6 +1049,135 @@ local function buildSpawnEgg(folder, cf, world, creeperFace)
 end
 
 ------------------------------------------------------------------
+-- СТОЛ ЗАЧАРОВАНИЯ: обсидиан, красный верх, алмазы по углам,
+-- парящая книга и книжные полки вокруг
+------------------------------------------------------------------
+local function buildEnchantTable(folder, position)
+	local model = Instance.new("Model")
+	model.Name = "EnchantTable"
+	local obsidian = C(22, 16, 34)
+	local base = makePart({ Name = "Base", Size = V(6, 4.5, 6), Position = V(0, 2.25, 0), Color = obsidian, Parent = model })
+	addSpots(model, base, { C(45, 30, 70), C(10, 8, 18) }, 5)
+	local top = makePart({ Name = "Top", Size = V(6.1, 0.8, 6.1), Position = V(0, 4.5, 0), Color = C(170, 35, 45), Parent = model })
+	addSpots(model, top, { C(120, 20, 30), C(210, 60, 60) }, 4)
+	for _, x in { -2.5, 2.5 } do
+		for _, z in { -2.5, 2.5 } do
+			makePart({ Name = "Diamond", Size = V(1, 0.6, 1), Position = V(x, 5.2, z), Color = C(90, 235, 240), Parent = model })
+		end
+	end
+
+	-- раскрытая книга
+	local book = Instance.new("Model")
+	book.Name = "Book"
+	local pivot = makePart({ Name = "Spine", Size = V(0.4, 0.4, 2.4), Position = V(0, 7, 0), Color = C(90, 45, 25), CanCollide = false, Parent = book })
+	makePart({ Size = V(1.8, 0.2, 2.4), CFrame = CFrame.new(-0.9, 7.25, 0) * CFrame.Angles(0, 0, math.rad(20)), Color = C(140, 70, 35), CanCollide = false, Parent = book })
+	makePart({ Size = V(1.8, 0.2, 2.4), CFrame = CFrame.new(0.9, 7.25, 0) * CFrame.Angles(0, 0, math.rad(-20)), Color = C(140, 70, 35), CanCollide = false, Parent = book })
+	makePart({ Size = V(1.6, 0.12, 2.2), CFrame = CFrame.new(-0.85, 7.42, 0) * CFrame.Angles(0, 0, math.rad(20)), Color = C(240, 235, 215), CanCollide = false, Parent = book })
+	makePart({ Size = V(1.6, 0.12, 2.2), CFrame = CFrame.new(0.85, 7.42, 0) * CFrame.Angles(0, 0, math.rad(-20)), Color = C(240, 235, 215), CanCollide = false, Parent = book })
+	book.PrimaryPart = pivot
+	book.Parent = model
+
+	-- светящиеся символы, летящие к столу
+	local glyphs = Instance.new("ParticleEmitter")
+	glyphs.Color = ColorSequence.new(C(210, 150, 255), C(255, 255, 255))
+	glyphs.LightEmission = 1
+	glyphs.Size = NumberSequence.new(0.35, 0)
+	glyphs.Rate = 14
+	glyphs.Lifetime = NumberRange.new(1.5, 2.5)
+	glyphs.Speed = NumberRange.new(1, 2)
+	glyphs.SpreadAngle = Vector2.new(180, 180)
+	glyphs.Parent = top
+	local light = Instance.new("PointLight")
+	light.Color = C(190, 110, 255)
+	light.Brightness = 2
+	light.Range = 14
+	light.Parent = top
+
+	-- книжные полки полукругом
+	local shelfWood = C(170, 120, 65)
+	local spines = { C(190, 50, 50), C(60, 110, 200), C(60, 160, 70), C(220, 190, 60), C(130, 60, 160) }
+	for i = 0, 6 do
+		local angle = math.rad(-150 + i * 50)
+		local shelfPosition = V(math.cos(angle) * 8, 2.5, math.sin(angle) * 8)
+		if i ~= 3 then
+			local shelf = makePart({
+				Name = "Bookshelf",
+				Size = V(4, 5, 4),
+				CFrame = CFrame.lookAt(shelfPosition, V(0, 2.5, 0)),
+				Color = shelfWood,
+				Parent = model,
+			})
+			for row = 0, 1 do
+				for j = 0, 4 do
+					makePart({
+						Name = "Books",
+						Size = V(0.6, 1.4, 0.2),
+						CFrame = shelf.CFrame * CFrame.new(-1.4 + j * 0.7, 1.1 - row * 2.2, -2.05),
+						Color = spines[math.random(1, #spines)],
+						CanCollide = false,
+						Parent = model,
+					})
+				end
+			end
+		end
+	end
+
+	-- вывеска
+	local sign = makePart({ Name = "Sign", Size = V(0.4, 0.4, 0.4), Position = V(0, 11, 0), Transparency = 1, CanCollide = false, Parent = model })
+	local gui = Instance.new("BillboardGui")
+	gui.Size = UDim2.fromOffset(330, 70)
+	gui.MaxDistance = 140
+	gui.LightInfluence = 0
+	gui.Parent = sign
+	local slot = Instance.new("Frame")
+	slot.Name = "PixelIconSlot"
+	slot.BackgroundTransparency = 1
+	slot.Size = UDim2.fromOffset(64, 64)
+	slot.Position = UDim2.fromOffset(0, 3)
+	slot:SetAttribute("Icon", "book")
+	slot.Parent = gui
+	local text = Instance.new("TextLabel")
+	text.BackgroundTransparency = 1
+	text.Position = UDim2.fromOffset(70, 0)
+	text.Size = UDim2.new(1, -70, 1, 0)
+	text.Font = Enum.Font.GothamBlack
+	text.TextScaled = true
+	text.TextXAlignment = Enum.TextXAlignment.Left
+	text.TextColor3 = C(220, 170, 255)
+	text.Text = "Зачарования"
+	text.Parent = gui
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 3
+	stroke.Color = C(15, 15, 20)
+	stroke.Parent = text
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "Зачаровать"
+	prompt.ObjectText = "Стол зачарования"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 12
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = base
+	prompt.Triggered:Connect(function(player)
+		uiRemote:FireClient(player, "open", "enchant")
+	end)
+
+	model.WorldPivot = CFrame.new()
+	model:PivotTo(CFrame.new(position))
+	model.Parent = folder
+
+	-- книга покачивается и медленно крутится
+	local bookHome = book:GetPivot()
+	task.spawn(function()
+		local t = 0
+		while book.Parent do
+			t += task.wait(0.05)
+			book:PivotTo(bookHome * CFrame.new(0, math.sin(t * 2) * 0.3, 0) * CFrame.Angles(0, t * 0.8, 0))
+		end
+	end)
+end
+
+------------------------------------------------------------------
 -- ГЛАВНЫЙ МИР «Луга»: хаб с НПС, забор-«линия» и зона добычи:
 -- остров посреди озера, холмы-террасы с деревьями, ручьи и водопады
 ------------------------------------------------------------------
@@ -1313,6 +1442,7 @@ local function buildMainWorld(world)
 	buildStall(folder, facing(V(24, 0, -86), V(0, 0, -86)), "Магазин", C(50, 130, 230), "potion", "shop", villagerNpc(C(45, 75, 150), nil))
 
 	buildSpawnEgg(folder, facing(V(-30, 0, -134), V(0, 0, -134)), world, true)
+	buildEnchantTable(folder, V(-44, 0, -99))
 
 	local portalX = 28
 	for _, target in WORLDS do
@@ -1324,7 +1454,7 @@ local function buildMainWorld(world)
 
 	for _ = 1, 40 do
 		local x, z = math.random(-56, 56), math.random(-164, -66)
-		if math.abs(x) > 10 and math.abs(math.abs(x) - 24) > 8 then
+		if math.abs(x) > 10 and math.abs(math.abs(x) - 24) > 8 and (V(x, 0, z) - V(-44, 0, -99)).Magnitude > 12 then
 			makePart({ Name = "Stem", Size = V(0.3, 1.2, 0.3), Position = V(x, 0.6, z), Color = C(60, 140, 40), CanCollide = false, Parent = folder })
 			makePart({
 				Name = "Flower",

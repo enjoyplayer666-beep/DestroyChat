@@ -905,6 +905,116 @@ local PIXEL_ICONS = {
 			"..........kkk...................",
 		},
 	},
+	chest = {
+		palette = {
+			G = C(60, 60, 70),
+			b = C(110, 70, 30),
+			d = C(70, 45, 20),
+			g = C(200, 200, 210),
+			k = C(28, 24, 34),
+			w = C(190, 130, 60),
+		},
+		rows = {
+			"................",
+			".kkkkkkkkkkkkkk.",
+			"kbbbbbbbbbbbbbbk",
+			"kbwwwwwwwwwwwwbk",
+			"kbwwwwwwwwwwwwbk",
+			"kbwwwwwwwwwwwwbk",
+			"kbddddddddddddbk",
+			"kbdddddggddddddb",
+			"kbwwwwwgGgwwwwbk",
+			"kbwwwwwggwwwwwbk",
+			"kbwwwwwwwwwwwwbk",
+			"kbwwwwwwwwwwwwbk",
+			"kbwwwwwwwwwwwwbk",
+			"kbbbbbbbbbbbbbbk",
+			".kkkkkkkkkkkkkk.",
+			"................",
+		},
+	},
+	uparrow = {
+		palette = {
+			d = C(50, 170, 45),
+			g = C(90, 220, 70),
+			k = C(28, 24, 34),
+			l = C(190, 255, 160),
+		},
+		rows = {
+			".......kdk......",
+			"......kgddk.....",
+			".....kggdddk....",
+			"....kgglddddk...",
+			"...kgglgddddk...",
+			"..kgglggdddddk..",
+			".kggggggddddddk.",
+			"kgggggggdddddddk",
+			"ggggggggdddddddd",
+			"kkkkkglgddddkkkk",
+			"....kglgddddk...",
+			"....kglgddddk...",
+			"....kgggddddk...",
+			"....kgggddddk...",
+			"....kgggddddk...",
+			"....kgggddddk...",
+		},
+	},
+	potion = {
+		palette = {
+			c = C(150, 100, 60),
+			d = C(170, 30, 140),
+			g = C(200, 220, 240),
+			k = C(28, 24, 34),
+			l = C(255, 190, 250),
+			p = C(230, 60, 200),
+		},
+		rows = {
+			"................",
+			"......kkkk......",
+			".....kcccck.....",
+			".....kggggk.....",
+			".....kgppgkk....",
+			"....kgpppppgk...",
+			"...kgppllpppgk..",
+			"..kgpplppppppgk.",
+			"..kgppppppppppgk",
+			"..kgppppppppppgk",
+			"..kgpppppppppdgk",
+			"...kgpppppppdgk.",
+			"....kgpppppdgk..",
+			".....kggggggk...",
+			"......kkkkkk....",
+			"................",
+		},
+	},
+	book = {
+		palette = {
+			b = C(90, 30, 120),
+			k = C(28, 24, 34),
+			l = C(210, 150, 255),
+			p = C(150, 60, 200),
+			s = C(255, 240, 150),
+			w = C(235, 230, 210),
+		},
+		rows = {
+			"...kkkkkkkkkk...",
+			"..kbbbbbbbbbbk..",
+			".kbppppppppppwk.",
+			".kbpllppppppbwk.",
+			".kbplpppppppbwk.",
+			".kbpppppsppppwk.",
+			".kbppppsssppbwk.",
+			".kbpppppsppppwk.",
+			".kbppppppppppwk.",
+			".kbpppsppppppwk.",
+			".kbppsssppppbwk.",
+			".kbpppsppppppwk.",
+			".kbppppppppppwk.",
+			".kbbbbbbbbbbbwk.",
+			"..kwwwwwwwwwwk..",
+			"...kkkkkkkkkk...",
+		},
+	},
 }
 
 -- Рисует пиксельную иконку из квадратиков. overrides — заменить цвета (например, цвет кирки)
@@ -1457,11 +1567,11 @@ local pickList = scrolling({ Size = UDim2.fromScale(1, 1), Parent = pickWindow.b
 listLayout(pickList, 10)
 local pickButtons = {}
 
-pickWindow.update = function()
+local function updateShopButtons(entries)
 	local coins = coinsValue.Value
 	local current = player:GetAttribute("Pickaxe") or 1
 	local cap = INFO.pickaxes[current].addonCap
-	for _, entry in pickButtons do
+	for _, entry in entries do
 		local target = entry.button
 		if entry.tier then
 			local pick = INFO.pickaxes[entry.tier]
@@ -1485,11 +1595,15 @@ pickWindow.update = function()
 				target.BackgroundColor3 = GRAY
 			else
 				local cost = math.floor(entry.addon.baseCost * entry.addon.growth ^ level)
-				target.Text = "УЛУЧШИТЬ\n" .. EM .. " " .. abbreviate(cost)
+				target.Text = "ЗАЧАРОВАТЬ\n" .. EM .. " " .. abbreviate(cost)
 				target.BackgroundColor3 = coins >= cost and GREEN or GRAY
 			end
 		end
 	end
+end
+
+pickWindow.update = function()
+	updateShopButtons(pickButtons)
 end
 
 pickWindow.render = function()
@@ -1519,43 +1633,80 @@ pickWindow.render = function()
 		table.insert(pickButtons, { button = target, tier = tier })
 	end
 
-	sectionTitle(pickList, nextOrder(), "АДДОНЫ  (до ур. " .. cap .. " с твоей киркой)")
-	for _, addon in INFO.addons do
-		local level = player:GetAttribute("Addon_" .. addon.id) or 0
-		local row = listRow(pickList, nextOrder(), 96)
-		iconBox(row, 78, function(box)
-			pixelIcon(ADDON_ICONS[addon.id] or "star", box)
-		end)
-		rowTexts(row, 100, addon.name .. "  ур. " .. level, WHITE, nil, nil, nil)
-		-- шкала уровня: 10 квадратиков
-		local pips = create("Frame", { Position = UDim2.fromOffset(100, 44), Size = UDim2.fromOffset(250, 18), BackgroundTransparency = 1, Parent = row })
-		listLayout(pips, 4, true)
-		for i = 1, 10 do
-			local pip = create("Frame", {
-				LayoutOrder = i,
-				Size = UDim2.fromOffset(20, 18),
-				BorderSizePixel = 0,
-				BackgroundColor3 = i <= level and GOLD or (i <= cap and C(40, 40, 55) or C(70, 70, 80)),
-				BackgroundTransparency = i <= cap and 0 or 0.6,
-				Parent = pips,
-			})
-			outline(pip, 2)
-		end
-		label({
-			Position = UDim2.fromOffset(100, 66),
-			Size = UDim2.new(1, -300, 0, 20),
-			Text = addon.desc,
-			TextColor3 = SOFT,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			Parent = row,
-		}, 1.5)
-		local target = rowButton(row)
-		target.Activated:Connect(function()
-			R.Shop:FireServer("addon", addon.id)
-		end)
-		table.insert(pickButtons, { button = target, addon = addon })
-	end
+	local link = listRow(pickList, nextOrder(), 96, C(110, 50, 170))
+	iconBox(link, 78, function(box)
+		pixelIcon("book", box)
+	end)
+	rowTexts(link, 100, "Зачарования", WHITE, "До ур. " .. cap .. " с твоей киркой", GOLD, "Стол зачарования стоит в хабе")
+	local openEnchant = rowButton(link)
+	openEnchant.Text = "ОТКРЫТЬ"
+	openEnchant.BackgroundColor3 = PURPLE
+	openEnchant.Activated:Connect(function()
+		openWindow("enchant")
+	end)
 	pickWindow.update()
+end
+
+------------------------------------------------------------------
+-- ОКНО: СТОЛ ЗАЧАРОВАНИЯ (зачарования для кирки)
+------------------------------------------------------------------
+local enchantWindow = makeWindow("enchant", "Стол зачарования", C(110, 50, 170), function(holder)
+	pixelIcon("book", holder)
+end)
+do
+	local list = scrolling({ Size = UDim2.fromScale(1, 1), Parent = enchantWindow.body })
+	listLayout(list, 10)
+	local buttons = {}
+	enchantWindow.update = function()
+		updateShopButtons(buttons)
+	end
+	enchantWindow.render = function()
+		clear(list)
+		buttons = {}
+		local cap = INFO.pickaxes[player:GetAttribute("Pickaxe") or 1].addonCap
+		local order = 0
+		local function nextOrder()
+			order += 1
+			return order
+		end
+		sectionTitle(list, nextOrder(), "Кирку можно зачаровать до ур. " .. cap)
+		for _, addon in INFO.addons do
+			local level = player:GetAttribute("Addon_" .. addon.id) or 0
+			local row = listRow(list, nextOrder(), 96, C(85, 60, 130))
+			iconBox(row, 78, function(box)
+				pixelIcon(ADDON_ICONS[addon.id] or "star", box)
+			end)
+			rowTexts(row, 100, addon.name .. "  ур. " .. level, WHITE, nil, nil, nil)
+			-- шкала уровня: 10 квадратиков
+			local pips = create("Frame", { Position = UDim2.fromOffset(100, 44), Size = UDim2.fromOffset(250, 18), BackgroundTransparency = 1, Parent = row })
+			listLayout(pips, 4, true)
+			for i = 1, 10 do
+				local pip = create("Frame", {
+					LayoutOrder = i,
+					Size = UDim2.fromOffset(20, 18),
+					BorderSizePixel = 0,
+					BackgroundColor3 = i <= level and GOLD or (i <= cap and C(40, 40, 55) or C(70, 70, 80)),
+					BackgroundTransparency = i <= cap and 0 or 0.6,
+					Parent = pips,
+				})
+				outline(pip, 2)
+			end
+			label({
+				Position = UDim2.fromOffset(100, 66),
+				Size = UDim2.new(1, -300, 0, 20),
+				Text = addon.desc,
+				TextColor3 = SOFT,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Parent = row,
+			}, 1.5)
+			local target = rowButton(row)
+			target.Activated:Connect(function()
+				R.Shop:FireServer("addon", addon.id)
+			end)
+			table.insert(buttons, { button = target, addon = addon })
+		end
+		updateShopButtons(buttons)
+	end
 end
 
 ------------------------------------------------------------------
@@ -2645,8 +2796,8 @@ player.AttributeChanged:Connect(function(name)
 	end
 	refreshHud()
 	-- кирка или аддоны поменялись — перестраиваем окно кирок целиком
-	if openName == "pickaxes" and (name == "Pickaxe" or string.sub(name, 1, 6) == "Addon_") then
-		pickWindow.render()
+	if (openName == "pickaxes" or openName == "enchant") and (name == "Pickaxe" or string.sub(name, 1, 6) == "Addon_") then
+		windows[openName].render()
 	else
 		queueUpdate()
 	end
