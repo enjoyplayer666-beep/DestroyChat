@@ -989,16 +989,21 @@ local function popup(position, text, color, big)
 	label.Font = Enum.Font.GothamBlack
 	label.TextScaled = true
 	label.TextColor3 = color
-	label.TextStrokeTransparency = 0
 	label.Text = text
 	label.Parent = gui
+	local outline = Instance.new("UIStroke")
+	outline.Thickness = big and 3 or 2
+	outline.Color = C(15, 15, 25)
+	outline.Parent = label
 
+	TweenService:Create(outline, TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0, false, 0.4), {
+		Transparency = 1,
+	}):Play()
 	TweenService:Create(anchor, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 		Position = position + V(0, 4, 0),
 	}):Play()
 	TweenService:Create(label, TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0, false, 0.4), {
 		TextTransparency = 1,
-		TextStrokeTransparency = 1,
 	}):Play()
 	Debris:AddItem(anchor, 1)
 end
@@ -1842,34 +1847,46 @@ end
 local function makeHealthBar(core, def)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "HealthBar"
-	gui.Size = UDim2.fromOffset(130, 40)
-	gui.StudsOffset = V(0, core.Size.Y / 2 + 2, 0)
-	gui.MaxDistance = 70
+	gui.Size = UDim2.fromOffset(110, 36)
+	gui.StudsOffset = V(0, core.Size.Y / 2 + 1.8, 0)
+	-- обычные блоки подписаны только вблизи, чтобы надписи не налезали друг на друга
+	gui.MaxDistance = def.rare and 120 or 32
 	gui.LightInfluence = 0
 
 	local title = Instance.new("TextLabel")
 	title.BackgroundTransparency = 1
 	title.Size = UDim2.fromScale(1, 0.5)
-	title.Font = Enum.Font.GothamBold
+	title.Font = Enum.Font.GothamBlack
 	title.TextScaled = true
 	title.TextColor3 = def.rare and (def.spot or def.color) or WHITE
-	title.TextStrokeTransparency = 0.3
 	title.Text = def.name
 	title.Parent = gui
+	local titleStroke = Instance.new("UIStroke")
+	titleStroke.Thickness = 1.5
+	titleStroke.Color = C(15, 15, 25)
+	titleStroke.Parent = title
 
 	local back = Instance.new("Frame")
-	back.Position = UDim2.fromScale(0, 0.55)
-	back.Size = UDim2.fromScale(1, 0.45)
-	back.BackgroundColor3 = C(30, 30, 30)
+	back.Position = UDim2.fromScale(0, 0.56)
+	back.Size = UDim2.fromScale(1, 0.44)
+	back.BackgroundColor3 = C(25, 25, 35)
 	back.BorderSizePixel = 0
 	back.Parent = gui
 	Instance.new("UICorner").Parent = back
+	local backStroke = Instance.new("UIStroke")
+	backStroke.Thickness = 2
+	backStroke.Color = C(15, 15, 25)
+	backStroke.Parent = back
 
 	local fill = Instance.new("Frame")
 	fill.Size = UDim2.fromScale(1, 1)
 	fill.BorderSizePixel = 0
 	fill.Parent = back
 	Instance.new("UICorner").Parent = fill
+	local shine = Instance.new("UIGradient")
+	shine.Color = ColorSequence.new(WHITE, C(170, 170, 170))
+	shine.Rotation = 90
+	shine.Parent = fill
 
 	local hpText = Instance.new("TextLabel")
 	hpText.BackgroundTransparency = 1
@@ -1878,7 +1895,7 @@ local function makeHealthBar(core, def)
 	hpText.Font = Enum.Font.GothamBold
 	hpText.TextScaled = true
 	hpText.TextColor3 = WHITE
-	hpText.TextStrokeTransparency = 0.4
+	hpText.TextStrokeTransparency = 0.2
 	hpText.Parent = back
 
 	gui.Parent = core

@@ -11,6 +11,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
+local SoundService = game:GetService("SoundService")
+local Debris = game:GetService("Debris")
 
 local V = Vector3.new
 local C = Color3.fromRGB
@@ -106,6 +108,52 @@ local function stroke(parent, color, thickness)
 	})
 end
 
+local function textStroke(parent, thickness)
+	return create("UIStroke", {
+		Color = C(15, 15, 25),
+		Thickness = thickness or 1.5,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+		Parent = parent,
+	})
+end
+
+-- Градиент сверху вниз: делает плоский цвет «объёмным»
+local function gradient(parent, top, bottom)
+	create("UIGradient", {
+		Color = ColorSequence.new(top, bottom),
+		Rotation = 90,
+		Parent = parent,
+	})
+end
+
+------------------------------------------------------------------
+-- ЗВУКИ (можно заменить на любые звуки из Toolbox: rbxassetid://ID)
+------------------------------------------------------------------
+local SOUNDS = {
+	click = { id = "rbxasset://sounds/clickfast.wav", volume = 0.4 },
+	open = { id = "rbxasset://sounds/clickfast.wav", volume = 0.3, speed = 0.8 },
+	hit = { id = "rbxasset://sounds/action_jump_land.mp3", volume = 0.5, speed = 1.3 },
+	coin = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.2, speed = 1.6 },
+	reveal = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.6, speed = 0.8 },
+}
+local lastPlayed = {}
+
+local function playSound(name)
+	local def = SOUNDS[name]
+	local now = os.clock()
+	if not def or (lastPlayed[name] and now - lastPlayed[name] < 0.06) then
+		return
+	end
+	lastPlayed[name] = now
+	local sound = Instance.new("Sound")
+	sound.SoundId = def.id
+	sound.Volume = def.volume
+	sound.PlaybackSpeed = (def.speed or 1) * (0.95 + math.random() * 0.1)
+	sound.Parent = SoundService
+	SoundService:PlayLocalSound(sound)
+	Debris:AddItem(sound, 3)
+end
+
 local function pad(parent, pixels)
 	create("UIPadding", {
 		PaddingTop = UDim.new(0, pixels),
@@ -123,7 +171,12 @@ local LABEL = {
 	TextColor3 = WHITE,
 }
 local function label(props)
-	return create("TextLabel", with(LABEL, props))
+	local text = create("TextLabel", with(LABEL, props))
+	-- жирный текст с тёмной обводкой, как в популярных симуляторах
+	if text.Font ~= Enum.Font.Gotham then
+		textStroke(text, 1.5)
+	end
+	return text
 end
 
 local BUTTON = {
@@ -138,6 +191,29 @@ local function makeButton(props, padding)
 	local button = create("TextButton", with(BUTTON, props))
 	round(button, 10)
 	pad(button, padding or 6)
+	gradient(button, WHITE, C(170, 170, 185))
+	stroke(button, C(15, 15, 25), 2.5)
+	textStroke(button, 1.5)
+	-- кнопка «пружинит» при наведении и нажатии
+	local scale = create("UIScale", { Parent = button })
+	local function scaleTo(value)
+		TweenService:Create(scale, TweenInfo.new(0.1), { Scale = value }):Play()
+	end
+	button.MouseEnter:Connect(function()
+		scaleTo(1.05)
+	end)
+	button.MouseLeave:Connect(function()
+		scaleTo(1)
+	end)
+	button.MouseButton1Down:Connect(function()
+		scaleTo(0.92)
+	end)
+	button.MouseButton1Up:Connect(function()
+		scaleTo(1.05)
+	end)
+	button.Activated:Connect(function()
+		playSound("click")
+	end)
 	return button
 end
 
@@ -210,7 +286,8 @@ local function petCard(kind, parent, order, equipped)
 		Parent = parent,
 	})
 	round(card, 10)
-	stroke(card, rarity.color, 2)
+	stroke(card, rarity.color, 2.5)
+	gradient(card, rarity.color:Lerp(WHITE, 0.55), C(150, 150, 170))
 	petViewport(kind, card, { Size = UDim2.fromScale(1, 0.62) })
 	label({
 		Position = UDim2.fromScale(0.05, 0.62),
@@ -254,13 +331,13 @@ local coinsPanel = create("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 8),
 	Size = UDim2.fromOffset(280, 56),
-	BackgroundColor3 = C(25, 25, 35),
-	BackgroundTransparency = 0.15,
+	BackgroundColor3 = C(45, 45, 70),
 	Parent = gui,
 })
 round(coinsPanel, 14)
 pad(coinsPanel, 6)
-stroke(coinsPanel, GOLD, 2)
+gradient(coinsPanel, WHITE, C(140, 140, 170))
+stroke(coinsPanel, GOLD, 3)
 local coinsScale = create("UIScale", { Parent = coinsPanel })
 local coinsLabel = label({
 	Size = UDim2.fromScale(1, 1),
@@ -273,17 +350,15 @@ local coinsLabel = label({
 local statsLabel = label({
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 70),
-	Size = UDim2.fromOffset(460, 24),
-	TextStrokeTransparency = 0.4,
+	Size = UDim2.fromOffset(400, 24),
 	Parent = gui,
 })
 
 local eventLabel = label({
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 98),
-	Size = UDim2.fromOffset(420, 28),
+	Size = UDim2.fromOffset(400, 28),
 	Font = Enum.Font.GothamBlack,
-	TextStrokeTransparency = 0.2,
 	Parent = gui,
 })
 
@@ -323,7 +398,6 @@ create("UIListLayout", {
 })
 local function menuButton(order, text, color)
 	local button = makeButton({ LayoutOrder = order, Size = UDim2.fromOffset(104, 58), BackgroundColor3 = color, Text = text }, 6)
-	stroke(button, C(0, 0, 0), 2)
 	button.Parent = menu
 	return button
 end
@@ -339,11 +413,11 @@ local comboLabel = label({
 	Position = UDim2.fromScale(0.5, 0.72),
 	Size = UDim2.fromOffset(320, 60),
 	Font = Enum.Font.GothamBlack,
-	TextStrokeTransparency = 0,
 	Visible = false,
 	Parent = gui,
 })
 local comboScale = create("UIScale", { Parent = comboLabel })
+comboLabel:FindFirstChildOfClass("UIStroke").Thickness = 3
 
 -- Большие объявления
 local banner = label({
@@ -352,11 +426,13 @@ local banner = label({
 	Size = UDim2.new(0.8, 0, 0, 52),
 	Font = Enum.Font.GothamBlack,
 	TextTransparency = 1,
-	TextStrokeTransparency = 1,
 	ZIndex = 30,
 	Parent = gui,
 })
 local bannerScale = create("UIScale", { Parent = banner })
+local bannerStroke = banner:FindFirstChildOfClass("UIStroke")
+bannerStroke.Thickness = 3
+bannerStroke.Transparency = 1
 
 ------------------------------------------------------------------
 -- ОКНА
@@ -387,7 +463,12 @@ local function openWindow(name)
 	end
 	openName = name
 	local window = windows[name]
-	window.scale.Scale = fitScale()
+	local target = fitScale()
+	if not window.frame.Visible then
+		window.scale.Scale = target * 0.8
+		TweenService:Create(window.scale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = target }):Play()
+		playSound("open")
+	end
 	window.frame.Visible = true
 	window.render()
 end
@@ -400,20 +481,32 @@ local function toggleWindow(name)
 	end
 end
 
-local function makeWindow(name, title)
+local function makeWindow(name, title, accent)
 	local frame = create("Frame", {
 		Name = name,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0.5, -20),
 		Size = UDim2.fromOffset(620, 420),
-		BackgroundColor3 = PANEL,
+		BackgroundColor3 = C(40, 42, 62),
 		Visible = false,
 		ZIndex = 5,
 		Parent = gui,
 	})
 	round(frame, 16)
-	stroke(frame, C(80, 80, 110), 2)
+	stroke(frame, C(15, 15, 25), 3)
+	gradient(frame, WHITE, C(150, 150, 175))
 	local scale = create("UIScale", { Parent = frame })
+	-- цветная шапка окна
+	local header = create("Frame", { Size = UDim2.new(1, 0, 0, 54), BackgroundColor3 = accent, BorderSizePixel = 0, Parent = frame })
+	round(header, 16)
+	gradient(header, WHITE, C(170, 170, 185))
+	create("Frame", {
+		Position = UDim2.fromOffset(0, 38),
+		Size = UDim2.new(1, 0, 0, 16),
+		BackgroundColor3 = accent:Lerp(C(0, 0, 0), 0.25),
+		BorderSizePixel = 0,
+		Parent = header,
+	})
 	local titleLabel = label({
 		Position = UDim2.fromOffset(16, 10),
 		Size = UDim2.new(1, -80, 0, 34),
@@ -431,8 +524,8 @@ local function makeWindow(name, title)
 	}, 6)
 	close.Parent = frame
 	local body = create("Frame", {
-		Position = UDim2.fromOffset(12, 54),
-		Size = UDim2.new(1, -24, 1, -66),
+		Position = UDim2.fromOffset(12, 64),
+		Size = UDim2.new(1, -24, 1, -76),
 		BackgroundTransparency = 1,
 		Parent = frame,
 	})
@@ -446,10 +539,12 @@ local function makeRow(parent, order, height)
 	local row = create("Frame", {
 		LayoutOrder = order,
 		Size = UDim2.new(1, -10, 0, height),
-		BackgroundColor3 = CARD,
+		BackgroundColor3 = C(58, 60, 84),
 		Parent = parent,
 	})
 	round(row, 10)
+	gradient(row, WHITE, C(175, 175, 195))
+	stroke(row, C(15, 15, 25), 1.5)
 	return row
 end
 
@@ -505,7 +600,7 @@ end
 ------------------------------------------------------------------
 -- ОКНО: КИРКИ И АДДОНЫ
 ------------------------------------------------------------------
-local pickWindow = makeWindow("pickaxes", "⛏ Кирки и аддоны")
+local pickWindow = makeWindow("pickaxes", "⛏ Кирки и аддоны", C(200, 120, 40))
 local pickList = scrolling({ Size = UDim2.fromScale(1, 1), Parent = pickWindow.body })
 listLayout(pickList, 8)
 
@@ -596,7 +691,7 @@ end
 ------------------------------------------------------------------
 -- ОКНО: ПИТОМЦЫ
 ------------------------------------------------------------------
-local petsWindow = makeWindow("pets", "🐾 Питомцы")
+local petsWindow = makeWindow("pets", "🐾 Питомцы", C(220, 90, 150))
 local petsInfo = label({
 	Size = UDim2.new(1, -190, 0, 30),
 	TextXAlignment = Enum.TextXAlignment.Left,
@@ -679,7 +774,7 @@ end
 ------------------------------------------------------------------
 -- ОКНО: ЯЙЦА
 ------------------------------------------------------------------
-local eggsWindow = makeWindow("eggs", "🥚 Яйца")
+local eggsWindow = makeWindow("eggs", "🥚 Яйца", C(230, 180, 40))
 local eggsList = scrolling({ Size = UDim2.fromScale(1, 1), Parent = eggsWindow.body })
 listLayout(eggsList, 10)
 local eggButtons = {}
@@ -780,7 +875,6 @@ local eggResultName = label({
 	Position = UDim2.fromOffset(0, 220),
 	Size = UDim2.fromOffset(300, 46),
 	Font = Enum.Font.GothamBlack,
-	TextStrokeTransparency = 0,
 	Parent = eggResult,
 })
 local eggResultInfo = label({ Position = UDim2.fromOffset(0, 270), Size = UDim2.fromOffset(300, 30), Parent = eggResult })
@@ -822,6 +916,7 @@ eggResultRemote.OnClientEvent:Connect(function(kind)
 	eggResultName.TextColor3 = rarity.color
 	eggResultInfo.Text = info.rarity .. " · +" .. percent(info.bonus) .. " монет"
 	eggResult.Visible = true
+	playSound("reveal")
 	eggResultScale.Scale = 0.4
 	TweenService:Create(eggResultScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	task.wait(2.5)
@@ -833,7 +928,7 @@ end)
 ------------------------------------------------------------------
 -- ОКНО: МИРЫ
 ------------------------------------------------------------------
-local worldsWindow = makeWindow("worlds", "🌍 Миры")
+local worldsWindow = makeWindow("worlds", "🌍 Миры", BLUE)
 local worldsList = scrolling({ Size = UDim2.fromScale(1, 1), Parent = worldsWindow.body })
 listLayout(worldsList, 10)
 
@@ -882,7 +977,7 @@ end
 ------------------------------------------------------------------
 -- ОКНО: ТРЕЙД
 ------------------------------------------------------------------
-local tradeWindow = makeWindow("trade", "🤝 Трейд")
+local tradeWindow = makeWindow("trade", "🤝 Трейд", PURPLE)
 local tradeState = nil
 local countdownStartedAt = 0
 
@@ -1060,7 +1155,8 @@ local toast = create("Frame", {
 	Parent = gui,
 })
 round(toast, 12)
-stroke(toast, GOLD, 2)
+stroke(toast, GOLD, 3)
+gradient(toast, WHITE, C(150, 150, 175))
 local toastText = label({ Position = UDim2.fromOffset(10, 8), Size = UDim2.new(1, -20, 0, 50), Parent = toast })
 local acceptButton = makeButton({ Position = UDim2.fromOffset(10, 66), Size = UDim2.fromOffset(115, 44), Text = "✅ Принять" }, 6)
 acceptButton.Parent = toast
@@ -1176,12 +1272,13 @@ local function showBanner(text, color)
 	banner.Text = text
 	banner.TextColor3 = color or WHITE
 	banner.TextTransparency = 0
-	banner.TextStrokeTransparency = 0
+	bannerStroke.Transparency = 0
 	bannerScale.Scale = 0.6
 	TweenService:Create(bannerScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	task.delay(3, function()
 		if token == bannerToken then
-			TweenService:Create(banner, TweenInfo.new(0.5), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+			TweenService:Create(banner, TweenInfo.new(0.5), { TextTransparency = 1 }):Play()
+			TweenService:Create(bannerStroke, TweenInfo.new(0.5), { Transparency = 1 }):Play()
 		end
 	end)
 end
@@ -1190,6 +1287,7 @@ announceRemote.OnClientEvent:Connect(showBanner)
 local comboToken = 0
 local function onCombo()
 	local combo = player:GetAttribute("Combo") or 0
+	playSound("hit")
 	comboToken += 1
 	local token = comboToken
 	if combo < 3 then
@@ -1214,6 +1312,19 @@ end
 local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere") or create("Atmosphere", { Parent = Lighting })
 local sky = Lighting:FindFirstChildOfClass("Sky")
 local tint = create("ColorCorrectionEffect", { Name = "DestroyTint", Parent = Lighting })
+-- Цветокоррекция, свечение неона и солнечные лучи
+local grade = create("ColorCorrectionEffect", { Name = "DestroyGrade", Parent = Lighting })
+local bloom = Lighting:FindFirstChildOfClass("BloomEffect") or create("BloomEffect", { Parent = Lighting })
+bloom.Intensity = 0.8
+bloom.Size = 30
+bloom.Threshold = 1.3
+local sunRays = Lighting:FindFirstChildOfClass("SunRaysEffect") or create("SunRaysEffect", { Parent = Lighting })
+sunRays.Intensity = 0.06
+sunRays.Spread = 0.6
+Lighting.GlobalShadows = true
+Lighting.ShadowSoftness = 0.25
+Lighting.EnvironmentDiffuseScale = 1
+Lighting.EnvironmentSpecularScale = 1
 
 local WORLD_LOOK = {
 	[1] = {
@@ -1226,6 +1337,8 @@ local WORLD_LOOK = {
 		decay = C(110, 150, 200),
 		haze = 1,
 		stars = 0,
+		contrast = 0.12,
+		saturation = 0.2,
 	},
 	[2] = {
 		clock = 0,
@@ -1237,6 +1350,8 @@ local WORLD_LOOK = {
 		decay = C(90, 20, 10),
 		haze = 2.5,
 		stars = 0,
+		contrast = 0.15,
+		saturation = 0.1,
 	},
 	[3] = {
 		clock = 0,
@@ -1248,6 +1363,8 @@ local WORLD_LOOK = {
 		decay = C(25, 10, 45),
 		haze = 1.5,
 		stars = 3000,
+		contrast = 0.15,
+		saturation = 0.15,
 	},
 }
 
@@ -1264,6 +1381,10 @@ local function applyWorldLook()
 		Color = look.color,
 		Decay = look.decay,
 		Haze = look.haze,
+	}):Play()
+	TweenService:Create(grade, TweenInfo.new(1), {
+		Contrast = look.contrast,
+		Saturation = look.saturation,
 	}):Play()
 	if sky then
 		sky.StarCount = look.stars
@@ -1390,6 +1511,7 @@ end
 local lastCoins = coinsValue.Value
 coinsValue.Changed:Connect(function(value)
 	if value > lastCoins then
+		playSound("coin")
 		coinsScale.Scale = 1.15
 		TweenService:Create(coinsScale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	end
