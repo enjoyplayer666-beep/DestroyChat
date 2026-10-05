@@ -309,7 +309,7 @@ local rebirthButton = sideButton(3)
 -- Меню снизу
 local menu = create("Frame", {
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -10),
+	Position = UDim2.new(0.5, 0, 1, -82),
 	Size = UDim2.fromOffset(560, 58),
 	BackgroundTransparency = 1,
 	Parent = gui,
