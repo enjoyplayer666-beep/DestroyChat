@@ -283,6 +283,7 @@ public class CommandAccess implements Listener {
         Player player = event.getPlayer();
         if (unrestricted(player)) return;
         Set<String> allowed = allowed(player);
+        if (isStaff(player)) allowed.add("tabemoji");
         event.getCommands().removeIf(c -> !visible(allowed, c.toLowerCase(Locale.ROOT)));
     }
 
@@ -296,6 +297,8 @@ public class CommandAccess implements Listener {
         String label = parts[0].toLowerCase(Locale.ROOT);
         // меню игрока по клику на ник - у всех, без антиспама и не видно в Tab
         if (label.equals(ru.dscraft.destroychat.command.PlayerMenuCommand.NAME)) return;
+        // эмодзи у ника (MediaTab) - вся команда проекта
+        if (label.equals("tabemoji") && isStaff(player)) return;
         if (label.indexOf(':') >= 0 || !canRun(allowed(player), label, parts.length > 1 ? parts[1] : "")) {
             event.setCancelled(true);
             player.sendMessage(message());

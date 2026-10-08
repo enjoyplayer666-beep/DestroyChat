@@ -152,8 +152,11 @@ public class ChatFormatListener implements Listener {
     /** Звёзды персонала после ника (staff-stars в config.yml), с пробелом перед ними. */
     private Component resolveStars(Player sender) {
         String stars = config.staffStars(group -> sender.hasPermission("group." + group));
-        if (stars == null || stars.isBlank()) return Component.empty();
-        return Component.space().append(ColorUtil.parse(stars));
+        Component out = stars == null || stars.isBlank() ? Component.empty() : Component.space().append(ColorUtil.parse(stars));
+        // эмодзи у ника от команды проекта (/tabemoji в MediaTab, метка LuckPerms tab-emoji)
+        String emoji = luckPermsHook.getMetaValue(sender, "tab-emoji");
+        if (emoji != null && !emoji.isBlank()) out = out.append(Component.space()).append(ColorUtil.rich("&f" + emoji));
+        return out;
     }
 
     /** Ранг из DsRanks (например "☠ Лич "), пусто - нет плагина или /rank off. */
