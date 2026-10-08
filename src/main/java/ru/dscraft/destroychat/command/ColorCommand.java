@@ -71,7 +71,7 @@ public class ColorCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         player.sendMessage(Component.text("Готово! Так теперь выглядят твои сообщения: ", NamedTextColor.GRAY)
-                .append(ColorUtil.safe(tag + "Привет, DestroyCraft!")));
+                .append(ColorUtil.safe(tag + "Привет, Amaterasu!")));
         return true;
     }
 

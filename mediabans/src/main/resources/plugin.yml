@@ -2,8 +2,8 @@ name: MediaBans
 version: '1.0'
 main: ru.dscraft.mediabans.MediaBansPlugin
 api-version: '1.21'
-author: DestroyCraft
-description: Баны, муты и кики DestroyCraft
+author: loserwrld
+description: Баны, муты и кики Amaterasu
 # грузимся после них и забираем себе /ban, /mute, /kick ...
 softdepend: [LuckPerms, Essentials, LiteBans, AdvancedBan, BanManager, CMI]
 commands:

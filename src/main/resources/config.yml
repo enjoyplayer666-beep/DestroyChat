@@ -321,7 +321,7 @@ command-log:
     - //drain
     - //walls
     - //stack
-    # плагины DestroyCraft
+    # плагины Amaterasu
     - destroychat
     - destroylobby
     - mediaclear

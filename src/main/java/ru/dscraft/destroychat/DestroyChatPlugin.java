@@ -23,7 +23,7 @@ import ru.dscraft.destroychat.module.Modules;
 import ru.dscraft.destroychat.util.NameStyler;
 
 /**
- * DestroyChat - чат DestroyCraft: формат "Ⓛ ⌜Игрок⌟ ник → сообщение", локальный/глобальный
+ * DestroyChat - чат Amaterasu: формат "Ⓛ ⌜Игрок⌟ ник → сообщение", локальный/глобальный
  * каналы, /color, отдельный чат-префикс. Кланы - в плагине MediaClans.
  * <p>
  * В паре с DestroyLobby: тот запрещает чат в лобби и не пускает сообщения между лобби и
@@ -41,6 +41,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
     public void onLoad() {
         // раньше плагин назывался DestroyChat
         Modules.adoptOldFolder(this, "DestroyChat");
+        Rebrand.apply(this);
     }
 
     @Override

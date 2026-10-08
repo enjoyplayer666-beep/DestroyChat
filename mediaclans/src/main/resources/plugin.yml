@@ -3,7 +3,7 @@ version: '1.0'
 main: ru.dscraft.mediaclans.MediaClansPlugin
 api-version: '1.21'
 author: loserwrld
-description: Кланы DestroyCraft - меню, роли, клановый чат, рейтинг, топ
+description: Кланы Amaterasu - меню, роли, клановый чат, рейтинг, топ
 softdepend: [LuckPerms]
 # DestroyChat берёт отсюда тег клана для чата, StatPlugin - клан для /stat
 loadbefore: [MediaDestroyChat, MediaDestroyPvP]

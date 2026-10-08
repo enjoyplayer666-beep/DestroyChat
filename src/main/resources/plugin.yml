@@ -3,7 +3,7 @@ version: ${project.version}
 main: ru.dscraft.destroychat.DestroyChatPlugin
 api-version: '1.21'
 author: loserwrld
-description: Чат DestroyCraft + модули MediaBans (наказания) и VanishEffects (ваниш)
+description: Чат Amaterasu + модули MediaBans (наказания) и VanishEffects (ваниш)
 softdepend:
 - LuckPerms
 - MediaDestroyLobby

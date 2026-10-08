@@ -7,7 +7,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 
-/** MediaClans: кланы DestroyCraft - меню, роли, клановый чат, рейтинг и топ. */
+/** MediaClans: кланы Amaterasu - меню, роли, клановый чат, рейтинг и топ. */
 public class MediaClansPlugin extends JavaPlugin {
 
     private ClanManager manager;
