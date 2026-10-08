@@ -38,7 +38,7 @@
     </dependencies>
 
     <build>
-        <finalName>${project.artifactId}-${project.version}</finalName>
+        <finalName>MediaDestroyChat</finalName>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
@@ -54,8 +54,43 @@
                     <exclude>plugin.yml</exclude>
                 </excludes>
             </resource>
+
+            <resource>
+                <directory>mediabans/src/main/resources</directory>
+                <targetPath>MediaBans</targetPath>
+                <excludes>
+                    <exclude>plugin.yml</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>vanish/src/main/resources</directory>
+                <targetPath>VanishEffects</targetPath>
+                <excludes>
+                    <exclude>plugin.yml</exclude>
+                </excludes>
+            </resource>
         </resources>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <id>add-module-sources</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>mediabans/src/main/java</source>
+                                <source>vanish/src/main/java</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>

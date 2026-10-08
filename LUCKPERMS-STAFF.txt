@@ -1,0 +1,137 @@
+Команды LuckPerms для персонала (вводить в консоль сервера, без / в начале,
+или в игре с / в начале). Префикс группы - иконка в табе, ник белый (&f),
+суффикс - зелёная галочка. Чат DestroyChat берёт оформление персонала из
+config.yml -> group-formats, поэтому иконка в чат не попадёт.
+
+ВАЖНО: вместо <ИКОНКА> вставь символ-иконку из своего ресурс-пака
+(у curator, moderator и media иконки при отправке сообщения потерялись).
+Если группа уже есть, creategroup просто скажет, что она существует - это нормально.
+
+--- admin ---
+lp creategroup admin
+lp group admin meta removeprefix 1000
+lp group admin meta setprefix 1000 "🤪 &f"
+lp group admin meta removesuffix 1000
+lp group admin meta setsuffix 1000 " &a&l✔"
+
+--- curator ---
+lp creategroup curator
+lp group curator meta removeprefix 1000
+lp group curator meta setprefix 1000 "<ИКОНКА> &f"
+lp group curator meta removesuffix 1000
+lp group curator meta setsuffix 1000 " &a&l✔"
+
+--- manager ---
+lp creategroup manager
+lp group manager meta removeprefix 1000
+lp group manager meta setprefix 1000 "ɱ &f"
+lp group manager meta removesuffix 1000
+lp group manager meta setsuffix 1000 " &a&l✔"
+
+--- moderator ---
+lp creategroup moderator
+lp group moderator meta removeprefix 1000
+lp group moderator meta setprefix 1000 "<ИКОНКА> &f"
+lp group moderator meta removesuffix 1000
+lp group moderator meta setsuffix 1000 " &a&l✔"
+
+--- media ---
+lp creategroup media
+lp group media meta removeprefix 1000
+lp group media meta setprefix 1000 "<ИКОНКА> &f"
+lp group media meta removesuffix 1000
+lp group media meta setsuffix 1000 " &a&l✔"
+
+--- mediajr ---
+lp creategroup mediajr
+lp group mediajr meta removeprefix 1000
+lp group mediajr meta setprefix 1000 "🤪 &f"
+lp group mediajr meta removesuffix 1000
+lp group mediajr meta setsuffix 1000 " &a&l✔"
+
+--- выдать группу игроку ---
+lp user <ник> parent set admin        (заменит основную группу)
+lp user <ник> parent add admin        (добавит группу к имеющимся)
+
+=====================================================================
+ ПРАВА КОМАНДЫ ПРОЕКТА (вводить в консоль, по одной строке)
+=====================================================================
+Группы не наследуют друг друга: у каждой свой набор прав, чтобы в чате
+и /stat показывалась именно её привилегия. Вес (weight) - кто "старше".
+
+--- вес групп ---
+lp group curator setweight 900
+lp group admin setweight 800
+lp group manager setweight 700
+lp group moderator setweight 600
+lp group media setweight 500
+lp group mediajr setweight 400
+
+--- всем 6 группам: чат-префикс, стили, цвета, /color ---
+(повтори для curator, admin, manager, moderator, media, mediajr - замени имя группы)
+lp group mediajr permission set destroylobby.prefix.chat true
+lp group mediajr permission set destroylobby.prefix.format true
+lp group mediajr permission set destroylobby.chat.colors true
+lp group mediajr permission set destroylobby.chat.color true
+
+--- всем игрокам: /menu и /warps (телепорты из меню идут через /warp Essentials) ---
+lp group default permission set essentials.warp true
+lp group default permission set essentials.warp.list true
+lp group staffperms permission set essentials.warp true
+lp group staffperms permission set essentials.warp.list true
+
+--- персоналу: /color, префиксы, /fly, /gm (через общую группу staffperms) ---
+lp creategroup staffperms
+lp group staffperms permission set destroylobby.customprefix true
+lp group staffperms permission set destroylobby.prefix.chat true
+lp group staffperms permission set destroylobby.prefix.format true
+lp group staffperms permission set destroylobby.chat.colors true
+lp group staffperms permission set destroylobby.chat.color true
+lp group staffperms permission set essentials.fly true
+lp group staffperms permission set essentials.gamemode true
+lp group staffperms permission set essentials.gamemode.survival true
+lp group staffperms permission set essentials.gamemode.creative true
+lp group staffperms permission set essentials.gamemode.adventure true
+lp group staffperms permission set essentials.gamemode.spectator true
+lp group staffperms permission set essentials.tpo true
+lp group staffperms permission set essentials.tpohere true
+lp group admin parent add staffperms
+lp group manager parent add staffperms
+lp group moderator parent add staffperms
+lp group media parent add staffperms
+lp group mediajr parent add staffperms
+
+--- персоналу: все возможности доната (/prefix set, /fly, /hat, /heal и т.д.) ---
+Группы персонала сами по себе донатные права не получают. Даём им в родители
+elitesp - высшую привилегию, она наследует всё от vip..legend. Префикс персонала
+остаётся своим (приоритет 1000 выше, чем 60 у elitesp), в табе и /stat тоже.
+lp group admin parent add elitesp
+lp group manager parent add elitesp
+lp group moderator parent add elitesp
+lp group media parent add elitesp
+lp group mediajr parent add elitesp
+(curator не нужно - у него уже * true)
+
+--- moderator, manager, admin: видеть локальный чат на любом расстоянии ---
+lp group moderator permission set destroylobby.chat.spy true
+lp group manager permission set destroylobby.chat.spy true
+lp group admin permission set destroylobby.chat.spy true
+
+--- manager и admin: управление кланами, статистикой, бустерами, /destroychat reload ---
+lp group manager permission set destroychat.clan.admin true
+lp group manager permission set stat.booster.give true
+lp group admin permission set destroychat.admin true
+lp group admin permission set destroychat.clan.admin true
+lp group admin permission set stat.admin true
+lp group admin permission set stat.booster.give true
+lp group admin permission set stat.booster.15 true
+
+--- curator: почти OP - все права, кроме выдачи OP и выключения сервера ---
+lp group curator permission set * true
+lp group curator permission set minecraft.command.op false
+lp group curator permission set minecraft.command.deop false
+lp group curator permission set minecraft.command.stop false
+lp group curator permission set bukkit.command.restart false
+
+Если какие-то права у команды проекта не работают - проверь, что у игрока именно эта группа:
+lp user <ник> info

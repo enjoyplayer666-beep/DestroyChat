@@ -1,0 +1,16 @@
+# Ваниш по группам LuckPerms (/v без выбора эффекта).
+# Эффекты: fire, bats, lightning, starfall, frost, soul, ascension, none (обычный ваниш без эффекта).
+# Берётся первая подходящая группа сверху вниз. Опам доступно всё: меню, любой эффект, по умолчанию молния.
+# Остальным команда /v не видна и пишет сообщение ниже. После правки: /v reload
+groups:
+  admin: fire
+  manager: fire
+  moderator: fire
+  curator: bats
+  legend: none
+  elitesp: none
+
+no-command-message: "§fНет такой команды :/"
+
+# На каком расстоянии (в блоках) видно и слышно ваниш-эффект молнии.
+lightning-radius: 100

@@ -1,10 +1,15 @@
 package ru.dscraft.destroychat.config;
 
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import ru.dscraft.destroychat.DestroyChatPlugin;
 
+import java.util.function.Predicate;
+
 /** Настройки из config.yml плагина DestroyChat. */
 public class ChatConfig {
+
+    /** Тег клана по умолчанию: скобки &8&l[ ], название клана без жирного. */
 
     private final DestroyChatPlugin plugin;
     private FileConfiguration cfg;
@@ -41,7 +46,69 @@ public class ChatConfig {
     // ---- формат ----
 
     public String layout() {
-        return cfg.getString("format.layout", "<icon> <prefix><name> <dark_gray>→</dark_gray> ");
+        String layout = cfg.getString("format.layout", "<icon> <rank><clan><prefix><name><stars> <dark_gray>→</dark_gray> ");
+        // старые конфиги без <clan>: тег клана встаёт сразу после значка канала
+        if (!layout.contains("<clan>")) {
+            layout = layout.contains("<icon> ") ? layout.replace("<icon> ", "<icon> <clan>") : "<clan>" + layout;
+        }
+        // старые конфиги без <rank>: ранг из StatPlugin стоит перед кланом
+        if (!layout.contains("<rank>")) layout = layout.replace("<clan>", "<rank><clan>");
+        // старые конфиги без <stars>: звёзды сразу после ника
+        if (!layout.contains("<stars>")) {
+            layout = layout.contains("<name>") ? layout.replace("<name>", "<name><stars>") : layout;
+        }
+        return layout;
+    }
+
+    /** Оформление группы в чате: префикс вместо префикса LuckPerms и стиль ника. */
+    public record GroupFormat(String chatPrefix, String nameStyle) {
+    }
+
+    /**
+     * Формат из group-formats: сначала по основной группе LuckPerms, иначе первая группа по порядку
+     * в конфиге, которая есть у игрока. null - у игрока нет такой группы.
+     */
+    public GroupFormat groupFormat(String primaryGroup, Predicate<String> hasGroup) {
+        ConfigurationSection s = cfg.getConfigurationSection("group-formats");
+        if (s == null) return null;
+        String found = null;
+        if (primaryGroup != null && s.isConfigurationSection(primaryGroup)) {
+            found = primaryGroup;
+        } else {
+            for (String group : s.getKeys(false)) {
+                if (hasGroup.test(group)) {
+                    found = group;
+                    break;
+                }
+            }
+        }
+        if (found == null) return null;
+        return new GroupFormat(s.getString(found + ".chat-prefix", ""), s.getString(found + ".name-style", ""));
+    }
+
+    /**
+     * Оформление привилегий в чате (donor-formats): первая группа сверху вниз, которая есть у игрока.
+     * В отличие от group-formats это не команда проекта. null - нет.
+     */
+    public GroupFormat donorFormat(Predicate<String> hasGroup) {
+        ConfigurationSection s = cfg.getConfigurationSection("donor-formats");
+        if (s == null) return null;
+        for (String group : s.getKeys(false)) {
+            if (hasGroup.test(group)) {
+                return new GroupFormat(s.getString(group + ".chat-prefix", ""), s.getString(group + ".name-style", ""));
+            }
+        }
+        return null;
+    }
+
+    /** Звёзды персонала: первая подходящая группа из staff-stars, null - нет. */
+    public String staffStars(Predicate<String> hasGroup) {
+        ConfigurationSection s = cfg.getConfigurationSection("staff-stars");
+        if (s == null) return null;
+        for (String group : s.getKeys(false)) {
+            if (hasGroup.test(group)) return s.getString(group);
+        }
+        return null;
     }
 
     public String localIcon() {
@@ -68,6 +135,11 @@ public class ChatConfig {
         return cfg.getString("format.global-message-color", "<#DBA078>");
     }
 
+    /** Меню действий по клику на ник (player-menu), null - нет раздела. */
+    public org.bukkit.configuration.ConfigurationSection playerMenu() {
+        return cfg.getConfigurationSection("player-menu");
+    }
+
     public boolean nameClickMsg() {
         return cfg.getBoolean("format.name-click-msg", true);
     }
@@ -77,4 +149,5 @@ public class ChatConfig {
     public int chatPrefixMaxLength() {
         return cfg.getInt("chat-prefix.max-length", 24);
     }
+
 }

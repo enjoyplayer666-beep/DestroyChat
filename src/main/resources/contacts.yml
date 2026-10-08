@@ -1,0 +1,28 @@
+# ============================================
+#  /contact - контакты команды проекта (доступна всем игрокам)
+#  Строки - MiniMessage. {contacts} - сюда подставляется список contacts ниже.
+#  После правок: /destroychat reload
+# ============================================
+
+# как выглядит одна строка контакта: {name} - ник, {link} - что видно, {url} - куда ведёт клик
+entry-format: "<white>{name} <#888888>» <click:open_url:'{url}'><hover:show_text:'<gray>Открыть ссылку'><#E5A15C>{link}</hover></click>"
+
+# ник и ссылка; url можно не писать - тогда клик откроет https://<link>
+contacts:
+  - {name: "anxiety", link: "t.me/escpls"}
+  - {name: "deathcorridor", link: "t.me/blackkatana_q"}
+  - {name: "diarg0ne", link: "t.me/dscraft"}
+  - {name: "netherlight", link: "https://goo.su/WsnUN"}
+  - {name: "sh1rayukii", link: "t.me/Sh1rayukii"}
+  - {name: "youuw", link: "t.me/fakefakefakeeed"}
+
+lines:
+  - ""
+  - "<#D81E1E>◆ <white><b>КОНТАКТЫ КОМАНДЫ ПРОЕКТА:"
+  - ""
+  - "{contacts}"
+  - ""
+  - "<#555555><st>                                                    </st>"
+  - ""
+  - "<#E2E6FC>➥ <#C6C3B6>Спамят в лс? - <click:suggest_command:'/ignore '><hover:show_text:'<gray>Нажми, чтобы вписать команду'><gradient:#4783E6:#78A8FE>/ignore</gradient></hover></click> <gray>[ник]"
+  - "<#4783E6>➥ <#C6C3B6>Узнать свой баланс - <click:run_command:'/coins money'><hover:show_text:'<gray>Нажми, чтобы узнать баланс'><gradient:#4783E6:#E2E6FC>/coins money</gradient></hover></click>"

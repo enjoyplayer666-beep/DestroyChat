@@ -18,7 +18,8 @@ import java.util.Locale;
 
 /**
  * /color &lt;цвет&gt; - постоянный цвет сообщений в чате (Elite SP).
- * Цвет: &a / a, #FF55FF, градиент #FF5555:#FFFF55 (2-3 цвета), rainbow, названия (red, красный...).
+ * Цвет: &a / a, #FF55FF, градиент #FF5555:#FFFF55 (2-6 цветов), rainbow, названия (red, красный...),
+ * а также &-формат: &x&D&D&D&D&D&D&l, §x§F§F§0§0§0§0 §x§0§0§F§F§0§0 (градиент), &#FF55FF&l, &a&l.
  * /color reset - вернуть обычный цвет.
  */
 public class ColorCommand implements CommandExecutor, TabCompleter {
@@ -70,7 +71,7 @@ public class ColorCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         player.sendMessage(Component.text("Готово! Так теперь выглядят твои сообщения: ", NamedTextColor.GRAY)
-                .append(ColorUtil.safe(tag + "Привет, DestroyCraft!")));
+                .append(ColorUtil.safe(tag + "Привет, Amaterasu!")));
         return true;
     }
 
@@ -78,6 +79,8 @@ public class ColorCommand implements CommandExecutor, TabCompleter {
         player.sendMessage(ColorUtil.parse("<gray>Использование: <white>/color \\<цвет></white> | <white>/color reset</white></gray>"));
         player.sendMessage(ColorUtil.parse("<gray>Примеры: <white>/color &d</white>, <white>/color #FF55FF</white>, "
                 + "<white>/color #FF5555:#FFFF55</white> <gray>(градиент)</gray>, <white>/color красный</white>, <white>/color rainbow</white></gray>"));
+        player.sendMessage(ColorUtil.parse("<gray>Формат &-кодов: <white>/color &x&D&D&D&D&D&D&l</white> <gray>(с жирным)</gray>, "
+                + "<white>/color &x&F&F&0&0&0&0 &x&0&0&F&F&0&0</white> <gray>(градиент)</gray>, <white>/color &a&l</white></gray>"));
     }
 
     @Override
@@ -85,7 +88,8 @@ public class ColorCommand implements CommandExecutor, TabCompleter {
         List<String> out = new ArrayList<>();
         if (args.length != 1) return out;
         String typed = args[0].toLowerCase(Locale.ROOT);
-        List<String> options = new ArrayList<>(List.of("reset", "rainbow", "#FF55FF", "#FF5555:#FFFF55"));
+        List<String> options = new ArrayList<>(List.of("reset", "rainbow", "#FF55FF", "#FF5555:#FFFF55",
+                "&x&D&D&D&D&D&D&l", "&x&F&F&0&0&0&0&l&x&0&0&F&F&0&0"));
         options.addAll(ChatColors.RU.keySet());
         for (String o : options) {
             if (o.toLowerCase(Locale.ROOT).startsWith(typed)) out.add(o);

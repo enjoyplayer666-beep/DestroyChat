@@ -1,0 +1,216 @@
+# =====================================================================
+#  Команды по привилегиям. После правки: /destroychat reload
+#
+#  Игрок видит в Tab и может вводить ТОЛЬКО команды своей привилегии и всех младших
+#  (привилегии идут снизу вверх: default -> vip -> ... -> elitesp).
+#  На любую другую команду пишется сообщение ниже.
+#
+#  commands    - команды без "/". Алиасы писать не нужно: /enderchest сработает, если есть ec,
+#                но в Tab покажется только то, что написано здесь.
+#  permissions - права, которые плагин сам выдаёт привилегии (и всем старшим).
+#                Их можно удалить из групп в LuckPerms - выдаются отсюда.
+#                "-право" - запретить. Права подобраны под EssentialsX - если команда
+#                от другого плагина, впиши его право.
+#
+#  Не ограничиваются только опы. Команда проекта - как elitesp плюс блок staff ниже.
+# =====================================================================
+# не трогать: по нему плагин обновляет старый commands.yml
+version: 10
+
+enabled: true
+
+message: "<#C9C9FB>Нет такой команды :/</#C9C9FB>"
+
+# антиспам командами: не чаще одной команды за interval-ms (1000 = 1 секунда), 0 - выключить.
+# Опов и команду проекта не касается.
+anti-spam:
+  interval-ms: 1000
+  message: "<#E53232>◆</#E53232> <#C7C4B7>Не используйте так часто!</#C7C4B7>"
+
+staff-groups:
+  - admin
+  - manager
+  - curator
+  - moderator
+  - media
+  - mediajr
+
+# доступны всегда, даже до входа в аккаунт (авторизация)
+always:
+  - l
+  - login
+  - log
+  - reg
+  - register
+  - changepassword
+  - changepass
+  - cp
+
+# Команда проекта (staff-groups) = права и команды старшей привилегии (elitesp) + то, что ниже.
+# Без ограничений - только опы.
+staff:
+  commands:
+    - admin       # на /warp admin
+    - espeed      # /espeed fly|walk 1-10
+    - spec        # гм3, повторно - гм1
+    - prefix      # в т.ч. /prefix reset ник
+    # наказания: у команды проекта без ограничений (MediaBans)
+    - ban
+    - tempban
+    - mute
+    - tempmute
+    - kick
+    - unban
+    - unmute
+    - checkban
+    - checkmute
+    - banlist
+  permissions:
+    - destroychat.admin-warp
+    - destroychat.espeed
+    - destroychat.spec
+    - destroylobby.prefix.reset.others
+    - destroylobby.customprefix
+    - destroychat.logs
+    # в лобби команда проекта как все: без чата и без лишних команд (сильнее прав из LuckPerms)
+    - "-destroylobby.lobby.bypass"
+    - "-destroylobby.chat.bypass"
+  # отдельно группам персонала (первая подходящая сверху вниз)
+  groups:
+    curator:
+      commands:
+        - gamemode
+        - gm
+        - gmc
+        - gms
+        - gma
+        - gmsp
+      permissions:
+        - essentials.gamemode
+        - essentials.gamemode.all
+        - essentials.gamemode.creative
+        - essentials.gamemode.survival
+        - essentials.gamemode.adventure
+        - essentials.gamemode.spectator
+
+ranks:
+  # можно и подкоманду: "rank top" - только /rank top, без /rank и /rank info
+  default:
+    commands:
+      - spawn
+      - hub
+      - stat
+      - mystat
+      - skin
+      - menu
+      - warps
+      - donate
+      - c
+      # /rank целиком: без VIP DsRanks сам ответит "Вас нет в базе данных!", /rank top работает
+      - rank
+      # чтобы работали /tpa и /tpahere от привилегий
+      - tpaccept
+      - tpdeny
+      # на место смерти - у всех групп
+      - back
+      - dback
+      # хранилища (MediaVaults) - у всех
+      - ec
+      - coins
+    permissions:
+      - essentials.spawn
+      - essentials.tpaccept
+      - essentials.tpdeny
+
+  vip:
+    commands:
+      - hat
+      - feed
+      - tpahere
+      - ptime
+      - ec
+      - rank
+    permissions:
+      - essentials.hat
+      - essentials.feed
+      - essentials.tpahere
+      - essentials.ptime
+      - essentials.enderchest
+      - essentials.kits.vip
+      # создавать кланы и ранги - с VIP
+      - mediaclans.create
+      - ranks.use
+
+  luxe:
+    commands:
+      - afk
+      - dback
+      - anvil
+      - clear
+      - pweather
+    permissions:
+      - essentials.afk
+      - essentials.back
+      - essentials.back.ondeath
+      - essentials.anvil
+      - essentials.clearinventory
+      - essentials.pweather
+      - essentials.kits.luxe
+
+  deluxe:
+    commands:
+      - near
+      - heal
+      - prefix
+      - invsee
+      - checkban
+      - checkmute
+    permissions:
+      - essentials.near
+      - essentials.heal
+      - essentials.invsee
+      - destroylobby.customprefix
+      - essentials.kits.deluxe
+
+  ultra:
+    commands:
+      - tempmute
+      - unmute
+      - chatprefix
+    permissions:
+      - destroylobby.prefix.chat
+      - destroylobby.prefix.format
+      - ranks.give
+      - mediaclans.booster.2
+      - essentials.kits.ultra
+
+  legend:
+    commands:
+      - fly
+      - banlist
+      - beezooka
+      - v
+      - glow
+    permissions:
+      - essentials.fly
+      - essentials.beezooka
+      - destroylobby.chat.colors
+      - essentials.kits.legend
+
+  elitesp:
+    commands:
+      - tpa
+      - msgtoggle
+      - tptoggle
+      - socialspy
+      - color
+      - tempban
+      - unban
+    permissions:
+      - essentials.tpa
+      - essentials.msgtoggle
+      - essentials.tptoggle
+      - essentials.socialspy
+      - destroylobby.chat.color
+      - destroylobby.chat.spy
+      - essentials.kits.elite

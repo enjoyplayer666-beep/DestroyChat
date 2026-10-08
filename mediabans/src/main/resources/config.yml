@@ -1,0 +1,81 @@
+# =====================================================================
+#  MediaBans - баны, муты и кики Amaterasu. После правки: /mediabans reload
+#  Время: s - секунды, m - минуты, h - часы, d - дни, w - недели (можно 1h30m, по-русски 1ч30м).
+# =====================================================================
+
+# Команда проекта: баны и муты без ограничений, кики, /ban и /mute навсегда.
+# Их самих забанить, замутить и кикнуть нельзя (только из консоли). Опы - тоже команда проекта.
+staff-groups:
+  - admin
+  - manager
+  - curator
+  - moderator
+  - media
+  - mediajr
+
+# Донатеры: берётся первая подходящая группа сверху вниз (старшие - выше).
+#   tempmute / tempban - максимальный срок, 0 - нельзя
+#   unmute / unban - снимать наказания (только выданные донатерами, не командой проекта)
+#   check - /checkban и /checkmute, banlist - /banlist
+# /ban, /mute (навсегда) и /kick донатерам недоступны.
+groups:
+  elitesp:
+    tempmute: 40m
+    tempban: 1h
+    unmute: true
+    unban: true
+    check: true
+    banlist: true
+  legend:
+    tempmute: 30m
+    tempban: 0
+    unmute: true
+    unban: false
+    check: true
+    banlist: true
+  ultra:
+    tempmute: 30m
+    tempban: 0
+    unmute: true
+    unban: false
+    check: true
+    banlist: false
+  deluxe:
+    tempmute: 0
+    tempban: 0
+    unmute: false
+    unban: false
+    check: true
+    banlist: false
+
+# кто видит сообщения о наказаниях: all - все, staff - только команда проекта
+broadcast: all
+
+# что пишется вместо недоступной команды
+no-command-message: "<white>Нет такой команды :/</white>"
+
+# эти команды в муте тоже нельзя (личные сообщения и т.п.)
+muted-commands:
+  - msg
+  - tell
+  - w
+  - whisper
+  - m
+  - pm
+  - r
+  - reply
+  - me
+  - say
+  - mail
+  - t
+
+# Оформление (MiniMessage). <title> - заголовок, <label> - "Нарушитель"/"Замутил"/..., <value> - значение.
+style:
+  title: "<black>[</black><#C8E4E4>!</#C8E4E4><black>]</black> <white><bold><title></bold></white> <black>[</black><#C8E4E4>!</#C8E4E4><black>]</black>"
+  target: "<#FF5555>✘</#FF5555> <white><label></white> <dark_gray>·</dark_gray> <#FF5555><value></#FF5555>"
+  actor: "<#2CF77E>☄</#2CF77E> <white><label></white> <dark_gray>·</dark_gray> <#2CF77E><value></#2CF77E>"
+  reason: "<#BD66FA>✭</#BD66FA> <white><label></white> <dark_gray>·</dark_gray> <#BD66FA><value></#BD66FA>"
+  time: "<#C8E4E4>⌛</#C8E4E4> <white><label></white> <dark_gray>·</dark_gray> <#C8E4E4><value></#C8E4E4>"
+  error: "<black>[</black><#C8E4E4>!</#C8E4E4><black>]</black> <#FF5555><text></#FF5555>"
+  info: "<black>[</black><#C8E4E4>!</#C8E4E4><black>]</black> <white><text></white>"
+  list-line: "<#FF5555>✘</#FF5555> <#FF5555><name></#FF5555> <dark_gray>·</dark_gray> <#BD66FA><reason></#BD66FA> <dark_gray>·</dark_gray> <#C8E4E4><time></#C8E4E4>"

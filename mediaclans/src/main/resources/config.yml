@@ -1,0 +1,61 @@
+# =====================================================================
+#  MediaClans - кланы Amaterasu: /clan (/c)
+#  Тексты - MiniMessage: <gradient:#A:#B>..</gradient>, <#RRGGBB>, <bold>, <white> ...
+#  При первом запуске настройки и все кланы сами переносятся из DestroyChat.
+# =====================================================================
+
+# тег клана в чате DestroyChat, сразу после ранга; <clan> - название клана с его цветами
+chat-tag: "<dark_gray><bold>[</bold></dark_gray><clan><dark_gray><bold>]</bold></dark_gray> "
+
+# начало всех сообщений кланов
+clan-prefix: "<#F6993C>Кланы</#F6993C> <#666666>•</#666666> "
+
+# клановый чат: сообщение, которое начинается с этого знака, видят только участники клана
+clan-chat:
+  symbol: "%"
+  # <role> - префикс роли, <name> - ник, <message> - сообщение
+  style: "<#F6993C>Клан</#F6993C> <#666666>»</#666666> <#666666>[</#666666><role><#666666>]</#666666> <#00FFE3><name></#00FFE3><#666666>:</#666666> <white><message></white>"
+
+# создание клана: право (с VIP - выдаётся в DestroyChat commands.yml); "" - могут все
+create-clan-permission: "mediaclans.create"
+
+# клановый рейтинг (КР) за убийство игрока
+kill-rating: 15
+# игроки с этим правом получают КР x2 (бустер Ultra); "" - выключено
+booster-permission: "mediaclans.booster.2"
+# сколько КР теряет клан убитого (0 - не теряет)
+death-rating: 0
+# повторное убийство того же игрока тем же убийцей раньше этого времени рейтинг не даёт (защита от фарма)
+kill-cooldown-seconds: 300
+# <amount> - сколько КР начислено
+kill-message: "<green>Вашему клану добавлено <yellow><amount></yellow> кланового рейтинга!</green>"
+# сообщение убитому, если его клан потерял КР ("" - не писать)
+death-message: "<red>Ваш клан потерял <yellow><amount></yellow> кланового рейтинга.</red>"
+
+name-min-length: 3
+name-max-length: 16
+max-members: 50
+# слоты игроков в клане: бесплатно при создании, максимум (3 страницы по 21), цена слота в коинах (пока только текст)
+free-slots: 14
+max-slots: 63
+slot-price: 5
+# сколько секунд действует приглашение
+invite-seconds: 60
+# сколько секунд ждать ответа в чат (название, пароль, описание ...)
+input-seconds: 30
+# кланов на странице /c top
+top-page-size: 10
+description-max-length: 120
+announcement-max-length: 120
+role-prefix-max-length: 16
+max-roles: 15
+max-pins: 28
+history-size: 28
+
+# статус клана по рейтингу: порог КР -> название
+statuses:
+  '0': "<gray>Новички</gray>"
+  '500': "<green>Опытные</green>"
+  '1500': "<aqua>Грозные</aqua>"
+  '3000': "<gold>Легенды</gold>"
+  '6000': "<#FF55AA>Неудержимые</#FF55AA>"

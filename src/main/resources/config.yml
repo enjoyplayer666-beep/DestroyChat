@@ -20,8 +20,10 @@ spy-permission: "destroylobby.chat.spy"
 nobody-heard-message: "<gray>Рядом никого нет. Поставь <white>!</white> перед сообщением, чтобы написать в глобальный чат.</gray>"
 
 format:
-  # <icon> - значок канала, <prefix> - префикс, <name> - ник
-  layout: "<icon> <prefix><name> <dark_gray>→</dark_gray> "
+  # <icon> - значок канала, <rank> - ранг из DsRanks (/rank off - скрыть),
+  # <clan> - тег клана (пусто, если игрок не в клане),
+  # <prefix> - префикс, <name> - ник, <stars> - звёзды персонала (staff-stars)
+  layout: "<icon> <rank><clan><prefix><name><stars> <dark_gray>→</dark_gray> "
   # значки из ресурс-пака (белый цвет = родные цвета картинки)
   local-icon: "<white>Ⓛ</white>"
   global-icon: "<white>Ⓖ</white>"
@@ -32,9 +34,343 @@ format:
   # цвет сообщений по умолчанию (сняты со скрина)
   local-message-color: "<#AFAABF>"
   global-message-color: "<#DBA078>"
-  # клик по нику в чате -> /msg ник
+  # клик по нику в чате -> /msg ник (если меню игрока ниже выключено)
   name-click-msg: true
+
+# Меню действий над игроком: клик по нику в чате. {name} - ник, {world} - мир (названия из worlds).
+# Пункт видят только те, кому доступна его команда (commands.yml).
+# need: mute - только кто может мутить (MediaBans: ultra и выше), need: ban - банить (elitesp), команда проекта - всё.
+# action: suggest - вставить команду в чат, run - выполнить сразу. После правки: /destroychat reload
+player-menu:
+  enabled: true
+  name-hover: "<#C9C9FB>Ник:</#C9C9FB> <white>{name}</white>\n<#C9C9FB>Мир:</#C9C9FB> <white>{world}</white>\n\n<#9B6BFF>Нажми, чтобы выбрать действие.</#9B6BFF>"
+  worlds:
+    world: "Лобби"
+    world_skypvp: "SkyPvP"
+    world_nether: "Незер"
+    world_the_end: "Энд"
+  top: ""
+  title: " <#9B6BFF><bold>Выберите действие над игроком</bold></#9B6BFF>"
+  border: "<#6E4BC9><strikethrough>                                                  </strikethrough></#6E4BC9>"
+  items:
+    msg:
+      text: "  <#5AA9FF>[✉]</#5AA9FF> <white>Написать в ЛС</white>"
+      hover: "<white>Написать личное сообщение <#5AA9FF>{name}</#5AA9FF></white>"
+      action: suggest
+      command: "/msg {name} "
+    clan:
+      text: "  <#FFA63D>[⚑]</#FFA63D> <white>Пригласить в клан</white>"
+      hover: "<white>Пригласить в клан <#FFA63D>{name}</#FFA63D></white>"
+      action: run
+      command: "/clan invite {name}"
+    tpa:
+      text: "  <#B57CFF>[⚡]</#B57CFF> <white>Запросить телепорт</white>"
+      hover: "<white>Запрос телепортации к <#B57CFF>{name}</#B57CFF></white>"
+      action: run
+      command: "/tpa {name}"
+    mute:
+      text: "  <#FF5555>[✖]</#FF5555> <white>Выдать мут</white>"
+      hover: "<white>Выдать временный мут <#FF5555>{name}</#FF5555></white>"
+      action: suggest
+      command: "/tempmute {name} "
+      need: mute
+    ban:
+      text: "  <#FF3B3B>[⊘]</#FF3B3B> <white>Выдать бан</white>"
+      hover: "<white>Выдать временный бан <#FF3B3B>{name}</#FF3B3B></white>"
+      action: suggest
+      command: "/tempban {name} "
+      need: ban
+
+# звёзды после ника в чате для персонала: группа LuckPerms -> звёзды.
+# Проверяется сверху вниз, берётся первая группа, которая есть у игрока (с учётом наследования).
+staff-stars:
+  curator: "<dark_red>****</dark_red>"
+  admin: "<dark_red>***</dark_red>"
+  moderator: "<dark_red>**</dark_red>"
+  helper: "<dark_red>*</dark_red>"
+
+# Оформление персонала в чате. Префикс отсюда заменяет префикс LuckPerms (в LuckPerms у этих
+# групп префикс - иконка для таба), name-style - цвет/стиль ника (&f&l - белый жирный).
+# Группа выбирается по основной группе LuckPerms, иначе - первая по порядку, которая есть у игрока.
+# &r перед пробелом - пробел обычной ширины (жирный пробел шире).
+group-formats:
+  curator:
+    chat-prefix: "&8&l[§x§D§E§0§0§0§0§lᴄᴜʀᴀᴛᴏʀ&8&l]&r &8&l[§x§0§0§F§F§C§B§lsᴘ&r §x§F§F§2§9§2§9§l✔&8&l]&r "
+    name-style: "&f&l"
+  admin:
+    chat-prefix: "&8&l[§x§F§F§0§0§0§0§lᴀᴅᴍɪɴ&8&l]&r &8&l[§x§F§E§7§1§0§5§lᴅ§x§F§F§0§0§0§0§ls&r &a&l✔&8&l]&r "
+    name-style: "&f&l"
+  manager:
+    chat-prefix: "&8&l[§x§0§0§E§0§F§F§lᴍᴀɴᴀɢᴇʀ&8&l]&r &8&l[§x§F§F§2§B§3§C§lᴅs&r &a&l✔&8&l]&r "
+    name-style: "&f&l"
+  moderator:
+    chat-prefix: "&8&l[§x§6§D§1§6§1§D§lᴍᴏᴅᴇʀᴀᴛᴏʀ&8&l]&r &8&l[§x§D§D§D§1§2§E§lᴅs&r &a&l✔&8&l]&r "
+    name-style: "&f&l"
+  media:
+    chat-prefix: "&8&l[§x§2§E§D§D§C§8§lᴍᴇᴅɪᴀ&8&l]&r &8&l[§x§D§D§D§D§D§D§lᴅs&r &a&l✔&8&l]&r "
+    name-style: "&f&l"
+  mediajr:
+    chat-prefix: "&8&l[§x§2§E§D§D§C§8§lᴍᴇᴅɪᴀ&8&l]&r &8&l[§x§D§D§D§D§D§D§lᴅs&r &a&l✔&8&l]&r "
+    name-style: "&f&l"
+
+# Оформление привилегий в чате (не команда проекта): группа -> префикс вместо префикса LuckPerms
+# и стиль ника. Берётся первая группа сверху вниз. Свой /prefix set у игрока главнее.
+donor-formats:
+  elitesp:
+    chat-prefix: "&f⌜&#8D73FC&lElite&r&f⌟ &#FF5555&lSP&#55FF55&l✔&r "
+    name-style: "&f&l"
+
+# Таб теперь в отдельном плагине MediaTab. Эти цвета он забирает к себе при первом запуске,
+# дальше они настраиваются в plugins/MediaTab/config.yml (tab.game.name-color / staff-name-color).
+tab:
+  enabled: true
+  # цвет ника в табе: обычные игроки - серый, команда проекта (group-formats) - белый
+  name-color: "&7"
+  staff-name-color: "&f"
+
+# версия раздела персонала: при обновлении плагин сам заменит staff-stars и group-formats на новые
+staff-config-version: 3
 
 chat-prefix:
   # /prefix chat - максимум видимых символов (без учёта цветов)
   max-length: 24
+
+# ---------------------------------------------------------------------
+#  Кланы теперь в отдельном плагине MediaClans (plugins/MediaClans/config.yml).
+#  Эти настройки он забирает к себе при первом запуске, здесь они больше не используются.
+# ---------------------------------------------------------------------
+clans:
+  enabled: true
+  # тег клана в чате, сразу после значка Ⓛ / Ⓖ; <clan> - название клана с его цветами
+  chat-tag: "<dark_gray><bold>[</bold></dark_gray><clan><dark_gray><bold>]</bold></dark_gray> "
+  # клановый рейтинг (КР) за убийство игрока
+  kill-rating: 15
+  # сколько КР теряет клан убитого (0 - не теряет)
+  death-rating: 0
+  # повторное убийство того же игрока тем же убийцей раньше этого времени рейтинг не даёт (защита от фарма)
+  kill-cooldown-seconds: 300
+  # <amount> - сколько КР начислено
+  kill-message: "<green>Вашему клану добавлено <yellow><amount></yellow> кланового рейтинга!</green>"
+  # сообщение убитому, если его клан потерял КР ("" - не писать)
+  death-message: "<red>Ваш клан потерял <yellow><amount></yellow> кланового рейтинга.</red>"
+  # надпись на экране после нажатия "Создать клан" в меню (можно &/§-коды, §x-hex, MiniMessage)
+  create-title: "§x§8§9§F§F§B§C§l§oН§x§8§8§F§E§B§6§l§oа§x§8§7§F§C§B§0§l§oп§x§8§5§F§B§A§9§l§oи§x§8§4§F§9§A§3§l§oш§x§8§3§F§8§9§D§l§oи§x§8§2§F§7§9§7§l§oт§x§8§1§F§5§9§1§l§oе §x§7§E§F§3§8§4§l§oн§x§7§D§F§1§7§E§l§oа§x§7§C§F§0§7§8§l§oз§x§7§B§E§E§7§2§l§oв§x§7§A§E§D§6§C§l§oа§x§7§9§E§C§6§6§l§oн§x§7§7§E§A§5§F§l§oи§x§7§6§E§9§5§9§l§oе §x§7§4§E§6§4§D§l§oк§x§7§3§E§5§4§7§l§oл§x§7§2§E§3§4§1§l§oа§x§7§0§E§2§3§A§l§oн§x§6§F§E§1§3§4§l§oа §x§6§D§D§E§2§8§l§oв §x§6§B§D§B§1§C§l§oч§x§6§9§D§A§1§5§l§oа§x§6§8§D§8§0§F§l§oт§x§6§7§D§7§0§9§l§o!"
+  create-subtitle: "<gray>Для отмены напишите <white>отмена</white></gray>"
+  name-min-length: 3
+  name-max-length: 16
+  max-members: 50
+  # сколько секунд действует приглашение
+  invite-seconds: 60
+  # кланов на странице /c top
+  top-page-size: 10
+  rank-max-length: 16
+  description-max-length: 120
+  # статус клана по рейтингу: порог КР -> название
+  statuses:
+    '0': "<gray>Новички</gray>"
+    '500': "<green>Опытные</green>"
+    '1500': "<aqua>Грозные</aqua>"
+    '3000': "<gold>Легенды</gold>"
+    '6000': "<#FF55AA>Неудержимые</#FF55AA>"
+
+# ---------------------------------------------------------------------
+#  Автосообщения в чат: раз в interval-minutes - один блок, по очереди.
+#  Строки - MiniMessage: <click:run_command:/donate>..</click> - команда по клику,
+#  <click:suggest_command:/tpa >..</click> - вставить в чат, <click:open_url:https://..>..</click> - ссылка.
+#  Цвета сняты со скринов: стрелка 1 - #E0E4FF, стрелка 2 и выделение - #4682E4, текст - #E0E4FF.
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+#  [AmaterasuLog] - команды игроков в чате. Видят только команда проекта
+#  (группы из group-formats, право destroychat.logs) и опы.
+#  <player> - ник, <command> - команда целиком. Команды можно писать с / и без.
+# ---------------------------------------------------------------------
+# /back и /dback - на место последней смерти (у всех групп)
+back:
+  message: "<#8971AF>Телепорт</#8971AF> <dark_gray>»</dark_gray> <#C8C5B8>Вы перемещены на место смерти.</#C8C5B8>"
+  no-death: "<#E53232>◆</#E53232> <#C7C4B7>Вы ещё не умирали.</#C7C4B7>"
+  unsafe: "<#E53232>◆</#E53232> <#C7C4B7>На место смерти не переместиться - там пустота.</#C7C4B7>"
+
+command-log:
+  enabled: true
+  # Опы видят в логах ВСЕ команды всех игроков (кроме входа/пароля).
+  # Команда проекта видит только команды из staff-visible (кто бы их ни ввёл).
+  staff-visible:
+    - tpo
+    - tp
+    - tpohere
+    - kick
+    - ban
+    - tempban
+    - tempmute
+    - mute
+  # (старый список ниже больше не используется)
+  # дублировать в консоль
+  console: false
+  format: "<gray>[</gray><gradient:#FF4B4B:#FFD24B>AmaterasuLog</gradient><gray>]</gray> <#55FFFF>Игрок</#55FFFF> <#00AAAA><player></#00AAAA> <#55FFFF>ввёл команду:</#55FFFF> <gold><command></gold>"
+  commands:
+    # наказания
+    - ban
+    - tempban
+    - ipban
+    - banip
+    - tempbanip
+    - unban
+    - pardon
+    - tban
+    - tmute
+    - unbanip
+    - pardon-ip
+    - kick
+    - mute
+    - tempmute
+    - unmute
+    - warn
+    - unwarn
+    - jail
+    - unjail
+    - freeze
+    # права, привилегии, ранги
+    - op
+    - deop
+    - lp
+    - luckperms
+    - perm
+    - perms
+    - rank
+    - prefix
+    # режимы и способности
+    - gamemode
+    - gm
+    - gmc
+    - gms
+    - gma
+    - gmsp
+    - creative
+    - survival
+    - adventure
+    - spectator
+    - fly
+    - god
+    - vanish
+    - v
+    - speed
+    - heal
+    - feed
+    - sudo
+    # телепорты
+    - tp
+    - teleport
+    - tphere
+    - s
+    - tpall
+    - tppos
+    - tpo
+    - tpohere
+    # выдача вещей и ресурсов
+    - give
+    - i
+    - item
+    - menu
+    - eco
+    - economy
+    - xp
+    - exp
+    - experience
+    - enchant
+    - effect
+    - summon
+    - kill
+    - clear
+    - ci
+    - clearinventory
+    # чужие инвентари
+    - invsee
+    - openinv
+    - enderchest
+    - ec
+    - echest
+    # мир и сервер
+    - time
+    - weather
+    - gamerule
+    - difficulty
+    - setblock
+    - fill
+    - clone
+    - setworldspawn
+    - setspawn
+    - worldborder
+    - whitelist
+    - stop
+    - restart
+    - reload
+    - rl
+    - plugman
+    - broadcast
+    - bc
+    - say
+    # WorldEdit
+    - //set
+    - //replace
+    - //paste
+    - //copy
+    - //cut
+    - //undo
+    - //redo
+    - //fill
+    - //drain
+    - //walls
+    - //stack
+    # плагины Amaterasu
+    - destroychat
+    - destroylobby
+    - mediaclear
+    - clan forcedelete
+    - clan setrating
+    - c forcedelete
+    - c setrating
+
+# ---------------------------------------------------------------------
+#  Скрытые команды: для всех, кроме опов (и игроков, и команды проекта),
+#  команды с ":" (destroychat:color, minecraft:tp ...) и команды из списка
+#  не видны в подсказках, а при вводе пишется сообщение ниже.
+# ---------------------------------------------------------------------
+hidden-commands:
+  enabled: true
+  # сообщение "Нет такой команды :/" - в commands.yml
+  commands:
+    - plugins
+    - pl
+    - version
+    - ver
+    - about
+    - icanhasbukkit
+
+announcements:
+  enabled: true
+  interval-minutes: 15
+  # true - блоки в случайном порядке, false - по очереди
+  random: false
+  # пустая строка до и после блока
+  blank-lines: true
+  messages:
+    - - "<#E0E4FF>→ Всем кто помог серверу <click:run_command:/donate><hover:show_text:'<gray>Открыть /donate'><#4682E4>донатом</#4682E4></hover></click>, выражаем огромную благодарность!</#E0E4FF>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Функции привилегий - <click:run_command:/donate><hover:show_text:'<gray>Нажми'><#4682E4>/donate</#4682E4></hover></click></#E0E4FF>"
+    - - "<#E0E4FF>→ Адрес сервера: <click:copy_to_clipboard:mc.ds-craft.net><hover:show_text:'<gray>Нажми, чтобы скопировать'><#4682E4>mc.ds-craft.net</#4682E4></hover></click></#E0E4FF>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Группа сервера: <click:open_url:https://vk.com/game_ds><hover:show_text:'<gray>Открыть группу'><#4682E4>vk.com/game_ds</#4682E4></hover></click></#E0E4FF>"
+    - - "<#E0E4FF>→</#E0E4FF> <#4682E4>Друзья, имейте сложный пароль на аккаунте</#4682E4>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Сменить пароль - <click:suggest_command:/changepassword ><hover:show_text:'<gray>Нажми'><#4682E4>/changepassword</#4682E4></hover></click></#E0E4FF>"
+    - - "<#E0E4FF>→ Телепортироваться к игроку - <click:suggest_command:/tpa ><hover:show_text:'<gray>Нажми'><#4682E4>/tpa</#4682E4></hover></click> [ник]</#E0E4FF>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Отключить телепортации к себе - <click:run_command:/tptoggle><hover:show_text:'<gray>Нажми'><#4682E4>/tptoggle</#4682E4></hover></click></#E0E4FF>"
+    - - "<#E0E4FF>→</#E0E4FF> <#4682E4>Продажа аккаунтов строго запрещена</#4682E4>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Не попадайтесь на уловки мошенников!</#E0E4FF>"
+    - - "<#E0E4FF>→</#E0E4FF> <#4682E4>Меню скайпвп</#4682E4>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Пропишите - <click:run_command:/menu><hover:show_text:'<gray>Нажми'><#4682E4>/menu</#4682E4></hover></click></#E0E4FF>"
+    - - "<#E0E4FF>→ Друзья, соблюдайте пожалуйста <click:run_command:/rules><hover:show_text:'<gray>Нажми'><#4682E4>правила</#4682E4></hover></click> сервера</#E0E4FF>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Пропишите - <click:run_command:/rules><hover:show_text:'<gray>Нажми'><#4682E4>/rules</#4682E4></hover></click></#E0E4FF>"
+    - - "<#E0E4FF>→</#E0E4FF> <#4682E4>Узнать ранг игрока!</#4682E4>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Пропишите - <click:suggest_command:/rank info ><hover:show_text:'<gray>Нажми'><#4682E4>/rank info</#4682E4></hover></click> [Ник]</#E0E4FF>"
+    - - "<#E0E4FF>→</#E0E4FF> <#4682E4>Лучшие пвп-бойцы!</#4682E4>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Пропишите - <click:run_command:/rank top><hover:show_text:'<gray>Нажми'><#4682E4>/rank top</#4682E4></hover></click></#E0E4FF>"
+    - - "<#E0E4FF>→</#E0E4FF> <#4682E4>Смена скина/облика!</#4682E4>"
+      - "<#4682E4>→</#4682E4> <#E0E4FF>Пропишите - <click:suggest_command:/skin ><hover:show_text:'<gray>Нажми'><#4682E4>/skin</#4682E4></hover></click> [Ник_Скина]</#E0E4FF>"

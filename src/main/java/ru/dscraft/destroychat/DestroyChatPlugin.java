@@ -5,15 +5,26 @@ import net.luckperms.api.LuckPermsProvider;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
+import ru.dscraft.destroychat.announce.Announcer;
 import ru.dscraft.destroychat.command.ChatPrefixCommand;
 import ru.dscraft.destroychat.command.ColorCommand;
+import ru.dscraft.destroychat.command.BackCommand;
+import ru.dscraft.destroychat.command.ContactCommand;
+import ru.dscraft.destroychat.command.PlayerMenuCommand;
+import ru.dscraft.destroychat.command.StaffCommands;
 import ru.dscraft.destroychat.config.ChatConfig;
 import ru.dscraft.destroychat.hook.LuckPermsHook;
 import ru.dscraft.destroychat.listener.ChatFormatListener;
+import ru.dscraft.destroychat.listener.CommandAccess;
+import ru.dscraft.destroychat.listener.CommandHideListener;
+import ru.dscraft.destroychat.listener.CommandLogListener;
+import ru.dscraft.destroychat.listener.PrefixResetListener;
+import ru.dscraft.destroychat.module.Modules;
+import ru.dscraft.destroychat.util.NameStyler;
 
 /**
- * DestroyChat - чат DestroyCraft: формат "Ⓛ ⌜Игрок⌟ ник → сообщение", локальный/глобальный
- * каналы, /color и отдельный чат-префикс.
+ * DestroyChat - чат Amaterasu: формат "Ⓛ ⌜Игрок⌟ ник → сообщение", локальный/глобальный
+ * каналы, /color, отдельный чат-префикс. Кланы - в плагине MediaClans.
  * <p>
  * В паре с DestroyLobby: тот запрещает чат в лобби и не пускает сообщения между лобби и
  * игровыми мирами, а также перенаправляет свою команду /prefix chat сюда (/chatprefix).
@@ -21,11 +32,23 @@ import ru.dscraft.destroychat.listener.ChatFormatListener;
 public final class DestroyChatPlugin extends JavaPlugin {
 
     private ChatConfig chatConfig;
+    private Announcer announcer;
+    private ContactCommand contactCommand;
+    private CommandAccess commandAccess;
+    private Modules modules;
+
+    @Override
+    public void onLoad() {
+        // раньше плагин назывался DestroyChat
+        Modules.adoptOldFolder(this, "DestroyChat");
+        Rebrand.apply(this);
+    }
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
         getConfig().options().copyDefaults(true);
+        migrateStaffConfig();
         saveConfig();
         this.chatConfig = new ChatConfig(this);
 
@@ -39,13 +62,31 @@ public final class DestroyChatPlugin extends JavaPlugin {
             getLogger().warning("LuckPerms не найден! Префиксы привилегий, /prefix chat и /color работать не будут.");
         }
 
-        if (getServer().getPluginManager().getPlugin("DestroyLobby") != null) {
+        if (getServer().getPluginManager().getPlugin("MediaDestroyLobby") != null) {
             getLogger().info("DestroyLobby найден: чат в лобби выключен, лобби и игровые миры разделены.");
         } else {
             getLogger().warning("DestroyLobby не найден: чат будет работать и в лобби, миры не разделены.");
         }
 
-        getServer().getPluginManager().registerEvents(new ChatFormatListener(chatConfig, luckPermsHook), this);
+        // кланы (/clan) - в отдельном плагине MediaClans, тег клана в чат берётся оттуда
+        if (getServer().getPluginManager().getPlugin("MediaClans") == null) {
+            getLogger().warning("MediaClans не найден: тега клана в чате не будет.");
+        }
+
+        NameStyler nameStyler = new NameStyler(chatConfig, luckPermsHook);
+        getServer().getPluginManager().registerEvents(new PrefixResetListener(luckPermsHook), this);
+        getServer().getPluginManager().registerEvents(
+                new ChatFormatListener(chatConfig, luckPermsHook, nameStyler), this);
+
+        // [AmaterasuLog] - команды игроков видят только команда проекта и опы
+        getServer().getPluginManager().registerEvents(new CommandLogListener(this), this);
+        // команды с ":" и /plugins видят только опы, остальным - "Нет такой команды :/"
+        getServer().getPluginManager().registerEvents(new CommandHideListener(this), this);
+        // команды по привилегиям (commands.yml): в Tab и в чате только свои, плюс их права
+        commandAccess = new CommandAccess(this);
+        getServer().getPluginManager().registerEvents(commandAccess, this);
+
+        // таб (строки игроков, цвет ника, ✔) - в отдельном плагине MediaTab
 
         ColorCommand colorCommand = new ColorCommand(luckPermsHook);
         if (getCommand("color") != null) {
@@ -58,7 +99,71 @@ public final class DestroyChatPlugin extends JavaPlugin {
             getCommand("chatprefix").setTabCompleter(chatPrefixCommand);
         }
 
+        // /back и /dback - на место смерти, у всех
+        getServer().getPluginManager().registerEvents(new BackCommand(this), this);
+
+        // /admin и /espeed - команды персонала
+        StaffCommands staffCommands = new StaffCommands();
+        for (String name : new String[]{"admin", "espeed", "spec"}) {
+            if (getCommand(name) != null) {
+                getCommand(name).setExecutor(staffCommands);
+                getCommand(name).setTabCompleter(staffCommands);
+            }
+        }
+
+        // меню действий над игроком (клик по нику в чате)
+        if (getCommand(PlayerMenuCommand.NAME) != null) {
+            getCommand(PlayerMenuCommand.NAME).setExecutor(new PlayerMenuCommand(this));
+        }
+
+        // /contact - контакты команды проекта (contacts.yml), доступна всем
+        contactCommand = new ContactCommand(this);
+        if (getCommand("contact") != null) getCommand("contact").setExecutor(contactCommand);
+
+        this.announcer = new Announcer(this);
+        announcer.start();
+
         getLogger().info("DestroyChat включен.");
+
+        // модули в этом же jar: наказания и ваниш (папки plugins/DestroyChat/MediaBans, /VanishEffects)
+        modules = new Modules(this);
+        modules.enable(ru.dscraft.mediabans.MediaBansPlugin::new, "MediaBans",
+                "ban", "tempban", "mute", "tempmute", "kick", "unban", "unmute", "checkban", "checkmute", "banlist", "mediabans");
+        modules.enable(ru.example.vanisheffects.VanishEffectsPlugin::new, "VanishEffects", "v");
+    }
+
+    /**
+     * copyDefaults не перезаписывает то, что уже есть в config.yml, поэтому при смене оформления
+     * персонала разделы staff-stars и group-formats заменяются на новые из плагина один раз
+     * (по staff-config-version). Старое переливание ника в табе убирается.
+     */
+    private void migrateStaffConfig() {
+        var cfg = getConfig();
+        var defaults = cfg.getDefaults();
+        if (defaults == null) return;
+        int latest = defaults.getInt("staff-config-version", 1);
+        // get(path, null) смотрит только в сам файл, без значений по умолчанию
+        Object current = cfg.get("staff-config-version", null);
+        if (current instanceof Number n && n.intValue() >= latest) return;
+        for (String section : new String[]{"staff-stars", "group-formats"}) {
+            var def = defaults.getConfigurationSection(section);
+            if (def == null) continue;
+            cfg.set(section, null);
+            for (String key : def.getKeys(true)) {
+                if (!def.isConfigurationSection(key)) cfg.set(section + "." + key, def.get(key));
+            }
+        }
+        cfg.set("tab.animated-groups", null);
+        cfg.set("tab.name-color", defaults.getString("tab.name-color"));
+        cfg.set("tab.update-ticks", null);
+        cfg.set("staff-config-version", latest);
+        getLogger().info("Оформление персонала (staff-stars, group-formats) обновлено до версии " + latest + ".");
+    }
+
+    @Override
+    public void onDisable() {
+        if (modules != null) modules.disableAll();
+        if (announcer != null) announcer.stop();
     }
 
     @Override
@@ -66,12 +171,37 @@ public final class DestroyChatPlugin extends JavaPlugin {
         if (command.getName().equalsIgnoreCase("destroychat")) {
             if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
                 chatConfig.reload();
+                if (announcer != null) announcer.start();
+                if (contactCommand != null) contactCommand.reload();
+                if (commandAccess != null) commandAccess.reload();
                 sender.sendMessage("§a[DestroyChat] Конфиг перезагружен.");
                 return true;
             }
-            sender.sendMessage("§7Использование: /destroychat reload");
+            if (args.length >= 1 && args[0].equalsIgnoreCase("announce")) {
+                Integer number = null;
+                if (args.length >= 2) {
+                    try {
+                        number = Integer.parseInt(args[1]);
+                    } catch (NumberFormatException e) {
+                        sender.sendMessage("§cНомер должен быть числом.");
+                        return true;
+                    }
+                }
+                if (announcer == null || !announcer.announceNow(number)) {
+                    int size = announcer == null ? 0 : announcer.size();
+                    sender.sendMessage(size == 0
+                            ? "§cАвтосообщения выключены или пустые (announcements в config.yml)."
+                            : "§cНет сообщения с таким номером. Всего: " + size);
+                }
+                return true;
+            }
+            sender.sendMessage("§7Использование: /destroychat reload | /destroychat announce [номер]");
             return true;
         }
         return false;
+    }
+
+    public CommandAccess commandAccess() {
+        return commandAccess;
     }
 }

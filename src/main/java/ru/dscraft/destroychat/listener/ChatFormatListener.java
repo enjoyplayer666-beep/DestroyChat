@@ -15,15 +15,19 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import ru.dscraft.destroychat.config.ChatConfig;
 import ru.dscraft.destroychat.hook.LuckPermsHook;
+import ru.dscraft.destroychat.hook.ClanHook;
+import ru.dscraft.destroychat.hook.StatHook;
 import ru.dscraft.destroychat.util.ChatColors;
 import ru.dscraft.destroychat.util.ColorUtil;
+import ru.dscraft.destroychat.util.NameStyler;
 import ru.dscraft.destroychat.util.Perms;
 
 /**
  * Чат сервера.
  * <p>
- * Формат (как на скрине): {@code [Ⓛ/Ⓖ] ⌜Игрок⌟ ник → сообщение}
+ * Формат (как на скрине): {@code [Ⓛ/Ⓖ] [Клан] ⌜Игрок⌟ ник → сообщение}
  * <ul>
+ *   <li>[Клан] - тег клана из MediaClans (chat-tag в его конфиге), если игрок в клане;</li>
  *   <li>Ⓛ - локальный чат (радиус {@code chat.local-radius}), обычное сообщение;</li>
  *   <li>Ⓖ - глобальный чат, сообщение начинается с {@code !};</li>
  *   <li>префикс: личный чат-префикс (/prefix chat, Ultra+) -&gt; префикс из LuckPerms
@@ -40,10 +44,13 @@ public class ChatFormatListener implements Listener {
 
     private final ChatConfig config;
     private final LuckPermsHook luckPermsHook;
+    private final NameStyler nameStyler;
 
-    public ChatFormatListener(ChatConfig config, LuckPermsHook luckPermsHook) {
+    public ChatFormatListener(ChatConfig config, LuckPermsHook luckPermsHook,
+                              NameStyler nameStyler) {
         this.config = config;
         this.luckPermsHook = luckPermsHook;
+        this.nameStyler = nameStyler;
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -70,10 +77,12 @@ public class ChatFormatListener implements Listener {
 
         // ---- сообщение и "шапка" ----
         Component message = buildMessage(sender, raw, global);
-        Component head = buildHead(sender, global);
+        // [0] - для остальных (ник кликабельный), [1] - самому отправителю (свой ник не кликается)
+        Component[] heads = buildHead(sender, global);
 
         event.message(message);
-        event.renderer(ChatRenderer.viewerUnaware((source, displayName, msg) -> head.append(msg)));
+        event.renderer((source, displayName, msg, viewer) ->
+                (viewer instanceof Player p && p.getUniqueId().equals(source.getUniqueId()) ? heads[1] : heads[0]).append(msg));
 
         // ---- локальный радиус ----
         if (!global) {
@@ -99,31 +108,85 @@ public class ChatFormatListener implements Listener {
         }
     }
 
-    private Component buildHead(Player sender, boolean global) {
+    private Component[] buildHead(Player sender, boolean global) {
         Component icon = ColorUtil.parse(global ? config.globalIcon() : config.localIcon());
-        Component prefix = resolvePrefix(sender);
+        ChatConfig.GroupFormat group = nameStyler.group(sender);
+        // хвост префикса (коды после текста) - цвет ника: /prefix chat &6КОРОЛЬ &2&l
+        NameStyler.Split split = NameStyler.split(resolvePrefix(sender, group));
+        Component prefix = split.prefix() == null || split.prefix().isBlank()
+                ? Component.empty() : ColorUtil.rich(split.prefix());
 
-        Component name = Component.text(sender.getName(),
-                ColorUtil.parseColor(config.nameColor(), NamedTextColor.GRAY));
-        if (config.nameClickMsg()) {
+        Component plainName = nameStyler.chatName(sender, split.nickStyle(), group);
+        Component name = plainName;
+        var menu = config.playerMenu();
+        if (menu != null && menu.getBoolean("enabled", true)) {
+            java.util.Map<String, String> ph = java.util.Map.of("name", sender.getName(),
+                    "world", menu.getString("worlds." + sender.getWorld().getName(), sender.getWorld().getName()));
+            name = name
+                    .clickEvent(ClickEvent.runCommand("/" + ru.dscraft.destroychat.command.PlayerMenuCommand.NAME + " " + sender.getName()))
+                    .hoverEvent(HoverEvent.showText(ColorUtil.parse(menu.getString("name-hover", ""), ph)));
+        } else if (config.nameClickMsg()) {
             name = name
                     .clickEvent(ClickEvent.suggestCommand("/msg " + sender.getName() + " "))
                     .hoverEvent(HoverEvent.showText(Component.text("Написать в личные сообщения", NamedTextColor.GRAY)));
         }
 
-        return ColorUtil.parse(config.layout(),
-                Placeholder.component("icon", icon),
-                Placeholder.component("prefix", prefix),
-                Placeholder.component("name", name));
+        Component rank = resolveRank(sender);
+        Component clan = resolveClanTag(sender);
+        Component stars = resolveStars(sender);
+        return new Component[]{
+                layout(icon, rank, clan, prefix, name, stars),
+                layout(icon, rank, clan, prefix, plainName, stars)};
     }
 
-    /** Личный чат-префикс -> префикс LuckPerms -> "⌜Игрок⌟" из конфига. */
-    private Component resolvePrefix(Player sender) {
+    private Component layout(Component icon, Component rank, Component clan, Component prefix, Component name, Component stars) {
+        return ColorUtil.parse(config.layout(),
+                Placeholder.component("icon", icon),
+                Placeholder.component("rank", rank),
+                Placeholder.component("clan", clan),
+                Placeholder.component("prefix", prefix),
+                Placeholder.component("name", name),
+                Placeholder.component("stars", stars));
+    }
+
+    /** Звёзды персонала после ника (staff-stars в config.yml), с пробелом перед ними. */
+    private Component resolveStars(Player sender) {
+        String stars = config.staffStars(group -> sender.hasPermission("group." + group));
+        Component out = stars == null || stars.isBlank() ? Component.empty() : Component.space().append(ColorUtil.parse(stars));
+        // эмодзи у ника от команды проекта (/tabemoji в MediaTab, метка LuckPerms tab-emoji)
+        String emoji = luckPermsHook.getMetaValue(sender, "tab-emoji");
+        if (emoji != null && !emoji.isBlank()) out = out.append(Component.space()).append(ColorUtil.rich("&f" + emoji));
+        return out;
+    }
+
+    /** Ранг из DsRanks (например "☠ Лич "), пусто - нет плагина или /rank off. */
+    private Component resolveRank(Player sender) {
+        String rank = StatHook.chatRank(sender);
+        if (rank == null || rank.isBlank()) return Component.empty();
+        Component c = ColorUtil.rich(rank);
+        // наведение на ранг - карточка ранга (ник, ранг, бустер, убийства, умения)
+        String hover = StatHook.rankHover(sender);
+        if (hover != null && !hover.isBlank()) c = c.hoverEvent(HoverEvent.showText(ColorUtil.rich(hover)));
+        return c;
+    }
+
+    /** [Клан] из MediaClans с карточкой клана при наведении, пусто - если игрок не в клане. */
+    private Component resolveClanTag(Player sender) {
+        Component tag = ClanHook.chatTag(sender);
+        return tag == null ? Component.empty() : tag;
+    }
+
+    /** Личный чат-префикс -> префикс группы (group-formats) -> префикс LuckPerms -> "⌜Игрок⌟" из конфига. */
+    private String resolvePrefix(Player sender, ChatConfig.GroupFormat group) {
         String raw = null;
 
+        // свой /prefix chat главнее всего, в том числе у команды проекта
         if (sender.hasPermission(Perms.PREFIX_CHAT)) {
             String own = luckPermsHook.getMetaValue(sender, Perms.META_CHAT_PREFIX);
             if (own != null && !own.isBlank()) raw = own;
+        }
+        if (raw == null && group != null && group.chatPrefix() != null && !group.chatPrefix().isBlank()) {
+            raw = group.chatPrefix();
         }
         if (raw == null) {
             String lp = luckPermsHook.getPrefix(sender);
@@ -132,9 +195,9 @@ public class ChatFormatListener implements Listener {
         if (raw == null) {
             raw = config.defaultPrefix();
         }
-        if (raw == null || raw.isBlank()) return Component.empty();
+        if (raw == null || raw.isBlank()) return null;
         if (!raw.endsWith(" ")) raw = raw + " ";
-        return ColorUtil.rich(raw);
+        return raw;
     }
 
     private Component buildMessage(Player sender, String raw, boolean global) {
