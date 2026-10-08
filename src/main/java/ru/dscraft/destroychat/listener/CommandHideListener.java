@@ -35,7 +35,7 @@ public class CommandHideListener implements Listener {
         event.getCommands().removeIf(c -> c.indexOf(':') >= 0 || hidden.contains(c.toLowerCase(Locale.ROOT)));
     }
 
-    /** Раньше всех: команду не увидит ни другой плагин, ни лог [DestroyLog]. */
+    /** Раньше всех: команду не увидит ни другой плагин, ни лог [AmaterasuLog]. */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onCommand(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();

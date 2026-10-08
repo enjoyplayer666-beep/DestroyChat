@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * [DestroyLog] Игрок ник ввёл команду: /команда - видят только команда проекта (группы из
+ * [AmaterasuLog] Игрок ник ввёл команду: /команда - видят только команда проекта (группы из
  * group-formats, право destroychat.logs) и опы. Логируются только команды из command-log.commands.
  */
 public class CommandLogListener implements Listener {
@@ -52,7 +52,7 @@ public class CommandLogListener implements Listener {
         if (cfg.getBoolean("command-log.console", false)) Bukkit.getConsoleSender().sendMessage(line);
     }
 
-    public static final String DEFAULT_FORMAT = "<gray>[</gray><gradient:#FF4B4B:#FFD24B>DestroyLog</gradient><gray>]</gray> "
+    public static final String DEFAULT_FORMAT = "<gray>[</gray><gradient:#FF4B4B:#FFD24B>AmaterasuLog</gradient><gray>]</gray> "
             + "<#55FFFF>Игрок</#55FFFF> <#00AAAA><player></#00AAAA> <#55FFFF>ввёл команду:</#55FFFF> <gold><command></gold>";
 
     /**

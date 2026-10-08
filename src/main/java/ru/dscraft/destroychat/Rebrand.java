@@ -18,9 +18,15 @@ final class Rebrand {
     }
 
     static void apply(JavaPlugin plugin) {
+        apply(plugin, OLD, "Amaterasu", ".rebrand-amaterasu");
+        // [DestroyLog] в логах команд -> [AmaterasuLog]
+        apply(plugin, Pattern.compile("DestroyLog"), "AmaterasuLog", ".rebrand-amaterasu-log");
+    }
+
+    private static void apply(JavaPlugin plugin, Pattern old, String replacement, String marker) {
         File dir = plugin.getDataFolder();
         if (!dir.isDirectory()) return;
-        File mark = new File(dir, ".rebrand-amaterasu");
+        File mark = new File(dir, marker);
         if (mark.exists()) return;
         int changed = 0;
         List<Path> files;
@@ -33,7 +39,7 @@ final class Rebrand {
         for (Path f : files) {
             try {
                 String s = Files.readString(f, StandardCharsets.UTF_8);
-                String r = OLD.matcher(s).replaceAll("Amaterasu");
+                String r = old.matcher(s).replaceAll(replacement);
                 if (!r.equals(s)) {
                     Files.writeString(f, r, StandardCharsets.UTF_8);
                     changed++;
@@ -43,9 +49,9 @@ final class Rebrand {
             }
         }
         try {
-            Files.writeString(mark.toPath(), "DestroyCraft -> Amaterasu");
+            Files.writeString(mark.toPath(), old.pattern() + " -> " + replacement);
         } catch (IOException ignored) {
         }
-        if (changed > 0) plugin.getLogger().info("Название DestroyCraft заменено на Amaterasu в конфигах: " + changed);
+        if (changed > 0) plugin.getLogger().info(old.pattern() + " заменено на " + replacement + " в конфигах: " + changed);
     }
 }

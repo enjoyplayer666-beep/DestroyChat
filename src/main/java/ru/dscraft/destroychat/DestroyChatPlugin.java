@@ -78,7 +78,7 @@ public final class DestroyChatPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
                 new ChatFormatListener(chatConfig, luckPermsHook, nameStyler), this);
 
-        // [DestroyLog] - команды игроков видят только команда проекта и опы
+        // [AmaterasuLog] - команды игроков видят только команда проекта и опы
         getServer().getPluginManager().registerEvents(new CommandLogListener(this), this);
         // команды с ":" и /plugins видят только опы, остальным - "Нет такой команды :/"
         getServer().getPluginManager().registerEvents(new CommandHideListener(this), this);

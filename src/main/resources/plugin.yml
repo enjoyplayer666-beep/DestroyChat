@@ -114,7 +114,7 @@ permissions:
   destroychat.admin:
     default: op
   destroychat.logs:
-    description: Видеть [DestroyLog] - команды игроков в чате
+    description: Видеть [AmaterasuLog] - команды игроков в чате
     default: op
   destroylobby.prefix.chat:
     default: false
